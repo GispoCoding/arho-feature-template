@@ -1,0 +1,58 @@
+from qgis.gui import QgsDockWidget, QgsMapToolDigitizeFeature, QgsAdvancedDigitizingDockWidget, QgsMapToolCapture
+
+def start_digitizing(self) -> None:
+        """Create a new QGIS project, add a layer group, create a new empty vector layer for digitizing, and add an OSM layer."""
+
+        # 1. Create a new project
+        project = QgsProject.instance()
+        project.clear()  # Clear the current project (like starting a new one)
+
+        # 2. Create a new group in the layer tree
+        group_name = "uusi kaava"
+        root = project.layerTreeRoot()
+        group = root.addGroup(group_name)
+
+        # 3. Create a new empty vector layer (polygon layer for digitizing land use areas)
+        layer_name = "New Land Use Plan"
+        crs = "EPSG:4326"  # Define the CRS (EPSG:4326 is WGS84, you can use any appropriate CRS)
+        new_layer = QgsVectorLayer(f"Polygon?crs={crs}", layer_name, "memory")
+
+        if not new_layer.isValid():
+            iface.messageBar().pushMessage("Error", "Failed to create new layer", level=3)
+            return
+
+        # 4. Add the new layer to the project inside the "uusi kaava" group
+        QgsProject.instance().addMapLayer(new_layer, False)  # Add layer to project but don't display it yet
+        group.insertLayer(0, new_layer)  # Insert layer into the group at the first position
+
+        # 5. Set the newly created layer as the active layer so digitizing can start
+        iface.setActiveLayer(new_layer)
+
+        # 6. Start editing the layer (so the user can begin digitizing)
+        new_layer.startEditing()
+
+        # 7. Add OpenStreetMap layer
+        osm_url = "type=xyz&url=https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+        osm_layer = QgsRasterLayer(osm_url, "OpenStreetMap", "wms")
+
+        if not osm_layer.isValid():
+            iface.messageBar().pushMessage("Error", "Failed to add OpenStreetMap layer", level=3)
+            return
+
+        # Add the OSM layer to the project
+        QgsProject.instance().addMapLayer(osm_layer)
+
+        # 8. Create an instance of the advanced digitizing dock widget
+        advanced_digitizing_dock_widget = QgsAdvancedDigitizingDockWidget(iface.mapCanvas(), None)
+
+        # 9. Create the digitizing tool
+        digitizing_tool = QgsMapToolDigitizeFeature(iface.mapCanvas(), advanced_digitizing_dock_widget, QgsMapToolCapture.CapturePolygon)
+
+        # Ensure the layer is set correctly
+        digitizing_tool.setLayer(new_layer)  # Set the layer to digitize
+
+        # Set the map tool
+        iface.mapCanvas().setMapTool(digitizing_tool)
+
+        # Notify the user that digitizing is ready
+        iface.messageBar().pushMessage("Info", f"New project created. Layer '{layer_name}' is ready for digitizing, and OpenStreetMap layer has been added.", level=0)
