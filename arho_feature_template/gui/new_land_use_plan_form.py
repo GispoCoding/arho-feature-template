@@ -17,9 +17,9 @@ class NewLandUsePlanForm(QDialog, FormClass):  # type: ignore
 
         self.plan_widgets = defaultdict(dict)
 
-        self.plan_widgets['id'] = self.lineEdit_plan_id
-        self.plan_widgets['name'] = self.lineEdit_plan_name
-        self.plan_widgets['type'] = self.comboBox_plan_type
+        self.plan_widgets["id"] = self.lineEdit_plan_id
+        self.plan_widgets["name"] = self.lineEdit_plan_name
+        self.plan_widgets["type"] = self.comboBox_plan_type
 
     @property
     def plan_id(self):

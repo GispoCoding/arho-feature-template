@@ -2,7 +2,7 @@ from qgis.core import QgsFeature, QgsGeometry, QgsVectorLayer
 from qgis.PyQt.QtGui import QStandardItemModel
 from qgis.utils import iface
 
-from .feature_template_library import TemplateGeometryDigitizeMapTool
+from arho_feature_template.core.feature_template_library import TemplateGeometryDigitizeMapTool
 
 
 class LandUsePlanTemplater:
@@ -21,24 +21,19 @@ class LandUsePlanTemplater:
 
     def create_feature(self, feature):
         """Creates a new feature using stored dialog attributes."""
-        print("create_feature called with feature:", feature)
 
         if not self.plan_id or not self.plan_name or not self.plan_type:
-            print("Plan information not available")
             return
 
         layer = self.digitize_map_tool.layer()
 
         if not layer:
-            print("Layer is not set for digitizing.")
             return
 
-        print("Layer found:", layer.name(), "Editable:", layer.isEditable())
         new_feature = QgsFeature(layer.fields())
 
         geometry = feature.geometry()
         if not isinstance(geometry, QgsGeometry):
-            print("Expected geometry to be of type QgsGeometry, got:", type(geometry))
             return
 
         new_feature.setGeometry(geometry)
@@ -58,8 +53,5 @@ class LandUsePlanTemplater:
             layer.startEditing()
 
         layer.beginEditCommand("Create land use plan feature.")
-        if layer.addFeature(new_feature):
-            print(f"Feature with ID {self.plan_id}, name {self.plan_name}, and type {plan_type_value} created successfully.")
-        else:
-            print("Failed to add feature to the layer.")
+        layer.addFeature(new_feature)
         layer.commitChanges()
