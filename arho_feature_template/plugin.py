@@ -192,6 +192,8 @@ class Plugin:
             land_use_plan_layer = layers[0]
 
             if land_use_plan_layer:
+                if not land_use_plan_layer.isEditable():
+                    land_use_plan_layer.startEditing()
                 self.land_use_plan_templater.start_digitizing_for_layer(land_use_plan_layer)
 
     def load_existing_land_use_plan(self) -> None:
