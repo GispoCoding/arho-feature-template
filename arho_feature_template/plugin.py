@@ -1,23 +1,22 @@
 from __future__ import annotations
 
 import os
-
 from typing import TYPE_CHECKING, Callable, cast
 
 from qgis.core import QgsProject
-from qgis.PyQt.QtCore import QCoreApplication, QTranslator, Qt
+from qgis.PyQt.QtCore import QCoreApplication, Qt, QTranslator
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction, QWidget, QDialog
+from qgis.PyQt.QtWidgets import QAction, QWidget
 from qgis.utils import iface
 
+from arho_feature_template.core.create_land_use_plan import LandUsePlanTemplater
 from arho_feature_template.core.feature_template_library import FeatureTemplater, TemplateGeometryDigitizeMapTool
+from arho_feature_template.core.update_plan import LandUsePlan, update_selected_plan
+from arho_feature_template.gui.new_land_use_plan_form import NewLandUsePlanForm
 from arho_feature_template.qgis_plugin_tools.tools.custom_logging import setup_logger, teardown_logger
 from arho_feature_template.qgis_plugin_tools.tools.i18n import setup_translation
 from arho_feature_template.qgis_plugin_tools.tools.resources import plugin_name
-
 from arho_feature_template.utils.misc_utils import PLUGIN_PATH
-from arho_feature_template.update_plan import update_selected_plan, _check_vector_layer, LandUsePlan
-from arho_feature_template.LandUsePlanDialog import LandUsePlanDialog
 
 if TYPE_CHECKING:
     from qgis.gui import QgisInterface, QgsMapTool
@@ -129,10 +128,12 @@ class Plugin:
     def initGui(self) -> None:  # noqa N802
         self.templater = FeatureTemplater()
 
-        new_path = os.path.join(PLUGIN_PATH, "resources/icons/city.png")  # A placeholder icon
-        # <a href="https://www.flaticon.com/free-icons/land-use" title="land use icons">Land use icons created by Fusion5085 - Flaticon</a>
-        load_path = os.path.join(PLUGIN_PATH, "resources/icons/folder.png")
-        # <a href="https://www.flaticon.com/free-icons/open" title="open icons">Open icons created by Smashicons - Flaticon</a>
+        plan_icon_path = os.path.join(PLUGIN_PATH, "resources/icons/city.png")  # A placeholder icon
+        # <a href="https://www.flaticon.com/free-icons/land-use" title="land use icons">
+        # Land use icons created by Fusion5085 - Flaticon</a>
+        load_path = os.path.join(PLUGIN_PATH, "resources/icons/folder.png")  # A placeholder icon
+        # <a href="https://www.flaticon.com/free-icons/open" title="open icons">
+        # Open icons created by Smashicons - Flaticon</a>
 
         iface.addDockWidget(Qt.RightDockWidgetArea, self.templater.template_dock)
         self.templater.template_dock.visibilityChanged.connect(self.dock_visibility_changed)
@@ -150,21 +151,20 @@ class Plugin:
             add_to_toolbar=True,
         )
 
-        # Add additional action for "Lisää kaava"
-        new_action = self.add_action(
-            new_path,
-            text="Lisää kaava",
-            triggered_callback=self.start_digitizing,
-            parent=iface.mainWindow(),  # Use iface instead of self.iface
+        self.new_land_use_plan_action = self.add_action(
+            plan_icon_path,
+            "Create New Land Use Plan",
+            self.show_land_use_plan_dialog,
+            add_to_menu=True,
             add_to_toolbar=True,
+            status_tip="Create a new land use plan",
         )
 
-        # Add additional action for "Avaa kaava"
-        load_action = self.add_action(
+        self.load_land_use_plan_action = self.add_action(
             load_path,
-            text="Avaa kaava",
-            triggered_callback=self.open_plan,
-            parent=iface.mainWindow(),  # Use iface instead of self.iface
+            text="Load existing land use plan",
+            triggered_callback=self.load_existing_land_use_plan,
+            parent=iface.mainWindow(),
             add_to_toolbar=True,
         )
 
@@ -172,51 +172,30 @@ class Plugin:
         if not isinstance(new_tool, TemplateGeometryDigitizeMapTool):
             self.template_dock_action.setChecked(False)
 
-    def start_digitizing(self) -> None:
-        dialog = LandUsePlanDialog()
-        if dialog.exec_() != QDialog.Accepted:
-            return
+    def show_land_use_plan_dialog(self):
+        dialog = NewLandUsePlanForm()
+        if dialog.exec_():
+            new_land_use_plan = LandUsePlan(id=dialog.plan_id, name=dialog.plan_name)
+            update_selected_plan(new_land_use_plan)
 
-        # Create the LandUsePlan object from user input
-        new_plan = LandUsePlan(id=dialog.plan_id, name=dialog.plan_name)
-        plan_type = dialog.plan_type
+            self.land_use_plan_templater = LandUsePlanTemplater()
+            self.land_use_plan_templater.plan_id = dialog.plan_id
+            self.land_use_plan_templater.plan_name = dialog.plan_name
+            self.land_use_plan_templater.plan_type = dialog.plan_type
 
-        update_selected_plan(new_plan)
+            # TODO: fix hard coded layer name.
+            layers = QgsProject.instance().mapLayersByName("land_use_plan")
+            if not layers:
+                iface.messageBar().pushMessage("Error", "Layer 'land_use_plan' not found in the project", level=3)
+                return
 
-        layer_name = "Kaava"
+            land_use_plan_layer = layers[0]
 
-        layers = QgsProject.instance().mapLayersByName(layer_name)
-        kaava_layer = layers[0]
-        
-        if not kaava_layer:
-            iface.messageBar().pushMessage("Error", f"Layer '{layer_name}' not found in the project", level=3)
-            return
+            if land_use_plan_layer:
+                self.land_use_plan_templater.start_digitizing_for_layer(land_use_plan_layer)
 
-        # new_layer = layers[0]
-
-        if not _check_vector_layer(kaava_layer):
-            iface.messageBar().pushMessage("Error", f"Layer '{layer_name}' is not a valid vector layer", level=3)
-            return
-
-        iface.setActiveLayer(kaava_layer)
-        if not kaava_layer.isEditable():
-            kaava_layer.startEditing()
-
-        # digitizing_tool = SimpleDrawTool(iface.mapCanvas())
-
-        # Set the custom draw tool as the active tool on the canvas
-        # iface.mapCanvas().setMapTool(digitizing_tool)
-
-        # Notify the user
-        iface.messageBar().pushMessage(
-            "Info",
-            f"Layer '{layer_name}' is filtered by plan '{new_plan.name}' of type '{plan_type}' and ready for digitizing.",
-            level=0,
-        )
-
-    def open_plan(self) -> None:
+    def load_existing_land_use_plan(self) -> None:
         """Open existing land use plan."""
-        pass
 
     def unload(self) -> None:
         """Removes the plugin menu item and icon from QGIS GUI."""
