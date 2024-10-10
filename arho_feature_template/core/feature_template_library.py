@@ -132,6 +132,11 @@ class FeatureTemplater:
     def start_digitizing_for_layer(self, layer: QgsVectorLayer) -> None:
         self.digitize_map_tool.clean()
         self.digitize_map_tool.setLayer(layer)
+        if not layer.isEditable():
+            succeeded = layer.startEditing()
+            if not succeeded:
+                logger.warning("Failed to start editing layer %s", layer.name())
+                return
         iface.mapCanvas().setMapTool(self.digitize_map_tool)
 
     def ask_for_feature_attributes(self, feature: QgsFeature) -> None:
@@ -151,11 +156,6 @@ class FeatureTemplater:
                         attribute,
                         widget.text(),
                     )
-            if not layer.isEditable():
-                succeeded = layer.startEditing()
-                if not succeeded:
-                    logger.warning("Failed to start editing layer %s", layer.name())
-                    return
 
             layer.beginEditCommand("Create feature from template")
             layer.addFeature(feature)
