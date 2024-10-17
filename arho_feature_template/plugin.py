@@ -3,16 +3,15 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING, Callable, cast
 
-from qgis.core import QgsProject
+from qgis.core import QgsProject, QgsWkbTypes
 from qgis.PyQt.QtCore import QCoreApplication, Qt, QTranslator
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QWidget
 from qgis.utils import iface
 
-from arho_feature_template.core.create_land_use_plan import LandUsePlanTemplater
 from arho_feature_template.core.feature_template_library import FeatureTemplater, TemplateGeometryDigitizeMapTool
-from arho_feature_template.core.update_plan import LandUsePlan, update_selected_plan
-from arho_feature_template.gui.new_land_use_plan_form import NewLandUsePlanForm
+
+# from arho_feature_template.core.update_plan import LandUsePlan, update_selected_plan
 from arho_feature_template.qgis_plugin_tools.tools.custom_logging import setup_logger, teardown_logger
 from arho_feature_template.qgis_plugin_tools.tools.i18n import setup_translation
 from arho_feature_template.qgis_plugin_tools.tools.resources import plugin_name
@@ -153,11 +152,11 @@ class Plugin:
 
         self.new_land_use_plan_action = self.add_action(
             plan_icon_path,
-            "Create New Land Use Plan",
-            self.show_land_use_plan_dialog,
+            "Create New Plan",
+            self.digitize_new_plan,
             add_to_menu=True,
             add_to_toolbar=True,
-            status_tip="Create a new land use plan",
+            status_tip="Create a new plan",
         )
 
         self.load_land_use_plan_action = self.add_action(
@@ -172,29 +171,37 @@ class Plugin:
         if not isinstance(new_tool, TemplateGeometryDigitizeMapTool):
             self.template_dock_action.setChecked(False)
 
-    def show_land_use_plan_dialog(self):
-        dialog = NewLandUsePlanForm()
-        if dialog.exec_():
-            new_land_use_plan = LandUsePlan(id=dialog.plan_id, name=dialog.plan_name)
-            update_selected_plan(new_land_use_plan)
+    def digitize_new_plan(self):
+        # Activate and start editing the Kaava-layer
+        layers = QgsProject.instance().mapLayersByName("Kaava")
+        if not layers:
+            iface.messageBar().pushMessage("Error", "Layer 'Kaava' not found", level=3)
+            return
 
-            self.land_use_plan_templater = LandUsePlanTemplater()
-            self.land_use_plan_templater.plan_id = dialog.plan_id
-            self.land_use_plan_templater.plan_name = dialog.plan_name
-            self.land_use_plan_templater.plan_type = dialog.plan_type
+        kaava_layer = layers[0]
 
-            # TODO: fix hard coded layer name.
-            layers = QgsProject.instance().mapLayersByName("land_use_plan")
-            if not layers:
-                iface.messageBar().pushMessage("Error", "Layer 'land_use_plan' not found in the project", level=3)
-                return
+        if not kaava_layer.isEditable():
+            kaava_layer.startEditing()
 
-            land_use_plan_layer = layers[0]
+        iface.setActiveLayer(kaava_layer)
 
-            if land_use_plan_layer:
-                if not land_use_plan_layer.isEditable():
-                    land_use_plan_layer.startEditing()
-                self.land_use_plan_templater.start_digitizing_for_layer(land_use_plan_layer)
+        if kaava_layer.geometryType() != QgsWkbTypes.PolygonGeometry:
+            iface.messageBar().pushMessage("Error", "Layer 'Kaava' is not a polygon layer", level=3)
+            return
+
+        kaava_layer.featureAdded.connect(self.commit_new_plan)
+
+        iface.actionAddFeature().trigger()
+
+    def commit_new_plan(self):
+        kaava_layer = iface.activeLayer()
+
+        kaava_layer.featureAdded.disconnect()
+
+        if kaava_layer.commitChanges():
+            iface.messageBar().pushMessage("Info", "Feature committed successfully", level=0)
+        else:
+            iface.messageBar().pushMessage("Error", "Failed to commit feature", level=3)
 
     def load_existing_land_use_plan(self) -> None:
         """Open existing land use plan."""
