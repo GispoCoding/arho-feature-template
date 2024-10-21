@@ -4,7 +4,7 @@ import logging
 
 from qgis.core import QgsFeature, QgsProject, QgsVectorLayer
 from qgis.gui import QgsMapToolDigitizeFeature
-from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtCore import QItemSelectionModel
 from qgis.PyQt.QtGui import QStandardItem, QStandardItemModel
 from qgis.utils import iface
 
@@ -56,8 +56,6 @@ class TemplateItem(QStandardItem):
         self.config = template_config
         super().__init__(template_config.name)
 
-        self.setCheckable(True)
-
     def is_valid(self) -> bool:
         """Check if the template is valid agains current QGIS project
 
@@ -91,34 +89,50 @@ class FeatureTemplater:
         self.template_dock.library_selection.currentIndexChanged.connect(
             lambda: self.set_active_library(self.template_dock.library_selection.currentText())
         )
+        # Update template list when search text changes
+        self.template_dock.search_box.valueChanged.connect(self.on_template_search_text_changed)
 
-        # Activate map tool when template selection changes
-        self.template_model.itemChanged.connect(self.on_item_changed)
+        # Activate map tool when template is selected
+        self.template_dock.template_list.clicked.connect(self.on_template_item_clicked)
 
         self.digitize_map_tool = TemplateGeometryDigitizeMapTool(iface.mapCanvas(), iface.cadDockWidget())
         self.digitize_map_tool.digitizingCompleted.connect(self.ask_for_feature_attributes)
+        self.digitize_map_tool.deactivated.connect(self.template_dock.template_list.clearSelection)
 
-    def on_item_changed(self, item: TemplateItem) -> None:
-        if item.checkState() == Qt.Checked:
-            self._uncheck_others(item)
+    def on_template_item_clicked(self, index):
+        item = self.template_model.itemFromIndex(index)
+        try:
+            layer = get_layer_from_project(item.config.feature.layer)
+        except (LayerNotFoundError, LayerNotVectorTypeError):
+            logger.exception("Failed to activate template")
+            return
+        self.active_template = item
+        self.start_digitizing_for_layer(layer)
 
-            try:
-                layer = get_layer_from_project(item.config.feature.layer)
-            except (LayerNotFoundError, LayerNotVectorTypeError):
-                logger.exception("Failed to activate template")
-                return
-            self.active_template = item
-            self.start_digitizing_for_layer(layer)
+        # Reselect as a workaround for first selection visual clarity
+        self.template_dock.template_list.selectionModel().select(
+            index, QItemSelectionModel.Select | QItemSelectionModel.Rows
+        )
 
-    def _uncheck_others(self, item: QStandardItem) -> None:
+    def on_template_search_text_changed(self, search_text: str):
         for row in range(self.template_model.rowCount()):
-            other_item = self.template_model.item(row)
-            if other_item != item and other_item.checkState() == Qt.Checked:
-                other_item.setCheckState(Qt.Unchecked)
+            item = self.template_model.item(row)
+
+            # If the search text is in the item's text, show the row
+            if search_text in item.text().lower():
+                self.template_dock.template_list.setRowHidden(row, False)
+            else:
+                # Otherwise, hide the row
+                self.template_dock.template_list.setRowHidden(row, True)
 
     def start_digitizing_for_layer(self, layer: QgsVectorLayer) -> None:
         self.digitize_map_tool.clean()
         self.digitize_map_tool.setLayer(layer)
+        if not layer.isEditable():
+            succeeded = layer.startEditing()
+            if not succeeded:
+                logger.warning("Failed to start editing layer %s", layer.name())
+                return
         iface.mapCanvas().setMapTool(self.digitize_map_tool)
 
     def ask_for_feature_attributes(self, feature: QgsFeature) -> None:
@@ -138,11 +152,6 @@ class FeatureTemplater:
                         attribute,
                         widget.text(),
                     )
-            if not layer.isEditable():
-                succeeded = layer.startEditing()
-                if not succeeded:
-                    logger.warning("Failed to start editing layer %s", layer.name())
-                    return
 
             layer.beginEditCommand("Create feature from template")
             layer.addFeature(feature)
