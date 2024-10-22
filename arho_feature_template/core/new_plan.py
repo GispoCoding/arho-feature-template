@@ -26,7 +26,6 @@ class NewPlan:
         # Connect the featureAdded signal
         kaava_layer.featureAdded.connect(self.feature_added)
 
-
     def feature_added(self):
         kaava_layer = iface.activeLayer()
         kaava_layer.featureAdded.disconnect()
