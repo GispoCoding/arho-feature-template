@@ -7,6 +7,7 @@ templates:
     description: Kaavakohde ilman kikkareita
     feature:
       layer: land_use_area
+      # layer: Aluevaraus
       attributes:
         - attribute: name
         - attribute: type_of_underground_id
@@ -15,6 +16,7 @@ templates:
     description: Aluella kuvataan ...
     feature:
       layer: land_use_area
+      # layer: Aluevaraus
       attributes:
         - attribute: name
         - attribute: type_of_underground_id

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING, Callable, cast
 
 from qgis.PyQt.QtCore import QCoreApplication, Qt, QTranslator
@@ -8,9 +9,11 @@ from qgis.PyQt.QtWidgets import QAction, QWidget
 from qgis.utils import iface
 
 from arho_feature_template.core.feature_template_library import FeatureTemplater, TemplateGeometryDigitizeMapTool
+from arho_feature_template.core.new_plan import NewPlan
 from arho_feature_template.qgis_plugin_tools.tools.custom_logging import setup_logger, teardown_logger
 from arho_feature_template.qgis_plugin_tools.tools.i18n import setup_translation
 from arho_feature_template.qgis_plugin_tools.tools.resources import plugin_name
+from arho_feature_template.utils.misc_utils import PLUGIN_PATH
 
 if TYPE_CHECKING:
     from qgis.gui import QgisInterface, QgsMapTool
@@ -25,6 +28,7 @@ class Plugin:
 
     def __init__(self) -> None:
         setup_logger(Plugin.name)
+        self.digitizing_tool = None
 
         # initialize locale
         locale, file_path = setup_translation()
@@ -120,6 +124,14 @@ class Plugin:
 
     def initGui(self) -> None:  # noqa N802
         self.templater = FeatureTemplater()
+        self.new_plan = NewPlan()
+
+        plan_icon_path = os.path.join(PLUGIN_PATH, "resources/icons/city.png")  # A placeholder icon
+        # <a href="https://www.flaticon.com/free-icons/land-use" title="land use icons">
+        # Land use icons created by Fusion5085 - Flaticon</a>
+        load_path = os.path.join(PLUGIN_PATH, "resources/icons/folder.png")  # A placeholder icon
+        # <a href="https://www.flaticon.com/free-icons/open" title="open icons">
+        # Open icons created by Smashicons - Flaticon</a>
 
         iface.addDockWidget(Qt.RightDockWidgetArea, self.templater.template_dock)
         self.templater.template_dock.visibilityChanged.connect(self.dock_visibility_changed)
@@ -136,9 +148,32 @@ class Plugin:
             add_to_toolbar=True,
         )
 
+        self.new_land_use_plan_action = self.add_action(
+            plan_icon_path,
+            "Create New Plan",
+            self.digitize_new_plan,
+            add_to_menu=True,
+            add_to_toolbar=True,
+            status_tip="Create a new plan",
+        )
+
+        self.load_land_use_plan_action = self.add_action(
+            load_path,
+            text="Load existing land use plan",
+            triggered_callback=self.load_existing_land_use_plan,
+            parent=iface.mainWindow(),
+            add_to_toolbar=True,
+        )
+
     def on_map_tool_changed(self, new_tool: QgsMapTool, old_tool: QgsMapTool) -> None:  # noqa: ARG002
         if not isinstance(new_tool, TemplateGeometryDigitizeMapTool):
             self.template_dock_action.setChecked(False)
+
+    def digitize_new_plan(self):
+        self.new_plan.add_new_plan()
+
+    def load_existing_land_use_plan(self) -> None:
+        """Open existing land use plan."""
 
     def unload(self) -> None:
         """Removes the plugin menu item and icon from QGIS GUI."""
