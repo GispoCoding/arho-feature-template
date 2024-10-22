@@ -39,8 +39,7 @@ def set_filter_for_vector_layer(layer_name: str, field_name: str, field_value: s
 
     layer = layers[0]
 
-    # Create the filter expression directly based on the plan_id
-    expression = f"\"{field_name}\" = '{field_value}'"  # Properly formatted filter expression
+    expression = f"\"{field_name}\" = '{field_value}'"
 
     # Apply the filter to the layer
     if not layer.setSubsetString(expression):
