@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from importlib import resources
 from typing import TYPE_CHECKING
 
@@ -13,12 +15,12 @@ DockClass, _ = uic.loadUiType(ui_path)
 
 
 class TemplateLibraryDock(QgsDockWidget, DockClass):  # type: ignore
-    library_selection: "QComboBox"
-    search_box: "QgsFilterLineEdit"
-    template_list: "QListView"
-    txt_tip: "QLabel"
+    library_selection: QComboBox
+    search_box: QgsFilterLineEdit
+    template_list: QListView
+    txt_tip: QLabel
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.setupUi(self)
 

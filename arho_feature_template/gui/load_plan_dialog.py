@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from importlib import resources
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 from qgis.core import QgsProviderRegistry
 from qgis.PyQt import uic
@@ -8,13 +11,21 @@ from qgis.PyQt.QtWidgets import QComboBox, QDialog, QDialogButtonBox, QLineEdit,
 
 from arho_feature_template.core.exceptions import UnexpectedNoneError
 
+if TYPE_CHECKING:
+    from qgis.PyQt.QtCore import QModelIndex
+    from qgis.PyQt.QtWidgets import QWidget
+
+    class DbProviderConnectionProtocol(Protocol):
+        def executeSql(self, connection_name: str) -> list[list[Any]]: ...  # noqa: N802
+
+
 ui_path = resources.files(__package__) / "load_plan_dialog.ui"
 
 LoadPlanDialogBase, _ = uic.loadUiType(ui_path)
 
 
 class PlanFilterProxyModel(QSortFilterProxyModel):
-    def filterAcceptsRow(self, source_row, source_parent):  # noqa: N802
+    def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex) -> bool:  # noqa: N802
         model = self.sourceModel()
         if not model:
             return False
@@ -39,7 +50,7 @@ class LoadPlanDialog(QDialog, LoadPlanDialogBase):  # type: ignore
     searchLineEdit: QLineEdit  # noqa: N815
     buttonBox: QDialogButtonBox  # noqa: N815
 
-    def __init__(self, parent, connections):
+    def __init__(self, parent: QWidget, connections: list[str]) -> None:
         super().__init__(parent)
         self.setupUi(self)
 
@@ -76,7 +87,7 @@ class LoadPlanDialog(QDialog, LoadPlanDialogBase):  # type: ignore
 
         self.planTableView.setModel(self.filterProxyModel)
 
-    def load_plans(self):
+    def load_plans(self) -> None:
         self.model.removeRows(0, self.model.rowCount())
 
         selected_connection = self.connectionComboBox.currentText()
@@ -92,7 +103,9 @@ class LoadPlanDialog(QDialog, LoadPlanDialogBase):  # type: ignore
             raise UnexpectedNoneError
 
         try:
-            connection = postgres_provider_metadata.createConnection(selected_connection)
+            connection = cast(
+                DbProviderConnectionProtocol, postgres_provider_metadata.createConnection(selected_connection)
+            )
             plans = connection.executeSql("""
                 SELECT
                     p.id,
@@ -118,7 +131,7 @@ class LoadPlanDialog(QDialog, LoadPlanDialogBase):  # type: ignore
             QMessageBox.critical(self, "Error", f"Failed to load plans: {e}")
             self.model.removeRows(0, self.model.rowCount())
 
-    def filter_plans(self):
+    def filter_plans(self) -> None:
         search_text = self.searchLineEdit.text()
         if search_text:
             search_regex = QRegularExpression(search_text)
@@ -126,7 +139,7 @@ class LoadPlanDialog(QDialog, LoadPlanDialogBase):  # type: ignore
         else:
             self.filterProxyModel.setFilterRegularExpression("")
 
-    def on_selection_changed(self):
+    def on_selection_changed(self) -> None:
         # Enable the OK button only if a row is selected
         selection = self.planTableView.selectionModel().selectedRows()
         ok_button = self.buttonBox.button(QDialogButtonBox.Ok)
@@ -138,8 +151,8 @@ class LoadPlanDialog(QDialog, LoadPlanDialogBase):  # type: ignore
             self._selected_plan_id = None
             ok_button.setEnabled(False)
 
-    def get_selected_connection(self):
+    def get_selected_connection(self) -> str:
         return self.connectionComboBox.currentText()
 
-    def get_selected_plan_id(self):
+    def get_selected_plan_id(self) -> str | None:
         return self._selected_plan_id
