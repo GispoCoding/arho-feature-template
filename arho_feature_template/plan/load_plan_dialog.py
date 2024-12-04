@@ -6,7 +6,7 @@ from qgis.PyQt.QtCore import QRegularExpression, QSortFilterProxyModel, Qt
 from qgis.PyQt.QtGui import QStandardItem, QStandardItemModel
 from qgis.PyQt.QtWidgets import QComboBox, QDialog, QDialogButtonBox, QLineEdit, QMessageBox, QPushButton, QTableView
 
-from arho_feature_template.core.exceptions import UnexpectedNoneError
+from arho_feature_template.exceptions import UnexpectedNoneError
 
 ui_path = resources.files(__package__) / "load_plan_dialog.ui"
 

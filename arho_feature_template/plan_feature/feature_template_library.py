@@ -9,16 +9,16 @@ from qgis.PyQt.QtCore import QItemSelectionModel
 from qgis.PyQt.QtGui import QStandardItem, QStandardItemModel
 from qgis.utils import iface
 
-from arho_feature_template.core.template_library_config import (
+from arho_feature_template.exceptions import LayerNotFoundError, LayerNotVectorTypeError
+from arho_feature_template.plan_feature.plan_feature_form import PlanFeatureForm
+from arho_feature_template.plan_feature.template_dock import TemplateLibraryDock
+from arho_feature_template.plan_feature.template_library_config import (
     FeatureTemplate,
     TemplateLibraryConfig,
     TemplateLibraryVersionError,
     TemplateSyntaxError,
     parse_template_library_config,
 )
-from arho_feature_template.exceptions import LayerNotFoundError, LayerNotVectorTypeError
-from arho_feature_template.gui.template_attribute_form import TemplateAttributeForm
-from arho_feature_template.gui.template_dock import TemplateLibraryDock
 from arho_feature_template.resources.template_libraries import library_config_files
 from arho_feature_template.utils.project_utils import get_layer_from_project
 
@@ -157,7 +157,7 @@ class FeatureTemplater:
         if not self.active_template:
             return
 
-        attribute_form = TemplateAttributeForm(self.active_template.config)
+        attribute_form = PlanFeatureForm(self.active_template.config)
 
         if attribute_form.exec_():
             layer = get_layer_from_project(self.active_template.config.feature.layer)

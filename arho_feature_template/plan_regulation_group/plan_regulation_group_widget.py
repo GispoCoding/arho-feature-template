@@ -8,13 +8,13 @@ from qgis.PyQt import uic
 from qgis.PyQt.QtCore import pyqtSignal
 from qgis.PyQt.QtWidgets import QWidget
 
-from arho_feature_template.gui.plan_regulation_widget import PlanRegulationWidget
+from arho_feature_template.plan_regulation.plan_regulation_widget import PlanRegulationWidget
 
 if TYPE_CHECKING:
     from qgis.PyQt.QtWidgets import QFrame, QLineEdit, QPushButton
 
-    from arho_feature_template.core.plan_regulation_config import PlanRegulationDefinition
-    from arho_feature_template.core.plan_regulation_group_config import PlanRegulationGroupDefinition
+    from arho_feature_template.plan_regulation.plan_regulation_config import PlanRegulationDefinition
+    from arho_feature_template.plan_regulation_group.plan_regulation_group_config import PlanRegulationGroupDefinition
 
 ui_path = resources.files(__package__) / "plan_regulation_group_widget.ui"
 FormClass, _ = uic.loadUiType(ui_path)

@@ -9,10 +9,10 @@ from qgis.core import QgsExpressionContextUtils, QgsProject, QgsVectorLayer
 from qgis.PyQt.QtWidgets import QDialog, QMessageBox
 from qgis.utils import iface
 
-from arho_feature_template.core.lambda_service import LambdaService
-from arho_feature_template.gui.load_plan_dialog import LoadPlanDialog
-from arho_feature_template.gui.serialize_plan import SerializePlan
+from arho_feature_template.plan.load_plan_dialog import LoadPlanDialog
+from arho_feature_template.plan.serialize_plan import SerializePlan
 from arho_feature_template.utils.db_utils import get_existing_database_connection_names
+from arho_feature_template.utils.lambda_service import LambdaService
 from arho_feature_template.utils.misc_utils import get_active_plan_id, get_layer_by_name, handle_unsaved_changes
 
 logger = logging.getLogger(__name__)

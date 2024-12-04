@@ -19,13 +19,13 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from arho_feature_template.core.plan_regulation_config import PlanRegulationConfig, ValueType
+from arho_feature_template.plan_regulation.plan_regulation_config import PlanRegulationConfig, ValueType
 from arho_feature_template.utils.misc_utils import get_additional_information_name, get_layer_by_name
 
 if TYPE_CHECKING:
     from qgis.PyQt.QtWidgets import QPushButton
 
-    from arho_feature_template.core.plan_regulation_group_config import PlanRegulationDefinition
+    from arho_feature_template.plan_regulation_group.plan_regulation_group_config import PlanRegulationDefinition
 
 ui_path = resources.files(__package__) / "plan_regulation_widget.ui"
 FormClass, _ = uic.loadUiType(ui_path)

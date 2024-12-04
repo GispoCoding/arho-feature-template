@@ -4,7 +4,7 @@ import logging
 
 from qgis.core import QgsProviderRegistry
 
-from arho_feature_template.core.exceptions import UnexpectedNoneError
+from arho_feature_template.exceptions import UnexpectedNoneError
 
 LOGGER = logging.getLogger("LandUsePlugin")
 

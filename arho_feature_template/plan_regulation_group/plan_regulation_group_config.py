@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, cast
 import yaml
 from qgis.utils import iface
 
-from arho_feature_template.core.plan_regulation_config import PlanRegulationDefinition, PlanRegulationsSet
+from arho_feature_template.plan_regulation.plan_regulation_config import PlanRegulationDefinition, PlanRegulationsSet
 
 if TYPE_CHECKING:
     from pathlib import Path

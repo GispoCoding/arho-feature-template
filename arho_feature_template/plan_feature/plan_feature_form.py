@@ -19,23 +19,23 @@ from qgis.PyQt.QtWidgets import (
     QTreeWidgetItem,
 )
 
-from arho_feature_template.core.plan_regulation_group_config import (
+from arho_feature_template.plan_regulation_group.plan_regulation_group_config import (
     PlanRegulationGroupDefinition,
     PlanRegulationGroupLibrary,
 )
-from arho_feature_template.gui.plan_regulation_group_widget import PlanRegulationGroupWidget
+from arho_feature_template.plan_regulation_group.plan_regulation_group_widget import PlanRegulationGroupWidget
 from arho_feature_template.qgis_plugin_tools.tools.resources import resources_path
 
 if TYPE_CHECKING:
     from qgis.PyQt.QtWidgets import QWidget
 
-    from arho_feature_template.core.template_library_config import FeatureTemplate
+    from arho_feature_template.plan_feature.template_library_config import FeatureTemplate
 
-ui_path = resources.files(__package__) / "template_attribute_form.ui"
+ui_path = resources.files(__package__) / "plan_feature_form.ui"
 FormClass, _ = uic.loadUiType(ui_path)
 
 
-class TemplateAttributeForm(QDialog, FormClass):  # type: ignore
+class PlanFeatureForm(QDialog, FormClass):  # type: ignore
     """Parent class for feature template forms for adding and modifying feature attribute data."""
 
     def __init__(self, feature_template_config: FeatureTemplate):
