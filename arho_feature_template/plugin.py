@@ -43,6 +43,8 @@ class Plugin:
         self.actions: list[QAction] = []
         self.menu = Plugin.name
 
+        self.toolbar = iface.addToolBar("ARHO Toolbar")
+
     def add_action(
         self,
         icon_path: str,
@@ -114,7 +116,7 @@ class Plugin:
             action.setCheckable(True)
 
         if add_to_toolbar:
-            iface.addToolBarIcon(action)
+            self.toolbar.addAction(action)
 
         if add_to_menu:
             iface.addPluginToMenu(self.menu, action)
@@ -214,6 +216,7 @@ class Plugin:
         for action in self.actions:
             iface.removePluginMenu(Plugin.name, action)
             iface.removeToolBarIcon(action)
+        iface.mainWindow().removeToolBar(self.toolbar)
         teardown_logger(Plugin.name)
 
         self.templater.template_dock.close()
