@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Callable, cast
 
+from qgis.core import QgsApplication
 from qgis.PyQt.QtCore import QCoreApplication, Qt, QTranslator
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QWidget
@@ -43,10 +44,13 @@ class Plugin:
         self.actions: list[QAction] = []
         self.menu = Plugin.name
 
+        self.toolbar = iface.addToolBar("ARHO Toolbar")
+        self.toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+
     def add_action(
         self,
-        icon_path: str,
         text: str,
+        icon: QIcon | None = None,
         triggered_callback: Callable | None = None,
         *,
         toggled_callback: Callable | None = None,
@@ -61,8 +65,7 @@ class Plugin:
     ) -> QAction:
         """Add a toolbar icon to the toolbar.
 
-        :param icon_path: Path to the icon for this action. Can be a resource
-            path (e.g. ':/plugins/foo/bar.png') or a normal file system path.
+        :param icon: Icon for this action.
 
         :param text: Text that should be shown in menu items for this action.
 
@@ -89,8 +92,8 @@ class Plugin:
             added to self.actions list.
         :rtype: QAction
         """
-
-        icon = QIcon(icon_path)
+        if not icon:
+            icon = QIcon("")
         action = QAction(icon, text, parent)
         # noinspection PyUnresolvedReferences
         if triggered_callback:
@@ -114,7 +117,7 @@ class Plugin:
             action.setCheckable(True)
 
         if add_to_toolbar:
-            iface.addToolBarIcon(action)
+            self.toolbar.addAction(action)
 
         if add_to_menu:
             iface.addPluginToMenu(self.menu, action)
@@ -134,19 +137,24 @@ class Plugin:
 
         iface.mapCanvas().mapToolSet.connect(self.templater.digitize_map_tool.deactivate)
 
+        # icons to consider:
+        # icon=QgsApplication.getThemeIcon("mActionStreamingDigitize.svg"),
+        # icon=QgsApplication.getThemeIcon("mIconGeometryCollectionLayer.svg"),
+        # icon=QgsApplication.getThemeIcon("mActionSharingExport.svg"),
+
         # Add main plugin action to the toolbar
         self.new_land_use_plan_action = self.add_action(
-            "",
-            "Luo uusi kaava",
-            self.add_new_plan,
+            text="Luo uusi kaava",
+            icon=QgsApplication.getThemeIcon("mActionNewMap.svg"),
+            triggered_callback=self.add_new_plan,
             add_to_menu=True,
             add_to_toolbar=True,
             status_tip="Luo uusi kaava",
         )
 
         self.load_land_use_plan_action = self.add_action(
-            "",
             text="Lataa/avaa kaavaa",
+            icon=QgsApplication.getThemeIcon("mActionFileOpen.svg"),
             triggered_callback=self.load_existing_land_use_plan,
             parent=iface.mainWindow(),
             add_to_menu=True,
@@ -155,9 +163,8 @@ class Plugin:
         )
 
         self.template_dock_action = self.add_action(
-            "",
-            "Kaavakohdetemplaatit",
-            None,
+            text="Kaavakohdetemplaatit",
+            icon=QgsApplication.getThemeIcon("mIconFieldGeometry.svg"),
             toggled_callback=self.toggle_template_dock,
             checkable=True,
             add_to_menu=True,
@@ -165,16 +172,16 @@ class Plugin:
         )
 
         self.new_plan_regulation_group = self.add_action(
-            "",
             text="Luo kaavamääräysryhmä",
+            icon=QgsApplication.getThemeIcon("mActionAddManualTable.svg"),
             triggered_callback=self.open_plan_regulation_group_form,
             add_to_menu=True,
             add_to_toolbar=True,
         )
 
         self.serialize_plan_action = self.add_action(
-            "",
             text="Tallenna kaava JSON",
+            icon=QgsApplication.getThemeIcon("mActionFileSaveAs.svg"),
             triggered_callback=self.serialize_plan,
             add_to_menu=True,
             add_to_toolbar=True,
@@ -182,7 +189,6 @@ class Plugin:
         )
 
         self.plugin_settings_action = self.add_action(
-            "",
             text="Asetukset",
             triggered_callback=self.open_settings,
             add_to_menu=True,
@@ -214,6 +220,7 @@ class Plugin:
         for action in self.actions:
             iface.removePluginMenu(Plugin.name, action)
             iface.removeToolBarIcon(action)
+        iface.mainWindow().removeToolBar(self.toolbar)
         teardown_logger(Plugin.name)
 
         self.templater.template_dock.close()
