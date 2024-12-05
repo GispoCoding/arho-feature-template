@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Callable, cast
 
+from qgis.core import QgsApplication
 from qgis.PyQt.QtCore import QCoreApplication, Qt, QTranslator
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QWidget
@@ -44,6 +45,7 @@ class Plugin:
         self.menu = Plugin.name
 
         self.toolbar = iface.addToolBar("ARHO Toolbar")
+        self.toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 
     def add_action(
         self,
@@ -135,9 +137,15 @@ class Plugin:
 
         iface.mapCanvas().mapToolSet.connect(self.templater.digitize_map_tool.deactivate)
 
+        # icons to consider:
+        # icon=QgsApplication.getThemeIcon("mActionStreamingDigitize.svg"),
+        # icon=QgsApplication.getThemeIcon("mIconGeometryCollectionLayer.svg"),
+        # icon=QgsApplication.getThemeIcon("mActionSharingExport.svg"),
+
         # Add main plugin action to the toolbar
         self.new_land_use_plan_action = self.add_action(
             text="Luo uusi kaava",
+            icon=QgsApplication.getThemeIcon("mActionNewMap.svg"),
             triggered_callback=self.add_new_plan,
             add_to_menu=True,
             add_to_toolbar=True,
@@ -146,6 +154,7 @@ class Plugin:
 
         self.load_land_use_plan_action = self.add_action(
             text="Lataa/avaa kaavaa",
+            icon=QgsApplication.getThemeIcon("mActionFileOpen.svg"),
             triggered_callback=self.load_existing_land_use_plan,
             parent=iface.mainWindow(),
             add_to_menu=True,
@@ -155,6 +164,7 @@ class Plugin:
 
         self.template_dock_action = self.add_action(
             text="Kaavakohdetemplaatit",
+            icon=QgsApplication.getThemeIcon("mIconFieldGeometry.svg"),
             toggled_callback=self.toggle_template_dock,
             checkable=True,
             add_to_menu=True,
@@ -163,6 +173,7 @@ class Plugin:
 
         self.new_plan_regulation_group = self.add_action(
             text="Luo kaavamääräysryhmä",
+            icon=QgsApplication.getThemeIcon("mActionAddManualTable.svg"),
             triggered_callback=self.open_plan_regulation_group_form,
             add_to_menu=True,
             add_to_toolbar=True,
@@ -170,6 +181,7 @@ class Plugin:
 
         self.serialize_plan_action = self.add_action(
             text="Tallenna kaava JSON",
+            icon=QgsApplication.getThemeIcon("mActionFileSaveAs.svg"),
             triggered_callback=self.serialize_plan,
             add_to_menu=True,
             add_to_toolbar=True,
