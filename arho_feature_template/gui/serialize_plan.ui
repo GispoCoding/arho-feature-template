@@ -6,84 +6,122 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>558</width>
-    <height>193</height>
+    <width>519</width>
+    <height>107</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>16777215</width>
+    <height>16777215</height>
+   </size>
   </property>
   <property name="windowTitle">
    <string>Tallenna kaava JSON</string>
   </property>
-  <widget class="QDialogButtonBox" name="buttonBox">
-   <property name="geometry">
-    <rect>
-     <x>20</x>
-     <y>150</y>
-     <width>521</width>
-     <height>32</height>
-    </rect>
-   </property>
-   <property name="standardButtons">
-    <set>QDialogButtonBox::Cancel|QDialogButtonBox::Save</set>
-   </property>
-   <property name="centerButtons">
-    <bool>true</bool>
-   </property>
-  </widget>
-  <widget class="QWidget" name="layoutWidget">
-   <property name="geometry">
-    <rect>
-     <x>20</x>
-     <y>20</y>
-     <width>521</width>
-     <height>120</height>
-    </rect>
-   </property>
-   <layout class="QGridLayout" name="gridLayout">
-    <item row="0" column="0">
-     <widget class="QLabel" name="plan_outline_label">
-      <property name="text">
-       <string>Kaavan ulkorajan tallennuspolku:</string>
-      </property>
-     </widget>
-    </item>
-    <item row="0" column="1">
-     <widget class="QLineEdit" name="plan_outline_path_edit">
-      <property name="readOnly">
-       <bool>true</bool>
-      </property>
-     </widget>
-    </item>
-    <item row="0" column="2">
-     <widget class="QPushButton" name="plan_outline_select_button">
-      <property name="text">
-       <string>Valitse...</string>
-      </property>
-     </widget>
-    </item>
-    <item row="1" column="0">
-     <widget class="QLabel" name="plan_label">
-      <property name="text">
-       <string>Kaavan tallennuspolku:</string>
-      </property>
-     </widget>
-    </item>
-    <item row="1" column="1">
-     <widget class="QLineEdit" name="plan_path_edit">
-      <property name="readOnly">
-       <bool>true</bool>
-      </property>
-     </widget>
-    </item>
-    <item row="1" column="2">
-     <widget class="QPushButton" name="plan_select_button">
-      <property name="text">
-       <string>Valitse...</string>
-      </property>
-     </widget>
-    </item>
-   </layout>
-  </widget>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <layout class="QFormLayout" name="formLayout">
+     <item row="0" column="0">
+      <widget class="QLabel" name="plan_outline_label">
+       <property name="text">
+        <string>Kaavan ulkorajan tallennuspolku</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QgsFileWidget" name="plan_outline_file">
+       <property name="dialogTitle">
+        <string>Valitse kaavan ulkorajan tallennuspolku</string>
+       </property>
+       <property name="filter">
+        <string>JSON Files (*.json)</string>
+       </property>
+       <property name="storageMode">
+        <enum>QgsFileWidget::SaveFile</enum>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="plan_label">
+       <property name="text">
+        <string>Kaavan tallennuspolku</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QgsFileWidget" name="plan_file">
+       <property name="dialogTitle">
+        <string>Valitse kaavan tallennuspolku</string>
+       </property>
+       <property name="filter">
+        <string>JSON Files (*.json)</string>
+       </property>
+       <property name="storageMode">
+        <enum>QgsFileWidget::SaveFile</enum>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="button_box">
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+     </property>
+     <property name="centerButtons">
+      <bool>false</bool>
+     </property>
+    </widget>
+   </item>
+  </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QgsFileWidget</class>
+   <extends>QWidget</extends>
+   <header>qgsfilewidget.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>button_box</sender>
+   <signal>accepted()</signal>
+   <receiver>Dialog</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>247</x>
+     <y>85</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>247</x>
+     <y>53</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>button_box</sender>
+   <signal>rejected()</signal>
+   <receiver>Dialog</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>247</x>
+     <y>85</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>247</x>
+     <y>53</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>

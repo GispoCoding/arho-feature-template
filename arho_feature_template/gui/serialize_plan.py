@@ -1,50 +1,39 @@
+from __future__ import annotations
+
 from importlib import resources
+from typing import TYPE_CHECKING
 
 from qgis.PyQt import uic
-from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox, QFileDialog, QLineEdit, QPushButton
+from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox
+
+if TYPE_CHECKING:
+    from qgis.gui import QgsFileWidget
+
 
 ui_path = resources.files(__package__) / "serialize_plan.ui"
 FormClass, _ = uic.loadUiType(ui_path)
 
 
 class SerializePlan(QDialog, FormClass):  # type: ignore
-    plan_outline_path_edit: QLineEdit
-    plan_path_edit: QLineEdit
-    plan_outline_select_button: QPushButton
-    plan_select_button: QPushButton
+    plan_outline_file: QgsFileWidget
+    plan_file: QgsFileWidget
+    button_box: QDialogButtonBox
 
     def __init__(self):
         super().__init__()
         self.setupUi(self)
 
-        self.plan_outline_select_button.clicked.connect(self.select_plan_outline_file)
-        self.plan_select_button.clicked.connect(self.select_plan_file)
-
-        # Disable Save button initially
-        self.buttonBox.button(QDialogButtonBox.Save).setEnabled(False)
-        self.buttonBox.accepted.connect(self.accept)
-        self.buttonBox.rejected.connect(self.reject)
-
-    def select_plan_outline_file(self):
-        file_path, _ = QFileDialog.getSaveFileName(
-            self, "Valitse kaavan ulkorajan tallennuspolku", "", "JSON Files (*.json)"
-        )
-        if file_path:
-            self.plan_outline_path_edit.setText(file_path)
-            self.check_inputs()
-
-    def select_plan_file(self):
-        file_path, _ = QFileDialog.getSaveFileName(self, "Valitse kaavan tallennuspolku", "", "JSON Files (*.json)")
-        if file_path:
-            self.plan_path_edit.setText(file_path)
-            self.check_inputs()
+        self.plan_outline_file.fileChanged.connect(self.check_inputs)
+        self.plan_file.fileChanged.connect(self.check_inputs)
+        self.setMaximumHeight(107)  # Lock height
+        self.check_inputs()
 
     def check_inputs(self):
-        # Enable Save button if both text fields have paths
-        if self.plan_outline_path_edit.text() and self.plan_path_edit.text():
-            self.buttonBox.button(QDialogButtonBox.Save).setEnabled(True)
+        """Enables ok/save button only if both file paths are defined."""
+        if self.plan_outline_file.filePath() and self.plan_file.filePath():
+            self.button_box.button(QDialogButtonBox.Ok).setEnabled(True)
         else:
-            self.buttonBox.button(QDialogButtonBox.Save).setEnabled(False)
+            self.button_box.button(QDialogButtonBox.Ok).setEnabled(False)
 
-    def get_paths(self):
-        return self.plan_outline_path_edit.text(), self.plan_path_edit.text()
+    def get_paths(self) -> tuple[str, str]:
+        return self.plan_outline_file.filePath(), self.plan_file.filePath()
