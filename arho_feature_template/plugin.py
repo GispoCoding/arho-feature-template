@@ -47,8 +47,8 @@ class Plugin:
 
     def add_action(
         self,
-        icon_path: str,
         text: str,
+        icon: QIcon | None = None,
         triggered_callback: Callable | None = None,
         *,
         toggled_callback: Callable | None = None,
@@ -63,8 +63,7 @@ class Plugin:
     ) -> QAction:
         """Add a toolbar icon to the toolbar.
 
-        :param icon_path: Path to the icon for this action. Can be a resource
-            path (e.g. ':/plugins/foo/bar.png') or a normal file system path.
+        :param icon: Icon for this action.
 
         :param text: Text that should be shown in menu items for this action.
 
@@ -91,8 +90,8 @@ class Plugin:
             added to self.actions list.
         :rtype: QAction
         """
-
-        icon = QIcon(icon_path)
+        if not icon:
+            icon = QIcon("")
         action = QAction(icon, text, parent)
         # noinspection PyUnresolvedReferences
         if triggered_callback:
@@ -138,16 +137,14 @@ class Plugin:
 
         # Add main plugin action to the toolbar
         self.new_land_use_plan_action = self.add_action(
-            "",
-            "Luo uusi kaava",
-            self.add_new_plan,
+            text="Luo uusi kaava",
+            triggered_callback=self.add_new_plan,
             add_to_menu=True,
             add_to_toolbar=True,
             status_tip="Luo uusi kaava",
         )
 
         self.load_land_use_plan_action = self.add_action(
-            "",
             text="Lataa/avaa kaavaa",
             triggered_callback=self.load_existing_land_use_plan,
             parent=iface.mainWindow(),
@@ -157,9 +154,7 @@ class Plugin:
         )
 
         self.template_dock_action = self.add_action(
-            "",
-            "Kaavakohdetemplaatit",
-            None,
+            text="Kaavakohdetemplaatit",
             toggled_callback=self.toggle_template_dock,
             checkable=True,
             add_to_menu=True,
@@ -167,7 +162,6 @@ class Plugin:
         )
 
         self.new_plan_regulation_group = self.add_action(
-            "",
             text="Luo kaavamääräysryhmä",
             triggered_callback=self.open_plan_regulation_group_form,
             add_to_menu=True,
@@ -175,7 +169,6 @@ class Plugin:
         )
 
         self.serialize_plan_action = self.add_action(
-            "",
             text="Tallenna kaava JSON",
             triggered_callback=self.serialize_plan,
             add_to_menu=True,
@@ -184,7 +177,6 @@ class Plugin:
         )
 
         self.plugin_settings_action = self.add_action(
-            "",
             text="Asetukset",
             triggered_callback=self.open_settings,
             add_to_menu=True,
