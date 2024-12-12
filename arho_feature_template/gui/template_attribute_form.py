@@ -19,11 +19,8 @@ from qgis.PyQt.QtWidgets import (
     QTreeWidgetItem,
 )
 
-from arho_feature_template.core.plan_regulation_group_config import (
-    PlanRegulationGroupDefinition,
-    PlanRegulationGroupLibrary,
-)
-from arho_feature_template.gui.plan_regulation_group_widget import PlanRegulationGroupWidget
+from arho_feature_template.core.models import RegulationGroup, RegulationGroupLibrary
+from arho_feature_template.gui.plan_regulation_group_widget import RegulationGroupWidget
 from arho_feature_template.qgis_plugin_tools.tools.resources import resources_path
 
 if TYPE_CHECKING:
@@ -72,33 +69,33 @@ class TemplateAttributeForm(QDialog, FormClass):  # type: ignore
     def add_selected_plan_regulation_group(self, item: QTreeWidgetItem, column: int):
         if not item.parent():
             return
-        definition: PlanRegulationGroupDefinition = item.data(column, Qt.UserRole)
-        self.add_plan_regulation_group(definition)
+        regulation_group: RegulationGroup = item.data(column, Qt.UserRole)
+        self.add_plan_regulation_group(regulation_group)
 
-    def add_plan_regulation_group(self, definition: PlanRegulationGroupDefinition):
-        new_plan_regulation_group = PlanRegulationGroupWidget(definition)
+    def add_plan_regulation_group(self, definition: RegulationGroup):
+        new_plan_regulation_group = RegulationGroupWidget(definition)
         new_plan_regulation_group.delete_signal.connect(self.remove_plan_regulation_group)
         self._remove_spacer()
         self.plan_regulation_group_scrollarea_contents.layout().addWidget(new_plan_regulation_group)
         self._add_spacer()
 
-    def remove_plan_regulation_group(self, plan_regulation_group_widget: PlanRegulationGroupWidget):
+    def remove_plan_regulation_group(self, plan_regulation_group_widget: RegulationGroupWidget):
         self.plan_regulation_group_scrollarea_contents.layout().removeWidget(plan_regulation_group_widget)
         plan_regulation_group_widget.deleteLater()
 
     def init_plan_regulation_group_libraries(self):
         katja_asemakaava_path = Path(os.path.join(resources_path(), "katja_asemakaava.yaml"))
-        libraries = [PlanRegulationGroupLibrary.new_from_file(katja_asemakaava_path)]
+        libraries = [RegulationGroupLibrary.from_config_file(katja_asemakaava_path)]
         for library in libraries:
             self.init_plan_regulation_group_library(library)
 
-    def init_plan_regulation_group_library(self, library: PlanRegulationGroupLibrary):
-        self.plan_regulation_group_libraries_combobox.addItem(library.meta.name)
-        for category in library.plan_regulation_group_categories:
+    def init_plan_regulation_group_library(self, library: RegulationGroupLibrary):
+        self.plan_regulation_group_libraries_combobox.addItem(library.name)
+        for category in library.regulation_group_categories:
             category_item = QTreeWidgetItem()
             category_item.setText(0, category.name)
             self.plan_regulation_groups_tree.addTopLevelItem(category_item)
-            for group_definition in category.plan_regulation_groups:
+            for group_definition in category.regulation_groups:
                 regulation_group_item = QTreeWidgetItem(category_item)
                 regulation_group_item.setText(0, group_definition.name)
                 regulation_group_item.setData(0, Qt.UserRole, group_definition)

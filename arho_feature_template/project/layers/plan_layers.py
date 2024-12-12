@@ -15,7 +15,7 @@ from arho_feature_template.project.layers import AbstractLayer
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from arho_feature_template.core.models import Plan
+    from arho_feature_template.core.models import Plan, Regulation, RegulationGroup
 
 
 class AbstractPlanLayer(AbstractLayer):
@@ -101,6 +101,12 @@ class RegulationGroupLayer(AbstractPlanLayer):
     name = "Kaavamääräysryhmät"
     filter_template = Template("plan_id = '$plan_id'")
 
+    @classmethod
+    def feature_from_model(cls, _model: RegulationGroup) -> QgsFeature:
+        layer = cls.get_from_project()
+        # TODO: Implement
+        return QgsVectorLayerUtils.createFeature(layer)
+
 
 class RegulationGroupAssociationLayer(AbstractPlanLayer):
     name = "Kaavamääräysryhmien assosiaatiot"
@@ -132,6 +138,12 @@ class PlanRegulationLayer(AbstractPlanLayer):
             )"""
         )
     )
+
+    @classmethod
+    def feat_from_model(cls, _model: Regulation, _regulation_group_id: int | None) -> QgsFeature:
+        layer = cls.get_from_project()
+        # TODO: Implement
+        return QgsVectorLayerUtils.createFeature(layer)
 
 
 class PlanPropositionLayer(AbstractPlanLayer):
