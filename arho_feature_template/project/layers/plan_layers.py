@@ -102,13 +102,10 @@ class RegulationGroupLayer(AbstractPlanLayer):
     filter_template = Template("plan_id = '$plan_id'")
 
     @classmethod
-    def feature_from_model(cls, model: RegulationGroup) -> QgsFeature:
+    def feature_from_model(cls, _model: RegulationGroup) -> QgsFeature:
         layer = cls.get_from_project()
-
-        feature = QgsVectorLayerUtils.createFeature(layer)
-        # TODO
-
-        return feature
+        # TODO: Implement
+        return QgsVectorLayerUtils.createFeature(layer)
 
 
 class RegulationGroupAssociationLayer(AbstractPlanLayer):
@@ -143,13 +140,10 @@ class PlanRegulationLayer(AbstractPlanLayer):
     )
 
     @classmethod
-    def feature_from_model(cls, model: Regulation) -> QgsFeature:
+    def feat_from_model(cls, _model: Regulation, _regulation_group_id: int | None) -> QgsFeature:
         layer = cls.get_from_project()
-
-        feature = QgsVectorLayerUtils.createFeature(layer)
-        # TODO
-
-        return feature
+        # TODO: Implement
+        return QgsVectorLayerUtils.createFeature(layer)
 
 
 class PlanPropositionLayer(AbstractPlanLayer):

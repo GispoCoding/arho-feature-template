@@ -1,6 +1,5 @@
-meta:
-  name: Asemakaavan kaavamääräysryhmät (Katja)
-  version: 1
+name: Asemakaavan kaavamääräysryhmät (Katja)
+version: 1
 categories:
 
   - category_code: aluevaraukset

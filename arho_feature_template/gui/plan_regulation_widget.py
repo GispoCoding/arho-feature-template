@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from importlib import resources
-from numbers import Number
 from typing import TYPE_CHECKING
 
 from qgis.core import QgsApplication
@@ -17,18 +16,16 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from arho_feature_template.core.plan_regulation_config import ValueType
-from arho_feature_template.utils.misc_utils import get_additional_information_name, get_layer_by_name
-from arho_feature_template.core.models import Regulation, RegulationConfig
+from arho_feature_template.core.models import Regulation, ValueType
 from arho_feature_template.gui.plan_regulation_input_widgets import (
     DecimalInputWidget,
     IntegerInputWidget,
     IntegerRangeInputWidget,
     MultilineTextInputWidget,
-    SinglelineTextInputWidget
+    SinglelineTextInputWidget,
 )
 from arho_feature_template.project.layers.plan_layers import PlanRegulationLayer
-
+from arho_feature_template.utils.misc_utils import get_additional_information_name, get_layer_by_name, iface
 
 if TYPE_CHECKING:
     from qgis.PyQt.QtWidgets import QPushButton
@@ -46,7 +43,7 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
 
     delete_signal = pyqtSignal(QWidget)
 
-    def __init__(self, regulation_data: Regulation | RegulationConfig, parent=None):
+    def __init__(self, regulation: Regulation, parent=None):
         super().__init__(parent)
         self.setupUi(self)
 
@@ -61,26 +58,22 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
         self.code: QLineEdit
 
         # INIT
-        if isinstance(regulation_data, Regulation):
-            self.config = regulation_data.config
-            self.regulation = regulation_data
-        elif isinstance(regulation_data, RegulationConfig):
-            self.config = regulation_data
-            self.regulation = None
+        self.config = regulation.config
+        self.regulation = regulation
 
         # List of widgets for hiding / showing
         self.widgets: list[tuple[QLabel, QWidget]] = []
 
         # For accessing correct widgets when data is sent
-        self.value_widget = None
-        self.regulation_number_widget = None
+        self.value_widget: QWidget | None = None
+        self.regulation_number_widget: IntegerInputWidget | None = None
         self.additional_information_widgets: dict[str, QWidget | None] = {}  # Key = information type, value = widget
         self.file_widgets: list[QgsFileWidget] = []
-        self.theme_widget = None
-        self.topic_tag_widget = None
+        self.theme_widget: SinglelineTextInputWidget | None = None
+        self.topic_tag_widget: SinglelineTextInputWidget | None = None
 
         self.expanded = True
-        self.plan_regulation_name.setText(regulation_data.name)
+        self.plan_regulation_name.setText(self.config.name)
         self.plan_regulation_name.setReadOnly(True)
         self.del_btn.setIcon(QgsApplication.getThemeIcon("mActionDeleteSelected.svg"))
         self.del_btn.clicked.connect(lambda: self.delete_signal.emit(self))
@@ -93,19 +86,20 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
         # Value input
         value_type = self.config.value_type
         if value_type:
-            self._add_value_input(value_type, self.config.unit, self.regulation.value if self.regulation else None)
+            self._add_value_input(value_type, self.config.unit, self.regulation.value)
+            #   if self.regulation else None)
 
         # Additional information
-        if self.regulation:
+        if self.regulation.additional_information:
             for info_type, info_value in self.regulation.additional_information.items():
                 self._add_additional_info(info_type, info_value)
 
     def _add_value_input(
-        self, value_type: ValueType, unit: str | None, default_value: str | Number | list[int] | None = None
+        self, value_type: ValueType, unit: str | None, default_value: str | float | list[int] | None = None
     ):
         base_error_msg = f"Invalid type for default value {type(default_value)}."
         if value_type in [ValueType.DECIMAL, ValueType.POSITIVE_DECIMAL]:
-            if not isinstance(default_value, Number) and default_value is not None:
+            if not isinstance(default_value, float) and default_value is not None:
                 raise ValueError(base_error_msg)
             self._add_decimal_input(value_type, unit, default_value)
         elif value_type == ValueType.POSITIVE_INTEGER:
@@ -199,7 +193,7 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
         if not self.expanded:
             self._on_expand_hide_btn_clicked()
 
-    def _add_decimal_input(self, value_type: ValueType, unit: str | None, default_value: Number | None = None):
+    def _add_decimal_input(self, value_type: ValueType, unit: str | None, default_value: float | None = None):
         positive = value_type == ValueType.POSITIVE_DECIMAL
         self.value_widget = DecimalInputWidget(default_value, unit, positive)
         self._add_widgets(QLabel("Arvo"), self.value_widget)
@@ -210,7 +204,7 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
         self._add_widgets(QLabel("Arvo"), self.value_widget)
 
     def _add_integer_range_input(
-        self, value_type: ValueType, unit: str | None, default_value: tuple[int, int] | None = None
+        self, value_type: ValueType, unit: str | None, default_value: tuple[int, int] | list[int] | None = None
     ):
         # NOTE: There is no ValueType.INTEGER_RANGE currently, so is always positive
         positive = value_type == ValueType.POSITIVE_INTEGER_RANGE
@@ -221,8 +215,9 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
         self.value_widget = MultilineTextInputWidget(default_value=default_value, editable=False)
         self._add_widgets(QLabel("Arvo"), self.value_widget)
 
-    def _add_additional_info(self, info_type: str, default_value: str | Number | None = None):
-        # TODO !
+    def _add_additional_info(self, info_type: str, default_value: str | float | None = None):
+        # TODO: Extend and make sure all additional information types are properly handled
+
         # NOTE: Now info type is the name / readable version when this is triggered by user
         # Might need to refactor this later..
         name = get_additional_information_name(info_type)
@@ -232,8 +227,11 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
         # for example if multiple Käyttötarkoituskohdistus are added, they overwrite each other
         value_widget = None
         if name == "Käyttötarkoituskohdistus":
-            value_widget = SinglelineTextInputWidget(default_value, True)
-            self._add_widgets(QLabel(name), value_widget)
+            if isinstance(default_value, float):
+                iface.messageBar().pushWarning("Warning: ", f"Unexpected value type for {name}: float")
+            else:
+                value_widget = SinglelineTextInputWidget(default_value, True)
+                self._add_widgets(QLabel(name), value_widget)
 
         self.additional_information_widgets[info_type] = value_widget
 
@@ -256,24 +254,23 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
         self._add_widgets(QLabel("Kaavoitusteema"), self.theme_widget)
 
     # Or e.g. "into_regulation"
-    def into_model(self, regulation_group_id: str) -> Regulation:
+    def into_model(self) -> Regulation:
         return Regulation(
             config=self.config,
-            value=self.value_widget.get_value(),
-            regulation_number=self.regulation_number_widget.get_value(),
+            value=self.value_widget.get_value() if self.value_widget else None,
+            regulation_number=self.regulation_number_widget.get_value() if self.regulation_number_widget else None,
             additional_information={
                 name: widget.get_value() for name, widget in self.additional_information_widgets.items() if widget
             },
             files=[file.filePath() for file in self.file_widgets],
-            theme=self.theme_widget.get_value(),
-            topic_tag=self.topic_tag_widget.get_value(),
-            regulation_group_id_=regulation_group_id,
-            id_=self.regulation.id_ if self.regulation else None
+            theme=self.theme_widget.get_value() if self.theme_widget else None,
+            topic_tag=self.topic_tag_widget.get_value() if self.topic_tag_widget else None,
+            id_=self.regulation.id_,
         )
 
-    def save_data(self, regulation_group_id: str) -> Regulation:
-        model = self.into_model(regulation_group_id)
-        regulation_feature = PlanRegulationLayer.feature_from_model(model)
+    def save_data(self, regulation_group_id: int | None) -> Regulation:
+        model = self.into_model()
+        regulation_feature = PlanRegulationLayer.feat_from_model(model, regulation_group_id)
         layer = PlanRegulationLayer.get_from_project()
         if model.id_ is None:
             layer.addFeature(regulation_feature)

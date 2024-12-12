@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from qgis.core import QgsFeature
+from typing import TYPE_CHECKING
 
-from arho_feature_template.project.layers import AbstractLayer
 from arho_feature_template.core.models import RegulationConfig
+from arho_feature_template.project.layers import AbstractLayer
+
+if TYPE_CHECKING:
+    from qgis.core import QgsFeature
 
 
 class AbstractCodeLayer(AbstractLayer): ...
@@ -22,7 +25,6 @@ class PlanTypeLayer(AbstractCodeLayer):
         """
         layer = cls.get_from_project()
         return [cls.model_from_feature(feature, language) for feature in layer.getFeatures()]
-
 
     @staticmethod
     def model_from_feature(feature: QgsFeature, language: str) -> RegulationConfig:
