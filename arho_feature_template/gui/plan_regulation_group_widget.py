@@ -26,7 +26,11 @@ class RegulationGroupWidget(QWidget, FormClass):  # type: ignore
 
     delete_signal = pyqtSignal(QWidget)
 
-    def __init__(self, regulation_group_data: RegulationGroup):
+    def __init__(
+        self,
+        regulation_group_data: RegulationGroup,
+        general_regulation: bool = False,  # noqa: FBT001, FBT002
+    ):
         super().__init__()
         self.setupUi(self)
 
@@ -34,6 +38,7 @@ class RegulationGroupWidget(QWidget, FormClass):  # type: ignore
         self.frame: QFrame
         self.name: QLineEdit
         self.short_name: QLineEdit
+        self.short_name_label: QLabel
         self.del_btn: QPushButton
         self.type_of_regulation_group_label: QLabel
         self.type_of_regulation_group: CodeComboBox
@@ -42,13 +47,25 @@ class RegulationGroupWidget(QWidget, FormClass):  # type: ignore
         # by the plan feature directly (and hidden from user)
 
         # INIT
+        self.is_general_regulation = general_regulation
         self.regulation_group_data = regulation_group_data
         self.regulation_widgets: list[RegulationWidget] = [
             self.add_regulation_widget(regulation) for regulation in self.regulation_group_data.regulations
         ]
 
         # If regulation group type code is defined, delete selection for user
+        if self.is_general_regulation:
+            regulation_group_data.type_code_id = PlanRegulationGroupTypeLayer.get_id_of_regulation_type(
+                "generalRegulations"
+            )
+            # Remove short name row
+            self.regulation_group_details_layout.removeWidget(self.short_name_label)
+            self.regulation_group_details_layout.removeWidget(self.short_name)
+            self.short_name_label.deleteLater()
+            self.short_name.deleteLater()
+
         if regulation_group_data.type_code_id:
+            # Remove type of plan regulation group row
             self.regulation_group_details_layout.removeWidget(self.type_of_regulation_group_label)
             self.regulation_group_details_layout.removeWidget(self.type_of_regulation_group)
             self.type_of_regulation_group_label.deleteLater()
@@ -79,7 +96,7 @@ class RegulationGroupWidget(QWidget, FormClass):  # type: ignore
             if self.regulation_group_data.type_code_id
             else self.type_of_regulation_group.value(),
             name=self.name.text(),
-            short_name=self.short_name.text(),
+            short_name=None if self.is_general_regulation else self.short_name.text(),
             color_code=self.regulation_group_data.color_code,
             regulations=[widget.into_model() for widget in self.regulation_widgets],
             id_=self.regulation_group_data.id_,
