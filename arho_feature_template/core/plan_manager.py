@@ -16,6 +16,7 @@ from qgis.utils import iface
 from arho_feature_template.core.lambda_service import LambdaService
 from arho_feature_template.exceptions import UnsavedChangesError
 from arho_feature_template.gui.load_plan_dialog import LoadPlanDialog
+from arho_feature_template.gui.new_plan_regulation_group_form import NewPlanRegulationGroupForm
 from arho_feature_template.gui.plan_attribure_form import PlanAttributeForm
 from arho_feature_template.gui.serialize_plan import SerializePlan
 from arho_feature_template.project.layers.plan_layers import (
@@ -191,6 +192,14 @@ class PlanManager:
             "Kaava ja sen ulkoraja tallennettu onnistuneesti.",
         )
 
+    def create_new_regulation_group(self):
+        new_regulation_group_form = NewPlanRegulationGroupForm()
+        if new_regulation_group_form.exec_():
+            if new_regulation_group_form.save_as_config is True:
+                save_regulation_group_as_config(new_regulation_group_form.model)
+            else:
+                save_regulation_group(new_regulation_group_form.model)
+
 
 def _save_feature(feature: QgsFeature, layer: QgsVectorLayer, id_: int | None, edit_text: str = ""):
     if not layer.isEditable():
@@ -289,6 +298,10 @@ def save_regulation_group(regulation_group: RegulationGroup, plan_id: str | None
             save_regulation(regulation)
 
     return feature
+
+
+def save_regulation_group_as_config(regulation_group: RegulationGroup):
+    pass
 
 
 def save_regulation_group_association(regulation_group_id: str, layer_name: str, feature_id: str) -> QgsFeature:

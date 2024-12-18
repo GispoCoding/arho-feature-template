@@ -232,6 +232,7 @@ class RegulationGroup:
     name: str | None
     short_name: str | None
     color_code: str | None
+    group_number: int | None = None
     regulations: list[Regulation] = field(default_factory=list)
     id_: int | None = None
 
@@ -266,6 +267,7 @@ class RegulationGroup:
             name=data.get("name"),
             short_name=data.get("short_name"),
             color_code=data.get("color_code"),
+            group_number=data.get("group_number"),
             regulations=regulations,
             id_=None,
         )
