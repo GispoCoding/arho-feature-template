@@ -18,6 +18,19 @@
      </layout>
     </item>
     <item>
+     <widget class="QProgressBar" name="progress_bar">
+      <property name="minimum">
+       <number>0</number>
+      </property>
+      <property name="maximum">
+       <number>0</number>
+      </property>
+      <property name="visible">
+       <bool>false</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
      <widget class="QListView" name="error_list_view"/>
     </item>
    </layout>
