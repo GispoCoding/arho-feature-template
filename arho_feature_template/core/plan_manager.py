@@ -14,11 +14,13 @@ from qgis.PyQt.QtWidgets import QDialog, QMessageBox
 from qgis.utils import iface
 
 from arho_feature_template.core.lambda_service import LambdaService
+from arho_feature_template.core.models import RegulationGroupCategory, RegulationGroupLibrary
 from arho_feature_template.exceptions import UnsavedChangesError
 from arho_feature_template.gui.load_plan_dialog import LoadPlanDialog
 from arho_feature_template.gui.new_plan_regulation_group_form import NewPlanRegulationGroupForm
 from arho_feature_template.gui.plan_attribure_form import PlanAttributeForm
 from arho_feature_template.gui.serialize_plan import SerializePlan
+from arho_feature_template.project.layers.code_layers import PlanRegulationGroupTypeLayer
 from arho_feature_template.project.layers.plan_layers import (
     LandUseAreaLayer,
     LandUsePointLayer,
@@ -199,6 +201,33 @@ class PlanManager:
                 save_regulation_group_as_config(new_regulation_group_form.model)
             else:
                 save_regulation_group(new_regulation_group_form.model)
+
+
+def regulation_group_library_from_active_plan() -> RegulationGroupLibrary:
+    category_features = list(PlanRegulationGroupTypeLayer.get_features())
+    category_id_to_name: dict[str, str] = {category["id"]: category["name"]["fin"] for category in category_features}
+    category_regulation_group_map: dict[str, list[QgsFeature]] = {
+        feature["name"]["fin"]: [] for feature in category_features
+    }
+
+    for feat in RegulationGroupLayer.get_features():
+        name = category_id_to_name[feat["type_of_plan_regulation_group_id"]]
+        category_regulation_group_map[name].append(feat)
+    return RegulationGroupLibrary(
+        name="Käytössä olevat kaavamääräysryhmät",
+        version=None,
+        description=None,
+        regulation_group_categories=[
+            RegulationGroupCategory(
+                category_code=None,
+                name=category_name,
+                regulation_groups=[
+                    RegulationGroupLayer.model_from_feature(feat) for feat in category_regulation_groups
+                ],
+            )
+            for category_name, category_regulation_groups in category_regulation_group_map.items()
+        ],
+    )
 
 
 def _save_feature(feature: QgsFeature, layer: QgsVectorLayer, id_: int | None, edit_text: str = ""):
