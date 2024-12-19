@@ -5,13 +5,17 @@ from typing import TYPE_CHECKING
 
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import QDialog, QTextBrowser, QTreeWidget, QTreeWidgetItem
+from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox, QTextBrowser, QTreeWidget, QTreeWidgetItem
 
-from arho_feature_template.core.models import Regulation, RegulationConfig, RegulationLibrary
+from arho_feature_template.core.models import Regulation, RegulationConfig, RegulationGroup, RegulationLibrary
 from arho_feature_template.gui.plan_regulation_widget import RegulationWidget
+from arho_feature_template.project.layers.code_layers import PlanRegulationGroupTypeLayer
 
 if TYPE_CHECKING:
-    from qgis.PyQt.QtWidgets import QBoxLayout, QWidget
+    from qgis.gui import QgsSpinBox
+    from qgis.PyQt.QtWidgets import QBoxLayout, QLineEdit, QWidget
+
+    from arho_feature_template.gui.code_combobox import CodeComboBox
 
 ui_path = resources.files(__package__) / "new_plan_regulation_group_form.ui"
 FormClass, _ = uic.loadUiType(ui_path)
@@ -25,15 +29,28 @@ class NewPlanRegulationGroupForm(QDialog, FormClass):  # type: ignore
         self.setupUi(self)
 
         # TYPES
-        self.plan_regulations_view: QTreeWidget
-        self.plan_regulations_scroll_area_contents: QWidget
-        self.plan_regulations_layout: QBoxLayout
-        self.plan_regulation_info: QTextBrowser
+        self.name: QLineEdit
+        self.short_name: QLineEdit
+        self.group_number: QgsSpinBox
+        self.color_code: QLineEdit
+        self.type_of_regulation_group: CodeComboBox
+
+        self.regulations_view: QTreeWidget
+        self.regulations_scroll_area_contents: QWidget
+        self.regulations_layout: QBoxLayout
+        self.regulation_info: QTextBrowser
+
+        self.button_box: QDialogButtonBox
 
         # INIT
-        self.initialize_plan_regulations()
-        self.plan_regulations_view.itemDoubleClicked.connect(self.add_selected_plan_regulation)
-        self.plan_regulations_view.itemClicked.connect(self.update_selected_plan_regulation)
+        self.initialize_regulations()
+        self.type_of_regulation_group.populate_from_code_layer(PlanRegulationGroupTypeLayer)
+        self.type_of_regulation_group.removeItem(0)  # Remove NULL from combobox as underground data is required
+        self.regulations_view.itemDoubleClicked.connect(self.add_selected_regulation)
+        self.regulations_view.itemClicked.connect(self.update_selected_regulation)
+        self.button_box.accepted.connect(self._on_ok_clicked)
+        self.regulation_widgets: list[RegulationWidget] = []
+        self.save_as_config = False
 
     def _initalize_regulation_from_config(self, config: RegulationConfig, parent: QTreeWidgetItem | None = None):
         tree_item = QTreeWidgetItem(parent)
@@ -41,34 +58,51 @@ class NewPlanRegulationGroupForm(QDialog, FormClass):  # type: ignore
         tree_item.setData(0, Qt.UserRole, config)
 
         if parent is None:
-            self.plan_regulations_view.addTopLevelItem(tree_item)
+            self.regulations_view.addTopLevelItem(tree_item)
 
         # Initialize plan regulations recursively
         if config.child_regulations:
             for child_config in config.child_regulations:
                 self._initalize_regulation_from_config(child_config, tree_item)
 
-    def initialize_plan_regulations(self):
+    def initialize_regulations(self):
         for config in RegulationLibrary.get_regulations():
             self._initalize_regulation_from_config(config)
 
-    def update_selected_plan_regulation(self, item: QTreeWidgetItem, column: int):
+    def update_selected_regulation(self, item: QTreeWidgetItem, column: int):
         config: RegulationConfig = item.data(column, Qt.UserRole)  # Retrieve the associated config
-        self.plan_regulation_info.setText(config.description)
+        self.regulation_info.setText(config.description)
 
-    def add_selected_plan_regulation(self, item: QTreeWidgetItem, column: int):
+    def add_selected_regulation(self, item: QTreeWidgetItem, column: int):
         config: RegulationConfig = item.data(column, Qt.UserRole)  # Retrieve the associated config
         if config.category_only:
             return
-        self.add_plan_regulation(config)
+        self.add_regulation(config)
 
-    def add_plan_regulation(self, config: RegulationConfig):
+    def add_regulation(self, config: RegulationConfig):
         regulation = Regulation(config=config)
-        widget = RegulationWidget(regulation, parent=self.plan_regulations_scroll_area_contents)
-        widget.delete_signal.connect(self.delete_plan_regulation)
-        index = self.plan_regulations_layout.count() - 1
-        self.plan_regulations_layout.insertWidget(index, widget)
+        widget = RegulationWidget(regulation, parent=self.regulations_scroll_area_contents)
+        widget.delete_signal.connect(self.delete_regulation)
+        index = self.regulations_layout.count() - 1
+        self.regulations_layout.insertWidget(index, widget)
+        self.regulation_widgets.append(widget)
 
-    def delete_plan_regulation(self, plan_regulation_widget: RegulationWidget):
-        self.plan_regulations_layout.removeWidget(plan_regulation_widget)
-        plan_regulation_widget.deleteLater()
+    def delete_regulation(self, regulation_widget: RegulationWidget):
+        self.regulations_layout.removeWidget(regulation_widget)
+        self.regulation_widgets.remove(regulation_widget)
+        regulation_widget.deleteLater()
+
+    def into_model(self) -> RegulationGroup:
+        return RegulationGroup(
+            type_code_id=self.type_of_regulation_group.value(),
+            name=self.name.text(),
+            short_name=self.short_name.text(),
+            color_code=self.color_code.text(),
+            group_number=self.group_number.value() if self.group_number.value() > 0 else None,
+            regulations=[widget.into_model() for widget in self.regulation_widgets],
+            id_=None,
+        )
+
+    def _on_ok_clicked(self):
+        self.model = self.into_model()
+        self.accept()

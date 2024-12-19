@@ -10,7 +10,6 @@ from qgis.utils import iface
 
 from arho_feature_template.core.feature_template_library import FeatureTemplater, TemplateGeometryDigitizeMapTool
 from arho_feature_template.core.plan_manager import PlanManager
-from arho_feature_template.gui.new_plan_regulation_group_form import NewPlanRegulationGroupForm
 from arho_feature_template.gui.plugin_settings import PluginSettings
 from arho_feature_template.gui.validation_dock import ValidationDock
 from arho_feature_template.qgis_plugin_tools.tools.custom_logging import setup_logger, teardown_logger
@@ -254,5 +253,4 @@ class Plugin:
         self.validation_dock.setUserVisible(show)
 
     def open_plan_regulation_group_form(self):
-        self.new_plan_regulation_group_dialog = NewPlanRegulationGroupForm()
-        self.new_plan_regulation_group_dialog.exec_()
+        self.plan_manager.create_new_regulation_group()

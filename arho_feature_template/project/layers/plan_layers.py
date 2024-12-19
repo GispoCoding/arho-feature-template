@@ -10,13 +10,15 @@ from typing import TYPE_CHECKING, Any, ClassVar
 from qgis.core import NULL, QgsExpressionContextUtils, QgsFeature, QgsProject, QgsVectorLayerUtils
 from qgis.utils import iface
 
+from arho_feature_template.core.models import PlanFeature, Regulation, RegulationGroup, RegulationLibrary
 from arho_feature_template.exceptions import LayerEditableError
 from arho_feature_template.project.layers import AbstractLayer
+from arho_feature_template.project.layers.code_layers import PlanRegulationTypeLayer
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from arho_feature_template.core.models import Plan, PlanFeature, Regulation, RegulationGroup
+    from arho_feature_template.core.models import Plan
 
 
 class AbstractPlanLayer(AbstractLayer):
@@ -139,6 +141,21 @@ class RegulationGroupLayer(AbstractPlanLayer):
         )
         return feature
 
+    @classmethod
+    def model_from_feature(cls, feature: QgsFeature) -> RegulationGroup:
+        return RegulationGroup(
+            type_code_id=feature["type_of_plan_regulation_group_id"],
+            name=feature["name"]["fin"],
+            short_name=feature["short_name"],
+            color_code=None,
+            group_number=None,
+            regulations=[
+                PlanRegulationLayer.model_from_feature(feat)
+                for feat in PlanRegulationLayer.regulations_with_group_id(feature["id"])
+            ],
+            id_=feature["id"],
+        )
+
 
 class RegulationGroupAssociationLayer(AbstractPlanLayer):
     name = "Kaavamääräysryhmien assosiaatiot"
@@ -211,6 +228,33 @@ class PlanRegulationLayer(AbstractPlanLayer):
 
         return feature
 
+    @classmethod
+    def model_from_feature(cls, feature: QgsFeature) -> Regulation:
+        regulation_code = PlanRegulationTypeLayer.get_regulation_type_by_id(feature["type_of_plan_regulation_id"])
+        if not regulation_code:
+            msg = f"Regulation not found for regulation ID {feature['type_of_plan_regulation_id']}"
+            raise ValueError(msg)
+        config = RegulationLibrary.get_regulation_by_code(regulation_code)
+        if not config:
+            msg = f"Regulation config not found for {regulation_code}"
+            raise ValueError(msg)
+        return Regulation(
+            config=config,
+            # Assuming only either text_value or numeric_value is defined
+            value=feature["text_value"]["fin"] if feature["text_value"]["fin"] else feature["numeric_value"],
+            additional_information=None,
+            regulation_number=None,
+            files=[],
+            theme=None,
+            topic_tag=None,
+            regulation_group_id_=feature["plan_regulation_group_id"],
+            id_=feature["id"],
+        )
+
+    @classmethod
+    def regulations_with_group_id(cls, group_id: str) -> list[QgsFeature]:
+        return [feat for feat in cls.get_features() if feat["plan_regulation_group_id"] == group_id]
+
 
 class PlanPropositionLayer(AbstractPlanLayer):
     name = "Kaavasuositus"
@@ -240,4 +284,6 @@ class SourceDataLayer(AbstractPlanLayer):
 
 plan_layers = AbstractPlanLayer.__subclasses__()
 plan_layers.remove(PlanFeatureLayer)
-plan_layers.extend(PlanFeatureLayer.__subclasses__())
+
+plan_feature_layers = PlanFeatureLayer.__subclasses__()
+plan_layers.extend(plan_feature_layers)
