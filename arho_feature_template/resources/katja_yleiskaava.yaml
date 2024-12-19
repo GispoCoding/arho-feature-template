@@ -1,0 +1,147 @@
+name: Yleiskaavan kaavamääräysryhmät (Katja)
+version: 1
+categories:
+
+  - category_code: aluevaraukset
+    name: Aluevaraukset
+    plan_regulation_groups:
+
+    - name: Asuntoalue
+      geometry: [Alue, Piste]
+      short_name: A
+      plan_regulations:
+        - regulation_code: asumisenAlue
+          additional_information:
+            - type: paakayttotarkoitus
+
+    - name: Kerrostalovaltainen asuntoalue 
+      geometry: [Alue, Piste]
+      short_name: AK
+      plan_regulations:
+        - regulation_code: asuinkerrostaloalue
+          additional_information:
+            - type: paakayttotarkoitus
+
+    - name: Asuinpientalojen alue
+      geometry: [Alue, Piste]
+      short_name: AP
+      plan_regulations:
+        - regulation_code: asuinpientaloalue
+          additional_information:
+            - type: paakayttotarkoitus
+
+    - name: Kyläalue
+      geometry: [Alue, Piste]
+      short_name: AT
+      plan_regulations:
+        - regulation_code: kylaAlue # NOTE: kyla_alue OR kylaalue OR kylaAlue?
+          additional_information:
+            - type: paakayttotarkoitus
+
+    - name: Keskustatoimintojen alue
+      geometry: [Alue, Piste]
+      short_name: C
+      plan_regulations:
+        - regulation_code: keskustatoimintojeAalue
+          additional_information:
+            - type: paakayttotarkoitus
+
+    - name: Keskustatoimintojen alakeskus
+          geometry: [Alue, Piste]
+          short_name: CA
+          plan_regulations:
+            - regulation_code: keskustatoimintojenAlakeskus
+              additional_information:
+                - type: paakayttotarkoitus
+                
+    - name: Työpaikka-alue
+          geometry: [Alue, Piste]
+          short_name: TP
+          plan_regulations:
+            - regulation_code: tyopaikkojenAlue
+              additional_information:
+                - type: paakayttotarkoitus
+
+   - name: Palvelujen alue
+          geometry: [Alue, Piste]
+          short_name: P
+          plan_regulations:
+            - regulation_code: palvelujenAlue
+              additional_information:
+                - type: paakayttotarkoitus
+
+   - name: Lähipalvelujen alue
+          geometry: [Alue, Piste]
+          short_name: PL
+          plan_regulations:
+            - regulation_code: palvelujenAlue
+              additional_information:
+                - type: paakayttotarkoitus 
+                - type: paikallinen
+
+    - name: Julkisten palvelujen ja hallinnon alue 
+          geometry: [Alue, Piste]
+          short_name: PY
+          plan_regulations:
+            - regulation_code: palvelujenAlue
+              additional_information:
+                - type: paakayttotarkoitus
+                - type: varattuYleiseenKayttoon
+
+   - name: Kaupallisten palvelujen alue, jolle saa sijoittaa vähittäiskaupan suuryksikön
+          geometry: [Alue, Piste]
+          short_name: KM
+          plan_regulations:
+            - regulation_code: vahittaiskaupanSuuryksikko
+              additional_information:
+                - type: paakayttotarkoitus
+
+   - name: Kaupallisten palvelujen alue, jolle saa sijoittaa vähittäiskaupan myymäläkeskittymän
+          geometry: [Alue, Piste]
+          short_name: KMK
+          plan_regulations:
+            - regulation_code: vahittaiskaupanMyymalakeskittyma
+              additional_information:
+                - type: paakayttotarkoitus
+
+   - name: Teollisuus- ja varastoalue
+          geometry: [Alue, Piste]
+          short_name: T
+          plan_regulations:
+            - regulation_code: teollisuusalue
+              additional_information:
+                - type: paakayttotarkoitus
+            - regulation_code: varastoalue
+              additional_information:
+                - type: paakayttotarkoitus
+
+   - name: Ympäristövaikutuksiltaan merkittävien teollisuustoimintojen alue
+          geometry: [Alue, Piste]
+          short_name: TT
+          plan_regulations:
+            - regulation_code: teollisuusalue
+              additional_information:
+                - type: paakayttotarkoitus
+            - regulation_code: ymparistohairioalue # NOTE: No type on the list => left empty?
+
+   - name: Teollisuusalue, jolla ympäristö asettaa toiminnan laadulle erityisiä vaatimuksia
+          geometry: [Alue, Piste]
+          short_name: TY
+          plan_regulations:
+            - regulation_code: teollisuusalue
+              additional_information:
+                - type: paakayttotarkoitus
+                - type: ymparistoAsettaaToiminnanLaadulleErityisiaVaatimuksia
+
+    - name: Varastoalue
+          geometry: [Alue, Piste]
+          short_name: TV
+          plan_regulations:
+            - regulation_code: varastoalue
+              additional_information:
+                - type: paakayttotarkoitus 
+
+
+  - category_code: rakennusala
+
+  - category_code: numeerisetJaTekstimuotoiset
