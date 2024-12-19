@@ -12,7 +12,7 @@ from arho_feature_template.core.lambda_service import LambdaService
 from arho_feature_template.utils.misc_utils import get_active_plan_id
 
 if TYPE_CHECKING:
-    from qgis.PyQt.QtWidgets import QListView
+    from qgis.PyQt.QtWidgets import QListView, QProgressBar
 
 ui_path = resources.files(__package__) / "validation_dock.ui"
 DockClass, _ = uic.loadUiType(ui_path)
@@ -20,6 +20,7 @@ DockClass, _ = uic.loadUiType(ui_path)
 
 class ValidationDock(QgsDockWidget, DockClass):  # type: ignore
     error_list_view: QListView
+    progress_bar: QProgressBar
 
     def __init__(self):
         super().__init__()
@@ -36,6 +37,10 @@ class ValidationDock(QgsDockWidget, DockClass):  # type: ignore
         if not active_plan_id:
             iface.messageBar().pushMessage("Virhe", "Ei aktiivista kaavaa.", level=3)
             return
+
+        # Disable button and show progress bar
+        self.validate_button.setEnabled(False)
+        self.progress_bar.setVisible(True)
 
         self.lambda_service.validate_plan(active_plan_id)
 
@@ -76,3 +81,6 @@ class ValidationDock(QgsDockWidget, DockClass):  # type: ignore
 
         # Update the list view with the new errors and warnings
         self.error_list_model.setStringList(new_errors)
+        # Hide progress bar and re-enable the button
+        self.progress_bar.setVisible(False)
+        self.validate_button.setEnabled(True)
