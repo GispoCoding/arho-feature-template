@@ -34,19 +34,9 @@ class ValueType(Enum):
 
 @dataclass
 class RegulationGroupCategory:
-    category_code: str
+    category_code: str | None
     name: str | None
     regulation_groups: list[RegulationGroup]
-
-    @classmethod
-    def from_config_data(cls, data: dict) -> RegulationGroupCategory:
-        return cls(
-            category_code=data["category_code"],
-            name=data.get("name"),
-            regulation_groups=[
-                RegulationGroup.from_config_data(config_data) for config_data in data["plan_regulation_groups"]
-            ],
-        )
 
 
 @dataclass
@@ -68,7 +58,15 @@ class RegulationGroupLibrary:
                 version=data.get("version"),
                 description=data.get("description"),
                 regulation_group_categories=[
-                    RegulationGroupCategory.from_config_data(category) for category in data["categories"]
+                    RegulationGroupCategory(
+                        category_code=category_data["category_code"],
+                        name=category_data.get("name"),
+                        regulation_groups=[
+                            RegulationGroup.from_config_data(config_data)
+                            for config_data in category_data["plan_regulation_groups"]
+                        ],
+                    )
+                    for category_data in data["categories"]
                 ],
             )
 
@@ -232,6 +230,7 @@ class RegulationGroup:
     name: str | None
     short_name: str | None
     color_code: str | None
+    group_number: int | None = None
     regulations: list[Regulation] = field(default_factory=list)
     id_: int | None = None
 
@@ -266,6 +265,7 @@ class RegulationGroup:
             name=data.get("name"),
             short_name=data.get("short_name"),
             color_code=data.get("color_code"),
+            group_number=data.get("group_number"),
             regulations=regulations,
             id_=None,
         )

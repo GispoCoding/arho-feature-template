@@ -34,4 +34,16 @@ class PlanRegulationGroupTypeLayer(AbstractCodeLayer):
         return None
 
 
+class PlanRegulationTypeLayer(AbstractCodeLayer):
+    name = "Kaavamääräyslaji"
+
+    @classmethod
+    def get_regulation_type_by_id(cls, _id: str) -> str | None:
+        for feature in cls.get_from_project().getFeatures():
+            if feature["id"] == _id:
+                return feature["value"]
+
+        return None
+
+
 code_layers = AbstractCodeLayer.__subclasses__()

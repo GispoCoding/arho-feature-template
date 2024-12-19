@@ -21,6 +21,7 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from arho_feature_template.core.models import PlanFeature, RegulationGroup, RegulationGroupLibrary
+from arho_feature_template.core.plan_manager import regulation_group_library_from_active_plan
 from arho_feature_template.gui.plan_regulation_group_widget import RegulationGroupWidget
 from arho_feature_template.project.layers.code_layers import UndergroundTypeLayer
 from arho_feature_template.qgis_plugin_tools.tools.resources import resources_path
@@ -68,10 +69,21 @@ class TemplateAttributeForm(QDialog, FormClass):  # type: ignore
         self.regulation_group_widgets: list[RegulationGroupWidget] = []
         self.scroll_area_spacer = None
         self.setWindowTitle(self.config.name)
-        self.init_plan_regulation_group_libraries()
+
+        katja_asemakaava_path = Path(os.path.join(resources_path(), "katja_asemakaava.yaml"))
+        self.regulation_group_libraries = [
+            RegulationGroupLibrary.from_config_file(katja_asemakaava_path),
+            regulation_group_library_from_active_plan(),
+        ]
+        self.plan_regulation_group_libraries_combobox.addItems(
+            library.name for library in self.regulation_group_libraries
+        )
+
         # self.init_plan_regulation_groups_from_template(feature_template_config)
         self.button_box.accepted.connect(self._on_ok_clicked)
         self.plan_regulation_groups_tree.itemDoubleClicked.connect(self.add_selected_plan_regulation_group)
+        self.plan_regulation_group_libraries_combobox.currentIndexChanged.connect(self.show_regulation_group_library)
+        self.show_regulation_group_library(0)
 
     def _add_spacer(self):
         self.scroll_area_spacer = QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -101,14 +113,9 @@ class TemplateAttributeForm(QDialog, FormClass):  # type: ignore
         self.regulation_group_widgets.remove(regulation_group_widget)
         regulation_group_widget.deleteLater()
 
-    def init_plan_regulation_group_libraries(self):
-        katja_asemakaava_path = Path(os.path.join(resources_path(), "katja_asemakaava.yaml"))
-        libraries = [RegulationGroupLibrary.from_config_file(katja_asemakaava_path)]
-        for library in libraries:
-            self.init_plan_regulation_group_library(library)
-
-    def init_plan_regulation_group_library(self, library: RegulationGroupLibrary):
-        self.plan_regulation_group_libraries_combobox.addItem(library.name)
+    def show_regulation_group_library(self, i: int):
+        self.plan_regulation_groups_tree.clear()
+        library = self.regulation_group_libraries[i]
         for category in library.regulation_group_categories:
             category_item = QTreeWidgetItem()
             category_item.setText(0, category.name)

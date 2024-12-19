@@ -20,7 +20,7 @@
       <string>Kaavakohteen tiedot</string>
      </property>
      <property name="collapsed">
-      <bool>false</bool>
+      <bool>true</bool>
      </property>
      <layout class="QFormLayout" name="formLayout">
       <item row="0" column="0">
@@ -161,7 +161,7 @@
              <x>0</x>
              <y>0</y>
              <width>596</width>
-             <height>325</height>
+             <height>600</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_2"/>
