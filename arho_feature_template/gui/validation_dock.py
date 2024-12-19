@@ -9,7 +9,7 @@ from qgis.PyQt.QtCore import QStringListModel
 from qgis.utils import iface
 
 from arho_feature_template.core.lambda_service import LambdaService
-from arho_feature_template.utils.misc_utils import get_active_plan_id
+from arho_feature_template.utils.misc_utils import form_validation_messages, get_active_plan_id
 
 if TYPE_CHECKING:
     from qgis.PyQt.QtWidgets import QListView
@@ -47,32 +47,12 @@ class ValidationDock(QgsDockWidget, DockClass):  # type: ignore
         # Clear the existing errors from the list view
         self.error_list_model.setStringList([])
 
-        new_errors = []
-
         if not validation_json:
             # If no errors or warnings, display a message and exit
             iface.messageBar().pushMessage("Virhe", "Ei virheitä havaittu.", level=1)
             return
 
-        for error_data in validation_json.values():
-            if isinstance(error_data, dict):
-                # Get the errors for this plan
-                errors = error_data.get("errors", [])
-                for error in errors:
-                    rule_id = error.get("ruleId", "Tuntematon sääntö")
-                    message = error.get("message", "Ei viestiä")
-                    instance = error.get("instance", "Tuntematon instance")
-                    error_message = f"Validointivirhe - Sääntö: {rule_id}, Viesti: {message}, Instance: {instance}"
-                    new_errors.append(error_message)
-
-                # Get any warnings for this plan using list comprehension
-                warnings = error_data.get("warnings", [])
-                new_errors.extend([f"Varoitus: {warning}" for warning in warnings])
-
-        # If no errors or warnings, display a message
-        if not new_errors:
-            new_errors.append("Kaava on validi. Ei virheitä tai varoituksia havaittu.")
-            return
+        validation_messages = form_validation_messages(validation_json)
 
         # Update the list view with the new errors and warnings
-        self.error_list_model.setStringList(new_errors)
+        self.error_list_model.setStringList(validation_messages)

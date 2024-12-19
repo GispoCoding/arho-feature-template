@@ -125,3 +125,27 @@ def get_plan_name(plan_id: str, language: Literal["fin", "eng", "swe"] = "fin") 
                 # Return "Nimetön" if the name is an empty string
                 return name if name.strip() else "Nimetön"
     return "Nimetön"
+
+
+def form_validation_messages(ryhti_json: dict) -> list[str]:
+    # Prepare errors and warnings for display
+    new_errors = []
+    for error_data in ryhti_json.values():
+        if isinstance(error_data, dict):
+            # Get the errors
+            errors = error_data.get("errors", [])
+            for error in errors:
+                rule_id = error.get("ruleId", "Tuntematon sääntö")
+                message = error.get("message", "Ei viestiä")
+                instance = error.get("instance", "Tuntematon instance")
+                error_message = f"Validointivirhe - Sääntö: {rule_id}, Viesti: {message}, Instance: {instance}"
+                new_errors.append(error_message)
+
+            # Get warnings
+            warnings = error_data.get("warnings", [])
+            new_errors.extend([f"Varoitus: {warning}" for warning in warnings])
+    # If no errors or warnings, display a success message
+    if not new_errors:
+        new_errors.append("Kaava on validi. Ei virheitä tai varoituksia havaittu.")
+
+    return new_errors

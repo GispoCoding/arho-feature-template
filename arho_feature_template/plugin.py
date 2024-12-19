@@ -12,6 +12,7 @@ from arho_feature_template.core.feature_template_library import FeatureTemplater
 from arho_feature_template.core.plan_manager import PlanManager
 from arho_feature_template.gui.new_plan_regulation_group_form import NewPlanRegulationGroupForm
 from arho_feature_template.gui.plugin_settings import PluginSettings
+from arho_feature_template.gui.post_plan import PostPlan
 from arho_feature_template.gui.validation_dock import ValidationDock
 from arho_feature_template.qgis_plugin_tools.tools.custom_logging import setup_logger, teardown_logger
 from arho_feature_template.qgis_plugin_tools.tools.i18n import setup_translation
@@ -203,6 +204,15 @@ class Plugin:
             status_tip="Tallenna aktiivinen kaava JSON muodossa",
         )
 
+        self.post_plan_action = self.add_action(
+            text="Vie kaava",
+            icon=QgsApplication.getThemeIcon("mActionSharingExport.svg"),
+            triggered_callback=self.post_plan,
+            add_to_menu=True,
+            add_to_toolbar=True,
+            status_tip="Vie kaava Ryhtiin",
+        )
+
         self.plugin_settings_action = self.add_action(
             text="Asetukset",
             triggered_callback=self.open_settings,
@@ -224,6 +234,11 @@ class Plugin:
     def serialize_plan(self):
         """Serializes currently active plan."""
         self.plan_manager.get_plan_json()
+
+    def post_plan(self):
+        """Posts plan to Ryhti."""
+        dialog = PostPlan()
+        dialog.exec_()
 
     def open_settings(self):
         """Open the plugin settings dialog."""

@@ -15,9 +15,11 @@ from arho_feature_template.utils.misc_utils import get_active_plan_id, get_plan_
 class LambdaService(QObject):
     jsons_received = pyqtSignal(dict, dict)
     validation_received = pyqtSignal(dict)
+    post_received = pyqtSignal(dict)
     ActionAttribute = cast(QNetworkRequest.Attribute, QNetworkRequest.User + 1)
     ACTION_VALIDATE_PLANS = "validate_plans"
     ACTION_GET_PLANS = "get_plans"
+    ACTION_POST_PLANS = "post_plans"
 
     def __init__(self):
         super().__init__()
@@ -29,6 +31,9 @@ class LambdaService(QObject):
 
     def validate_plan(self, plan_id: str):
         self._send_request(action=self.ACTION_VALIDATE_PLANS, plan_id=plan_id)
+
+    def post_plan(self, plan_id: str):
+        self._send_request(action=self.ACTION_POST_PLANS, plan_id=plan_id)
 
     def _send_request(self, action: str, plan_id: str):
         """Sends a request to the lambda function."""
@@ -90,6 +95,8 @@ class LambdaService(QObject):
             self._process_json_reply(body)
         elif action == self.ACTION_VALIDATE_PLANS:
             self._process_validation_reply(body)
+        elif action == self.ACTION_POST_PLANS:
+            self._process_post_reply(body)
 
     def _process_validation_reply(self, response_json: dict):
         """Processes the validation reply from the lambda and emits a signal."""
@@ -97,6 +104,12 @@ class LambdaService(QObject):
         validation_errors = response_json.get("ryhti_responses")
 
         self.validation_received.emit(validation_errors)
+
+    def _process_post_reply(self, response_json: dict):
+        """Processes the post reply from the lambda and emits a signal."""
+        ryhti_responses = response_json.get("ryhti_responses")
+
+        self.post_received.emit(ryhti_responses)
 
     def _process_json_reply(self, response_json: dict):
         """Processes the reply from the lambda and emits signal."""
