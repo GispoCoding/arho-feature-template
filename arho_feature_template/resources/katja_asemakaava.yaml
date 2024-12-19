@@ -8,7 +8,6 @@ categories:
 
     - name: Asuinrakennusten alue
       geometry: Alue
-      color_code: #000000
       short_name: A
       plan_regulations:
         - regulation_code: asumisenAlue
@@ -17,7 +16,6 @@ categories:
 
     - name: Asuinkerrostalojen alue
       geometry: Alue
-      color_code: #000000
       short_name: AK
       plan_regulations:
         - regulation_code: asuinkerrostaloalue
@@ -26,7 +24,6 @@ categories:
 
     - name: Asuinpientalojen alue
       geometry: Alue
-      color_code: #A9D08E
       short_name: AP
       plan_regulations:
         - regulation_code: asuinpientaloalue
@@ -35,7 +32,6 @@ categories:
 
     - name: Rivitalojen ja muiden kytkettyjen asuinrakennusten alue
       geometry: Alue
-      color_code: #FFD966
       short_name: AR
       plan_regulations:
         - regulation_code: rivitalojenJaMuidenKytkettyjenAsuinpientalojenAlue
@@ -44,7 +40,6 @@ categories:
 
     - name: Erillispientalojen alue
       geometry: Alue
-      color_code: #E06666
       short_name: AO
       plan_regulations:
         - regulation_code: erillistenAsuinpientalojenAlue
@@ -53,7 +48,6 @@ categories:
 
     - name: Asuin-, liike- ja toimistorakennusten alue
       geometry: Alue
-      color_code: #5B9BD5
       short_name: AL
       plan_regulations:
         - regulation_code: asumisenAlue
@@ -68,7 +62,6 @@ categories:
 
     - name: Asumista palveleva yhteiskäyttöinen alue
       geometry: Alue
-      color_code: #9BC2E6
       short_name: AH
       plan_regulations:
         - regulation_code: asumistaPalvelevaYhteiskayttoinenAlue
@@ -77,7 +70,6 @@ categories:
 
     - name: Maatilojen talouskeskusten alue
       geometry: Alue
-      color_code: #FFD966
       short_name: AM
       plan_regulations:
         - regulation_code: maatilanTalouskeskuksenAlue
@@ -86,7 +78,6 @@ categories:
 
     - name: Keskustatoimintojen alue
       geometry: Alue
-      color_code: #D9D9D9
       short_name: C
       plan_regulations:
         - regulation_code: keskustatoimintojenAlue
@@ -95,7 +86,6 @@ categories:
 
     - name: Yleisten rakennusten alue
       geometry: Alue
-      color_code: #C6E0B4
       short_name: Y
       plan_regulations:
         - regulation_code: yleistenRakennustenAlue
@@ -105,7 +95,6 @@ categories:
 
     - name: Palvelurakennusten alue
       geometry: Alue
-      color_code: #FFC000
       short_name: P
       plan_regulations:
         - regulation_code: palvelujenAlue
@@ -114,7 +103,6 @@ categories:
 
     - name: Teollisuus- ja varastorakennusten alue
       geometry: Alue
-      color_code: #70AD47
       short_name: T
       plan_regulations:
         - regulation_code: teollisuusalue
@@ -126,7 +114,6 @@ categories:
 
     - name: Teollisuusrakennusten alue, jolla ympäristö asettaa toiminnan laadulle erityisiä vaatimuksia
       geometry: Alue
-      color_code: #5B9BD5
       short_name: TY
       plan_regulations:
         - regulation_code: teollisuusalue
@@ -136,7 +123,6 @@ categories:
 
     - name: Puisto
       geometry: Alue
-      color_code: #4472C4
       short_name: VP
       plan_regulations:
         - regulation_code: puisto
@@ -145,7 +131,6 @@ categories:
 
     - name: Leikkipuisto
       geometry: Alue
-      color_code: #A9D08E
       short_name: VK
       plan_regulations:
         - regulation_code: leikkipuisto
@@ -154,7 +139,6 @@ categories:
 
     - name: Uimaranta-alue
       geometry: Alue
-      color_code: #E06666
       short_name: VV
       plan_regulations:
         - regulation_code: uimaranta
@@ -163,7 +147,6 @@ categories:
 
     - name: Vapaa-ajan asumisen ja matkailun alue
       geometry: Alue
-      color_code: #70AD47
       short_name: R
       plan_regulations:
         - regulation_code: vapaaAjanAsumisenJaMatkailunAlue
@@ -172,7 +155,6 @@ categories:
 
     - name: Maisemallisesti arvokas peltoalue
       geometry: Alue
-      color_code: #abcdef
       short_name: MA
       plan_regulations:
         - regulation_code: pelto
@@ -183,7 +165,6 @@ categories:
 
     - name: Virkistysalue
       geometry: Alue
-      color_code: #FFC000
       short_name: V
       plan_regulations:
         - regulation_code: virkistysalue
