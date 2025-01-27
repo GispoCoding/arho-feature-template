@@ -519,7 +519,6 @@ class LifeCycle:
     status_id: str | None
     id_: int | None = None
     plan_id: str | None = None
-    # plan_id_: int | None = None
     plan_regulation_id: str | None = None
     plan_proposition_id: str | None = None
     starting_at: datetime | None = None
@@ -555,7 +554,7 @@ class Plan:
     description: str | None = None
     plan_type_id: str | None = None
     lifecycle_status_id: str | None = None
-    # lifecycle: list[LifeCycle] = field(default_factory=list)
+    lifecycles: list[LifeCycle] = field(default_factory=list)
     record_number: str | None = None
     matter_management_identifier: str | None = None
     permanent_plan_identifier: str | None = None
