@@ -12,6 +12,7 @@ from arho_feature_template.core.lambda_service import LambdaService
 from arho_feature_template.core.models import (
     Document,
     FeatureTemplateLibrary,
+    LifeCycle,
     Plan,
     PlanFeature,
     RegulationGroup,
@@ -28,6 +29,7 @@ from arho_feature_template.gui.docks.new_feature_dock import NewFeatureDock
 from arho_feature_template.gui.docks.regulation_groups_dock import RegulationGroupsDock
 from arho_feature_template.gui.tools.inspect_plan_features_tool import InspectPlanFeatures
 from arho_feature_template.project.layers.code_layers import PlanRegulationGroupTypeLayer, code_layers
+from arho_feature_template.project.layers.lifecycle_layers import LifeCycleLayer
 from arho_feature_template.project.layers.plan_layers import (
     DocumentLayer,
     LandUseAreaLayer,
@@ -266,6 +268,8 @@ class PlanManager:
         attribute_form = PlanAttributeForm(plan_model, self.regulation_group_libraries)
         if attribute_form.exec_():
             feature = save_plan(attribute_form.model)
+            lifecycle_features = save_lifecycle(attribute_form.lifecycle_model, feature["id"])
+            # print(lifecycle_features)
             plan_to_be_activated = feature["id"]
         else:
             plan_to_be_activated = self.previous_active_plan_id
@@ -702,3 +706,20 @@ def save_document(document: Document) -> QgsFeature:
     )
 
     return feature
+
+
+def save_lifecycle(lifecycles: list[LifeCycle]) -> list[QgsFeature]:
+    """Save a list of LifeCycle objects to the layer."""
+    lifecycle_layer = LifeCycleLayer.get_from_project()
+    if not lifecycle_layer:
+        raise RuntimeError("Lifecycle layer not found in the project.")
+
+    saved_features = []
+    for lifecycle in lifecycles:
+        # Create or update a feature from the model
+        feature = LifeCycleLayer.feature_from_model(lifecycle)
+        lifecycle_layer.addFeature(feature)
+        saved_features.append(feature)
+
+    lifecycle_layer.commitChanges()
+    return saved_features
