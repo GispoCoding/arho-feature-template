@@ -5,18 +5,22 @@ from typing import TYPE_CHECKING
 
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtGui import QStandardItem, QStandardItemModel
 from qgis.PyQt.QtWidgets import (
     QComboBox,
+    QDateEdit,
     QDialog,
     QDialogButtonBox,
     QLineEdit,
+    QListView,
+    QPushButton,
     QSizePolicy,
     QSpacerItem,
     QTextEdit,
     QTreeWidgetItem,
 )
 
-from arho_feature_template.core.models import Plan, RegulationGroup, RegulationGroupLibrary
+from arho_feature_template.core.models import LifeCycle, Plan, RegulationGroup, RegulationGroupLibrary
 from arho_feature_template.gui.components.plan_regulation_group_widget import RegulationGroupWidget
 from arho_feature_template.gui.components.tree_with_search_widget import TreeWithSearchWidget
 from arho_feature_template.project.layers.code_layers import (
@@ -40,7 +44,7 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
     organisation_combo_box: CodeComboBox
     description_text_edit: QTextEdit
     plan_type_combo_box: HierarchicalCodeComboBox
-    lifecycle_status_combo_box: CodeComboBox
+    # lifecycle_status_combo_box: CodeComboBox
     record_number_line_edit: QLineEdit
     producers_plan_identifier_line_edit: QLineEdit
     matter_management_identifier_line_edit: QLineEdit
@@ -48,6 +52,12 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
     plan_regulation_group_scrollarea_contents: QWidget
     plan_regulation_group_libraries_combobox: QComboBox
     regulation_groups_tree_layout: QVBoxLayout
+
+    lifecycle_status_combo_box: CodeComboBox
+    lifecycle_start_date: QDateEdit
+    lifecycle_end_date: QDateEdit
+    add_lifecycle_button: QPushButton
+    lifecycle_list: QListView
 
     button_box: QDialogButtonBox
 
@@ -95,6 +105,10 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
         for regulation_group in plan.general_regulations:
             self.add_plan_regulation_group(regulation_group)
 
+        self.lifecycle_model = QStandardItemModel()
+        self.lifecycle_list.setModel(self.lifecycle_model)
+        self.add_lifecycle_button.clicked.connect(self.save_lifecycle)
+
         self.button_box.button(QDialogButtonBox.Ok).setEnabled(False)
         self.button_box.accepted.connect(self._on_ok_clicked)
 
@@ -106,7 +120,8 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
             self.name_line_edit.text() != ""
             and self.plan_type_combo_box.value() is not None
             and self.organisation_combo_box.value() is not None
-            and self.lifecycle_status_combo_box.value() is not None
+            # and self.lifecycle_status_combo_box.value() is not None
+            and self.lifecycle_model.rowCount() > 0
         ):
             ok_button.setEnabled(True)
         else:
@@ -153,6 +168,60 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
 
     # ---
 
+    def save_lifecycle(self):
+        # Get values from the widgets
+        status = self.lifecycle_status_combo_box.currentText()  # Get the selected text from the combo box
+        start_date = self.lifecycle_start_date.date().toString("yyyy-MM-dd")  # Format the QDate as a string
+        end_date = self.lifecycle_end_date.date().toString("yyyy-MM-dd") if self.lifecycle_end_date.date() else None
+
+        # Format the lifecycle entry
+        date_range = f"{start_date} - {end_date}" if end_date else start_date
+        lifecycle_entry = f"{status} | {date_range}"
+
+        # Add to the model
+        item = QStandardItem(lifecycle_entry)
+        self.lifecycle_model.appendRow(item)
+
+        # Optionally, check required fields again
+        self._check_required_fields()
+
+    def into_lifecycle_model(self) -> list[LifeCycle]:
+        print("Calling into_lifecycle_model at plan_attribute_form.py")
+        lifecycles = []
+
+        for row in range(self.lifecycle_model.rowCount()):
+            item = self.lifecycle_model.item(row)
+            if item:
+                lifecycle_entry = item.text()
+                parts = lifecycle_entry.split(" | ")
+                status = parts[0]
+                date_range = parts[1]
+                date_parts = date_range.split(" - ")
+                start_date = date_parts[0]
+                end_date = date_parts[1] if len(date_parts) > 1 else None  # End date is optional
+
+                print(f"Got status: {status}")
+                print(f"Got status_id: {LifeCycleStatusLayer.get_id_by_value(status)}")
+
+                # Add the lifecycle to the list
+                lifecycles.append(
+                    LifeCycle(
+                        status_id=LifeCycleStatusLayer.get_id_by_value(status),
+                        plan_id="52aadc88-feb0-443b-a423-f5a50d0bb9fc",
+                        land_use_are_id=None,
+                        other_area_id=None,
+                        line_id=None,
+                        land_use_point_id=None,
+                        other_point_id=None,
+                        starting_at=start_date,
+                        ending_at=end_date,
+                        plan_regulation_id=None,
+                        plan_proposition_id=None,
+                    )
+                )
+
+        return lifecycles
+
     def into_model(self) -> Plan:
         return Plan(
             id_=self.plan.id_,
@@ -164,11 +233,13 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
             record_number=self.record_number_line_edit.text() or None,
             producers_plan_identifier=self.producers_plan_identifier_line_edit.text() or None,
             matter_management_identifier=self.matter_management_identifier_line_edit.text() or None,
-            lifecycle_status_id=self.lifecycle_status_combo_box.value(),
+            lifecycle_status_id=self.lifecycle_status_combo_box.value(),  # Need to get the lifecycle with the latest lifecycle
+            # lifecycle=self.get_lifecycles(),
             general_regulations=[reg_group_widget.into_model() for reg_group_widget in self.regulation_group_widgets],
             geom=self.plan.geom,
         )
 
     def _on_ok_clicked(self):
         self.model = self.into_model()
+        self.lifecycle_model = self.into_lifecycle_model()
         self.accept()

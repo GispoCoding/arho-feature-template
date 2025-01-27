@@ -14,6 +14,8 @@ from arho_feature_template.qgis_plugin_tools.tools.resources import resources_pa
 from arho_feature_template.utils.misc_utils import LANGUAGE, get_layer_by_name, iface
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from qgis.core import QgsFeature, QgsGeometry
 
 
@@ -322,6 +324,24 @@ class RegulationGroup:
 
 
 @dataclass
+class LifeCycle:
+    status_id: str | None
+    id_: int | None = None
+    plan_id: str | None = None
+    # plan_id_: int | None = None
+    plan_regulation_id: str | None = None
+    plan_proposition_id: str | None = None
+    starting_at: datetime | None = None
+    ending_at: datetime | None = None
+    # might not need the following
+    land_use_are_id: str | None = None
+    other_area_id: str | None = None
+    line_id: str | None = None
+    land_use_point_id: str | None = None
+    other_point_id: str | None = None
+
+
+@dataclass
 class PlanFeature:
     geom: QgsGeometry | None = None  # Need to allow None for feature templates
     type_of_underground_id: str | None = None
@@ -344,6 +364,7 @@ class Plan:
     description: str | None = None
     plan_type_id: str | None = None
     lifecycle_status_id: str | None = None
+    # lifecycle: list[LifeCycle] = field(default_factory=list)
     record_number: str | None = None
     matter_management_identifier: str | None = None
     permanent_plan_identifier: str | None = None

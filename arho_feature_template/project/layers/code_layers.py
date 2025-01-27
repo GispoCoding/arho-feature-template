@@ -17,6 +17,13 @@ class PlanTypeLayer(AbstractCodeLayer):
 class LifeCycleStatusLayer(AbstractCodeLayer):
     name = "Elinkaaren tila"
 
+    @classmethod
+    def get_id_by_value(cls, value: str) -> str | None:
+        """Fetch the id based on the provided value."""
+        print(f"Searching for UUID for lifecycle_statis of: {value}")
+        attribute_value = cls.get_attribute_value_by_another_attribute_value("id", "name", value)
+        return cast(str, attribute_value) if attribute_value else attribute_value
+
 
 class OrganisationLayer(AbstractCodeLayer):
     name = "Toimija"

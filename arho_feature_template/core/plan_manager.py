@@ -11,6 +11,7 @@ from qgis.PyQt.QtWidgets import QDialog, QMessageBox
 from arho_feature_template.core.lambda_service import LambdaService
 from arho_feature_template.core.models import (
     FeatureTemplateLibrary,
+    LifeCycle,
     Plan,
     PlanFeature,
     RegulationGroupCategory,
@@ -25,6 +26,7 @@ from arho_feature_template.gui.dialogs.serialize_plan import SerializePlan
 from arho_feature_template.gui.docks.new_feature_dock import NewFeatureDock
 from arho_feature_template.gui.tools.inspect_plan_features_tool import InspectPlanFeatures
 from arho_feature_template.project.layers.code_layers import PlanRegulationGroupTypeLayer
+from arho_feature_template.project.layers.lifecycle_layers import LifeCycleLayer
 from arho_feature_template.project.layers.plan_layers import (
     LandUseAreaLayer,
     LandUsePointLayer,
@@ -182,6 +184,7 @@ class PlanManager:
         attribute_form = PlanAttributeForm(plan_model, self.get_regulation_group_libraries())
         if attribute_form.exec_():
             feature = save_plan(attribute_form.model)
+            # lifecycle_features = save_lifecycle(attribute_form.lifecycle_model)
 
     def add_new_plan_feature(self):
         if not handle_unsaved_changes():
@@ -213,6 +216,8 @@ class PlanManager:
         attribute_form = PlanAttributeForm(plan_model, self.get_regulation_group_libraries())
         if attribute_form.exec_():
             feature = save_plan(attribute_form.model)
+            lifecycle_features = save_lifecycle(attribute_form.lifecycle_model, feature["id"])
+            # print(lifecycle_features)
             plan_to_be_activated = feature["id"]
         else:
             plan_to_be_activated = self.previous_active_plan_id
@@ -241,6 +246,7 @@ class PlanManager:
         )
         if attribute_form.exec_():
             save_plan_feature(attribute_form.model)
+            # save_lifecycle(attribute_form.lifecycle_model)
 
     def edit_plan_feature(self, feature: QgsFeature, layer_name: str):
         layer_class = FEATURE_LAYER_NAME_TO_CLASS_MAP[layer_name]
@@ -459,6 +465,19 @@ def save_plan(plan: Plan) -> QgsFeature:
             regulation_group_feature = save_regulation_group(regulation_group, plan_id)
             save_regulation_group_association(regulation_group_feature["id"], PlanLayer.name, plan_id)
 
+    # Save plan lifecycles
+    # if hasattr(plan, "lifecycle"):
+    # print("Has attribute lifecycle!")
+    # if plan.lifecycle:
+    # print("Plan has a lifecycle!")
+    # for lifecycle in plan.lifecycle:
+    # print(f"Lifecycle found: {lifecycle}!")
+    # save_lifecycle(lifecycle)
+    # else:
+    # print("Plan doesnt have any lifecycles!")
+    # else:
+    # print("No attribute lifecycle!")
+
     return feature
 
 
@@ -553,6 +572,23 @@ def save_regulation(regulation: Regulation) -> QgsFeature:
     )
 
     return feature
+
+
+def save_lifecycle(lifecycles: list[LifeCycle]) -> list[QgsFeature]:
+    """Save a list of LifeCycle objects to the layer."""
+    lifecycle_layer = LifeCycleLayer.get_from_project()
+    if not lifecycle_layer:
+        raise RuntimeError("Lifecycle layer not found in the project.")
+
+    saved_features = []
+    for lifecycle in lifecycles:
+        # Create or update a feature from the model
+        feature = LifeCycleLayer.feature_from_model(lifecycle)
+        lifecycle_layer.addFeature(feature)
+        saved_features.append(feature)
+
+    lifecycle_layer.commitChanges()
+    return saved_features
 
 
 def save_proposition(proposition: Proposition) -> QgsFeature:
