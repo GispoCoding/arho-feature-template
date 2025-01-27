@@ -180,13 +180,13 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
 
         # Add to the model
         item = QStandardItem(lifecycle_entry)
+        item.setData(self.lifecycle_status_combo_box.value(), Qt.UserRole + 1)
         self.lifecycle_model.appendRow(item)
 
         # Optionally, check required fields again
         self._check_required_fields()
 
     def into_lifecycle_model(self) -> list[LifeCycle]:
-        print("Calling into_lifecycle_model at plan_attribute_form.py")
         lifecycles = []
 
         for row in range(self.lifecycle_model.rowCount()):
@@ -194,29 +194,17 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
             if item:
                 lifecycle_entry = item.text()
                 parts = lifecycle_entry.split(" | ")
-                status = parts[0]
                 date_range = parts[1]
                 date_parts = date_range.split(" - ")
                 start_date = date_parts[0]
                 end_date = date_parts[1] if len(date_parts) > 1 else None  # End date is optional
 
-                print(f"Got status: {status}")
-                print(f"Got status_id: {LifeCycleStatusLayer.get_id_by_value(status)}")
-
                 # Add the lifecycle to the list
                 lifecycles.append(
                     LifeCycle(
-                        status_id=LifeCycleStatusLayer.get_id_by_value(status),
-                        plan_id="52aadc88-feb0-443b-a423-f5a50d0bb9fc",
-                        land_use_are_id=None,
-                        other_area_id=None,
-                        line_id=None,
-                        land_use_point_id=None,
-                        other_point_id=None,
+                        status_id=item.data(Qt.UserRole + 1),
                         starting_at=start_date,
                         ending_at=end_date,
-                        plan_regulation_id=None,
-                        plan_proposition_id=None,
                     )
                 )
 
@@ -234,12 +222,12 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
             producers_plan_identifier=self.producers_plan_identifier_line_edit.text() or None,
             matter_management_identifier=self.matter_management_identifier_line_edit.text() or None,
             lifecycle_status_id=self.lifecycle_status_combo_box.value(),  # Need to get the lifecycle with the latest lifecycle
-            # lifecycle=self.get_lifecycles(),
+            lifecycles=self.into_lifecycle_model(),
             general_regulations=[reg_group_widget.into_model() for reg_group_widget in self.regulation_group_widgets],
             geom=self.plan.geom,
         )
 
     def _on_ok_clicked(self):
         self.model = self.into_model()
-        self.lifecycle_model = self.into_lifecycle_model()
+        # self.lifecycle_model = self.into_lifecycle_model()
         self.accept()
