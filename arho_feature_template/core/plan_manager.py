@@ -531,6 +531,7 @@ def save_plan(plan: Plan) -> QgsFeature:
         document.plan_id = plan_id
         save_document(document)
 
+    # Save lifecycles
     for lifecycle in plan.lifecycles:
         lifecycle.plan_id = feature["id"]
         save_lifecycle(lifecycle)
