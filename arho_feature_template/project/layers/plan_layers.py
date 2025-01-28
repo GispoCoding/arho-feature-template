@@ -11,6 +11,7 @@ from qgis.core import NULL, QgsExpressionContextUtils, QgsFeature, QgsProject, Q
 from qgis.utils import iface
 
 from arho_feature_template.core.models import (
+    LifeCycle,
     Plan,
     PlanFeature,
     Proposition,
@@ -27,11 +28,13 @@ logger = logging.getLogger(__name__)
 
 
 class AbstractPlanLayer(AbstractLayer):
-    filter_template: ClassVar[Template]
+    filter_template: ClassVar[Template | None]
 
     @classmethod
     def apply_filter(cls, plan_id: str | None) -> None:
         """Apply a filter to the layer based on the plan_id."""
+        if cls.filter_template is None:
+            return
         filter_expression = cls.filter_template.substitute(plan_id=plan_id) if plan_id else ""
         layer = cls.get_from_project()
         if layer.isEditable():
@@ -405,6 +408,47 @@ class DocumentLayer(AbstractPlanLayer):
 class SourceDataLayer(AbstractPlanLayer):
     name = "Lähtötietoaineistot"
     filter_template = Template("plan_id = '$plan_id'")
+
+
+class LifeCycleLayer(AbstractPlanLayer):
+    name = "Elinkaaren päiväykset"
+    filter_template = None
+
+    @classmethod
+    def feature_from_model(cls, model: LifeCycle) -> QgsFeature:
+        feature = cls.initialize_feature_from_model(model)
+        # feature["id"] = model.id_
+        feature["id"] = model.id_ if model.id_ else feature["id"]
+        feature["lifecycle_status_id"] = model.status_id
+        feature["starting_at"] = model.starting_at
+        feature["ending_at"] = model.ending_at if model.ending_at else None
+        feature["plan_id"] = model.plan_id
+        feature["land_use_area_id"] = model.land_use_are_id
+        feature["other_area_id"] = model.other_area_id
+        feature["line_id"] = model.line_id
+        feature["land_use_point_id"] = model.land_use_point_id
+        feature["other_point_id"] = model.other_point_id
+        feature["plan_regulation_id"] = model.plan_regulation_id
+        feature["plan_proposition_id"] = model.plan_proposition_id
+
+        return feature
+
+    @classmethod
+    def model_from_feature(cls, feature: QgsFeature) -> LifeCycle:
+        return LifeCycle(
+            id_=feature["id"],
+            status_id=feature["lifecycle_status_id"],
+            starting_at=feature["starting_at"],
+            ending_at=feature["ending_at"] if feature["ending_at"] else None,
+            plan_id=feature["plan_id"],
+            land_use_are_id=feature["land_use_area_id"] if feature["land_use_area_id"] else None,
+            other_area_id=feature["other_area_id"] if feature["other_area_id"] else None,
+            line_id=feature["line_id"] if feature["line_id"] else None,
+            land_use_point_id=feature["land_use_point_id"] if feature["land_use_point_id"] else None,
+            other_point_id=feature["other_point_id"] if feature["other_point_id"] else None,
+            plan_regulation_id=feature["plan_regulation_id"] if feature["plan_regulation_id"] else None,
+            plan_proposition_id=feature["plan_proposition_id"] if feature["plan_proposition_id"] else None,
+        )
 
 
 plan_layers = AbstractPlanLayer.__subclasses__()

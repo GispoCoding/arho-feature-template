@@ -11,6 +11,7 @@ from qgis.PyQt.QtWidgets import QDialog, QMessageBox
 from arho_feature_template.core.lambda_service import LambdaService
 from arho_feature_template.core.models import (
     FeatureTemplateLibrary,
+    LifeCycle,
     Plan,
     PlanFeature,
     RegulationGroupCategory,
@@ -28,6 +29,7 @@ from arho_feature_template.project.layers.code_layers import PlanRegulationGroup
 from arho_feature_template.project.layers.plan_layers import (
     LandUseAreaLayer,
     LandUsePointLayer,
+    LifeCycleLayer,
     LineLayer,
     OtherAreaLayer,
     OtherPointLayer,
@@ -202,6 +204,7 @@ class PlanManager:
         attribute_form = PlanAttributeForm(plan_model, self.regulation_group_libraries)
         if attribute_form.exec_():
             feature = save_plan(attribute_form.model)
+            # lifecycle_features = save_lifecycle(attribute_form.lifecycle_model)
 
     def add_new_plan_feature(self):
         if not handle_unsaved_changes():
@@ -261,6 +264,7 @@ class PlanManager:
         )
         if attribute_form.exec_():
             save_plan_feature(attribute_form.model)
+            # save_lifecycle(attribute_form.lifecycle_model)
 
     def edit_plan_feature(self, feature: QgsFeature, layer_name: str):
         layer_class = FEATURE_LAYER_NAME_TO_CLASS_MAP[layer_name]
@@ -479,6 +483,24 @@ def save_plan(plan: Plan) -> QgsFeature:
             regulation_group_feature = save_regulation_group(regulation_group, plan_id)
             save_regulation_group_association(regulation_group_feature["id"], PlanLayer.name, plan_id)
 
+    # loop lifecycles and save
+    for lifecycle in plan.lifecycles:
+        lifecycle.plan_id = feature["id"]
+        save_lifecycle(lifecycle)
+
+    # Save plan lifecycles
+    # if hasattr(plan, "lifecycle"):
+    # print("Has attribute lifecycle!")
+    # if plan.lifecycle:
+    # print("Plan has a lifecycle!")
+    # for lifecycle in plan.lifecycle:
+    # print(f"Lifecycle found: {lifecycle}!")
+    # save_lifecycle(lifecycle)
+    # else:
+    # print("Plan doesnt have any lifecycles!")
+    # else:
+    # print("No attribute lifecycle!")
+
     return feature
 
 
@@ -572,6 +594,20 @@ def save_regulation(regulation: Regulation) -> QgsFeature:
         edit_text="Kaavamääräyksen lisäys" if regulation.id_ is None else "Kaavamääräyksen muokkaus",
     )
 
+    return feature
+
+
+def save_lifecycle(lifecycle: LifeCycle) -> QgsFeature:
+    """Save a list of LifeCycle objects to the layer."""
+    feature = LifeCycleLayer.feature_from_model(lifecycle)
+    layer = LifeCycleLayer.get_from_project()
+
+    _save_feature(
+        feature=feature,
+        layer=layer,
+        id_=lifecycle.id_,
+        edit_text="Elinkaaren lisäys" if lifecycle.id_ is None else "Elinkaaren muokkaus",
+    )
     return feature
 
 

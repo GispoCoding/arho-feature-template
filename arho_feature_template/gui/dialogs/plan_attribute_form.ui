@@ -26,7 +26,7 @@
       </sizepolicy>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>2</number>
      </property>
      <widget class="QWidget" name="general_info_tab">
       <attribute name="title">
@@ -61,8 +61,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>831</width>
-            <height>562</height>
+            <width>218</width>
+            <height>306</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -128,6 +128,16 @@
                </property>
               </widget>
              </item>
+             <item row="3" column="0">
+              <widget class="QLabel" name="label_5">
+               <property name="text">
+                <string>Organisaatio*:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="1">
+              <widget class="CodeComboBox" name="organisation_combo_box"/>
+             </item>
              <item row="4" column="0">
               <widget class="QLabel" name="tyyppiLabel">
                <property name="text">
@@ -144,33 +154,6 @@
                 <string>Kaava-asian kaavalaji</string>
                </property>
               </widget>
-             </item>
-             <item row="5" column="0">
-              <widget class="QLabel" name="elinkaarenTilaLabel">
-               <property name="text">
-                <string>Elinkaaren tila*:</string>
-               </property>
-               <property name="buddy">
-                <cstring>lifecycle_status_combo_box</cstring>
-               </property>
-              </widget>
-             </item>
-             <item row="5" column="1">
-              <widget class="CodeComboBox" name="lifecycle_status_combo_box">
-               <property name="toolTip">
-                <string>Kaavan elinkaaren tila</string>
-               </property>
-              </widget>
-             </item>
-             <item row="3" column="0">
-              <widget class="QLabel" name="label_5">
-               <property name="text">
-                <string>Organisaatio*:</string>
-               </property>
-              </widget>
-             </item>
-             <item row="3" column="1">
-              <widget class="CodeComboBox" name="organisation_combo_box"/>
              </item>
             </layout>
            </item>
@@ -290,6 +273,96 @@
        </item>
       </layout>
      </widget>
+     <widget class="QWidget" name="lifecycle_status_tab">
+      <attribute name="title">
+       <string>Elinkaaret</string>
+      </attribute>
+      <widget class="QGroupBox" name="groupBox_2">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>10</y>
+         <width>831</width>
+         <height>571</height>
+        </rect>
+       </property>
+       <property name="title">
+        <string>Elinkaarien tilat</string>
+       </property>
+       <widget class="QWidget" name="verticalLayoutWidget">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>30</y>
+          <width>301</width>
+          <height>531</height>
+         </rect>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_8">
+         <item>
+          <layout class="QFormLayout" name="formLayout_3">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_9">
+             <property name="text">
+              <string>Elinkaaren tila:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="CodeComboBox" name="lifecycle_status_combo_box">
+             <property name="toolTip">
+              <string>Kaavan elinkaaren tila</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_10">
+             <property name="text">
+              <string>Alkupäivämäärä:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QDateEdit" name="lifecycle_start_date"/>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_11">
+             <property name="text">
+              <string>Loppupäivämäärä:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QDateEdit" name="lifecycle_end_date"/>
+           </item>
+           <item row="3" column="0">
+            <widget class="QPushButton" name="add_lifecycle_button">
+             <property name="text">
+              <string>Tallenna elinkaari</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="verticalLayoutWidget_2">
+        <property name="geometry">
+         <rect>
+          <x>330</x>
+          <y>30</y>
+          <width>491</width>
+          <height>531</height>
+         </rect>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_9">
+         <item>
+          <widget class="QListView" name="lifecycle_list"/>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+     </widget>
     </widget>
    </item>
    <item>
@@ -328,7 +401,6 @@
   <tabstop>name_line_edit</tabstop>
   <tabstop>description_text_edit</tabstop>
   <tabstop>plan_type_combo_box</tabstop>
-  <tabstop>lifecycle_status_combo_box</tabstop>
   <tabstop>mGroupBox</tabstop>
   <tabstop>record_number_line_edit</tabstop>
   <tabstop>producers_plan_identifier_line_edit</tabstop>
