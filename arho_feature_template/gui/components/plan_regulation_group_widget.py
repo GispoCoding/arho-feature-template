@@ -42,11 +42,16 @@ class RegulationGroupWidget(QWidget, FormClass):  # type: ignore
         self.regulation_group_details_layout: QFormLayout
 
         # INIT
+        self.frame.setObjectName("frame")  # Set unique name to avoid style cascading
         self.regulation_widgets: list[RegulationWidget] = []
         self.proposition_widgets: list[PropositionWidget] = []
 
-        regulation_group.type_code_id = PlanRegulationGroupTypeLayer.get_id_by_feature_layer_name(layer_name)
+        if regulation_group.id_:
+            # Set style that indicates the regulation group exists in the plan already
+            self.set_existing_regulation_group_style()
+
         self.from_model(regulation_group)
+        self.regulation_group.type_code_id = PlanRegulationGroupTypeLayer.get_id_by_feature_layer_name(layer_name)
 
         self.edit_btn.setIcon(QIcon(resources_path("icons", "settings.svg")))
         self.edit_btn.clicked.connect(lambda: self.open_as_form_signal.emit(self))
@@ -88,6 +93,12 @@ class RegulationGroupWidget(QWidget, FormClass):  # type: ignore
         self.frame.layout().removeWidget(proposition_widget)
         self.proposition_widgets.remove(proposition_widget)
         proposition_widget.deleteLater()
+
+    def set_existing_regulation_group_style(self):
+        self.setStyleSheet("#frame { border: 2px solid #4b8db2; }")
+
+    def unset_existing_regulation_group_style(self):
+        self.setStyleSheet("")
 
     def into_model(self) -> RegulationGroup:
         return RegulationGroup(
