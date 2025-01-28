@@ -463,23 +463,10 @@ def save_plan(plan: Plan) -> QgsFeature:
             regulation_group_feature = save_regulation_group(regulation_group, plan_id)
             save_regulation_group_association(regulation_group_feature["id"], PlanLayer.name, plan_id)
 
-    # loop lifecycles and save
+    # Save lifecycles
     for lifecycle in plan.lifecycles:
         lifecycle.plan_id = feature["id"]
         save_lifecycle(lifecycle)
-
-    # Save plan lifecycles
-    # if hasattr(plan, "lifecycle"):
-    # print("Has attribute lifecycle!")
-    # if plan.lifecycle:
-    # print("Plan has a lifecycle!")
-    # for lifecycle in plan.lifecycle:
-    # print(f"Lifecycle found: {lifecycle}!")
-    # save_lifecycle(lifecycle)
-    # else:
-    # print("Plan doesnt have any lifecycles!")
-    # else:
-    # print("No attribute lifecycle!")
 
     return feature
 

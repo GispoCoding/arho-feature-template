@@ -61,8 +61,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>218</width>
-            <height>306</height>
+            <width>829</width>
+            <height>569</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -128,16 +128,6 @@
                </property>
               </widget>
              </item>
-             <item row="3" column="0">
-              <widget class="QLabel" name="label_5">
-               <property name="text">
-                <string>Organisaatio*:</string>
-               </property>
-              </widget>
-             </item>
-             <item row="3" column="1">
-              <widget class="CodeComboBox" name="organisation_combo_box"/>
-             </item>
              <item row="4" column="0">
               <widget class="QLabel" name="tyyppiLabel">
                <property name="text">
@@ -154,6 +144,33 @@
                 <string>Kaava-asian kaavalaji</string>
                </property>
               </widget>
+             </item>
+             <item row="5" column="0">
+              <widget class="QLabel" name="elinkaarenTilaLabel">
+               <property name="text">
+                <string>Elinkaaren tila*:</string>
+               </property>
+               <property name="buddy">
+                <cstring>lifecycle_status_combo_box</cstring>
+               </property>
+              </widget>
+             </item>
+             <item row="5" column="1">
+              <widget class="CodeComboBox" name="lifecycle_status_combo_box">
+               <property name="toolTip">
+                <string>Kaavan elinkaaren tila</string>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="0">
+              <widget class="QLabel" name="label_5">
+               <property name="text">
+                <string>Organisaatio*:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="1">
+              <widget class="CodeComboBox" name="organisation_combo_box"/>
              </item>
             </layout>
            </item>
@@ -258,8 +275,8 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>601</width>
-                 <height>493</height>
+                 <width>659</width>
+                 <height>515</height>
                 </rect>
                </property>
                <layout class="QVBoxLayout" name="verticalLayout_6"/>
@@ -273,91 +290,72 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="lifecycle_status_tab">
+     <widget class="QWidget" name="lifecycles_tab">
       <attribute name="title">
        <string>Elinkaaret</string>
       </attribute>
       <widget class="QGroupBox" name="groupBox_2">
        <property name="geometry">
         <rect>
-         <x>10</x>
+         <x>0</x>
          <y>10</y>
-         <width>831</width>
-         <height>571</height>
+         <width>801</width>
+         <height>561</height>
         </rect>
        </property>
        <property name="title">
-        <string>Elinkaarien tilat</string>
+        <string>Elinkaaret</string>
        </property>
        <widget class="QWidget" name="verticalLayoutWidget">
         <property name="geometry">
          <rect>
-          <x>10</x>
+          <x>30</x>
           <y>30</y>
-          <width>301</width>
-          <height>531</height>
+          <width>631</width>
+          <height>461</height>
          </rect>
         </property>
-        <layout class="QVBoxLayout" name="verticalLayout_8">
+        <layout class="QVBoxLayout" name="verticalLayout_5">
          <item>
-          <layout class="QFormLayout" name="formLayout_3">
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_9">
-             <property name="text">
-              <string>Elinkaaren tila:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="CodeComboBox" name="lifecycle_status_combo_box">
-             <property name="toolTip">
-              <string>Kaavan elinkaaren tila</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0">
-            <widget class="QLabel" name="label_10">
-             <property name="text">
-              <string>Alkupäivämäärä:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="1">
-            <widget class="QDateEdit" name="lifecycle_start_date"/>
-           </item>
-           <item row="2" column="0">
-            <widget class="QLabel" name="label_11">
-             <property name="text">
-              <string>Loppupäivämäärä:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="1">
-            <widget class="QDateEdit" name="lifecycle_end_date"/>
-           </item>
-           <item row="3" column="0">
-            <widget class="QPushButton" name="add_lifecycle_button">
-             <property name="text">
-              <string>Tallenna elinkaari</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
+          <widget class="QTableWidget" name="lifecycle_table"/>
          </item>
         </layout>
        </widget>
        <widget class="QWidget" name="verticalLayoutWidget_2">
         <property name="geometry">
          <rect>
-          <x>330</x>
+          <x>689</x>
           <y>30</y>
-          <width>491</width>
-          <height>531</height>
+          <width>81</width>
+          <height>461</height>
          </rect>
         </property>
-        <layout class="QVBoxLayout" name="verticalLayout_9">
+        <layout class="QVBoxLayout" name="verticalLayout_8">
          <item>
-          <widget class="QListView" name="lifecycle_list"/>
+          <widget class="QPushButton" name="delete_lifecycle_button">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="text">
+            <string>Poista</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="add_lifecycle_button">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="text">
+            <string>Lisää</string>
+           </property>
+          </widget>
          </item>
         </layout>
        </widget>
@@ -401,6 +399,7 @@
   <tabstop>name_line_edit</tabstop>
   <tabstop>description_text_edit</tabstop>
   <tabstop>plan_type_combo_box</tabstop>
+  <tabstop>lifecycle_status_combo_box</tabstop>
   <tabstop>mGroupBox</tabstop>
   <tabstop>record_number_line_edit</tabstop>
   <tabstop>producers_plan_identifier_line_edit</tabstop>

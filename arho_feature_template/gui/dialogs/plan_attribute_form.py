@@ -4,7 +4,7 @@ from importlib import resources
 from typing import TYPE_CHECKING
 
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtCore import QDate, Qt
 from qgis.PyQt.QtGui import QStandardItem, QStandardItemModel
 from qgis.PyQt.QtWidgets import (
     QComboBox,
@@ -12,15 +12,18 @@ from qgis.PyQt.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QLineEdit,
-    QListView,
     QPushButton,
     QSizePolicy,
     QSpacerItem,
+    QStyledItemDelegate,
+    QTableWidget,
     QTextEdit,
     QTreeWidgetItem,
+    QWidget,
 )
 
 from arho_feature_template.core.models import LifeCycle, Plan, RegulationGroup, RegulationGroupLibrary
+from arho_feature_template.gui.components.code_combobox import CodeComboBox
 from arho_feature_template.gui.components.plan_regulation_group_widget import RegulationGroupWidget
 from arho_feature_template.gui.components.tree_with_search_widget import TreeWithSearchWidget
 from arho_feature_template.project.layers.code_layers import (
@@ -32,10 +35,54 @@ from arho_feature_template.project.layers.code_layers import (
 if TYPE_CHECKING:
     from qgis.PyQt.QtWidgets import QComboBox, QLineEdit, QTextEdit, QVBoxLayout, QWidget
 
-    from arho_feature_template.gui.components.code_combobox import CodeComboBox, HierarchicalCodeComboBox
+    from arho_feature_template.gui.components.code_combobox import HierarchicalCodeComboBox
 
 ui_path = resources.files(__package__) / "plan_attribute_form.ui"
 FormClass, _ = uic.loadUiType(ui_path)
+
+
+class LifecycleTableModel(QStandardItemModel):
+    def __init__(self, status_options, parent=None):
+        super().__init__(parent)
+        self.status_options = status_options
+
+    def flags(self, index):
+        if index.column() == 0:  # "Elinkaaren tila" - editable combo box
+            return Qt.ItemIsSelectable | Qt.ItemIsEnabled
+
+        if index.column() in (1, 2):  # Dates
+            return Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
+        return super().flags(index)
+
+
+class LifecycleDelegate(QStyledItemDelegate):
+    def create_editor(self, parent, option, index):
+        if index.column() == 0:  # Status column
+            lifecycle_combo_box = CodeComboBox(parent)
+            lifecycle_combo_box.populate_from_code_layer(LifeCycleStatusLayer)
+            return lifecycle_combo_box
+        if index.column() in (1, 2):  # Dates columns
+            date_edit = QDateEdit(parent)
+            date_edit.setDisplayFormat("yyyy-MM-dd")
+            date_edit.setCalendarPopup(True)
+            return date_edit
+        return super().createEditor(parent, option, index)
+
+    def set_editor_data(self, editor, index):
+        if isinstance(editor, CodeComboBox) and index.column() == 0:
+            value = index.data(Qt.EditRole)
+            if value is not None:
+                editor.set_value(value)
+        elif isinstance(editor, QDateEdit) and index.column() in (1, 2):
+            value = index.data(Qt.EditRole)
+            if value:
+                editor.setDate(QDate.fromString(value, "yyyy-MM-dd"))
+
+    def set_model_data(self, editor, model, index):
+        if isinstance(editor, CodeComboBox) and index.column() == 0:
+            model.setData(index, editor.value(), Qt.EditRole)
+        if isinstance(editor, QDateEdit) and index.column() in (1, 2):
+            model.setData(index, editor.date().toString("yyyy-MM-dd"), Qt.EditRole)
 
 
 class PlanAttributeForm(QDialog, FormClass):  # type: ignore
@@ -44,7 +91,7 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
     organisation_combo_box: CodeComboBox
     description_text_edit: QTextEdit
     plan_type_combo_box: HierarchicalCodeComboBox
-    # lifecycle_status_combo_box: CodeComboBox
+    lifecycle_status_combo_box: CodeComboBox
     record_number_line_edit: QLineEdit
     producers_plan_identifier_line_edit: QLineEdit
     matter_management_identifier_line_edit: QLineEdit
@@ -53,11 +100,9 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
     plan_regulation_group_libraries_combobox: QComboBox
     regulation_groups_tree_layout: QVBoxLayout
 
-    lifecycle_status_combo_box: CodeComboBox
-    lifecycle_start_date: QDateEdit
-    lifecycle_end_date: QDateEdit
-    add_lifecycle_button: QPushButton
-    lifecycle_list: QListView
+    lifecycle_table: QTableWidget
+    add_lifecycle: QPushButton
+    delete_lifecycle: QPushButton
 
     button_box: QDialogButtonBox
 
@@ -105,9 +150,13 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
         for regulation_group in plan.general_regulations:
             self.add_plan_regulation_group(regulation_group)
 
-        self.lifecycle_model = QStandardItemModel()
-        self.lifecycle_list.setModel(self.lifecycle_model)
-        self.add_lifecycle_button.clicked.connect(self.save_lifecycle)
+        # Lifecycle table setup
+        self.lifecycle_table.setColumnCount(3)  # Three columns: Status, Start Date, End Date
+        self.lifecycle_table.setHorizontalHeaderLabels(["Elinkaaren tila", "Alkupvm", "Loppupvm"])
+        self.lifecycle_table.setRowCount(0)  # No rows initially
+
+        self.add_lifecycle_button.clicked.connect(self.add_lifecycle_row)
+        self.delete_lifecycle_button.clicked.connect(self.delete_lifecycle_row)
 
         self.button_box.button(QDialogButtonBox.Ok).setEnabled(False)
         self.button_box.accepted.connect(self._on_ok_clicked)
@@ -116,12 +165,30 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
 
     def _check_required_fields(self) -> None:
         ok_button = self.button_box.button(QDialogButtonBox.Ok)
+
+        # Check if all required fields are filled and lifecycle table has at least one valid row
+        has_valid_lifecycle_row = False
+        for row in range(self.lifecycle_table.rowCount()):
+            status_item = self.lifecycle_table.cellWidget(row, 0)
+            start_date_item = self.lifecycle_table.cellWidget(row, 1)
+            end_date_item = self.lifecycle_table.cellWidget(row, 2)
+
+            if (
+                status_item
+                and status_item.value() is not None
+                and start_date_item
+                and start_date_item.date()
+                and (end_date_item and end_date_item.date() or True)
+            ):
+                has_valid_lifecycle_row = True
+                break
+
         if (
             self.name_line_edit.text() != ""
             and self.plan_type_combo_box.value() is not None
             and self.organisation_combo_box.value() is not None
-            # and self.lifecycle_status_combo_box.value() is not None
-            and self.lifecycle_model.rowCount() > 0
+            and self.lifecycle_status_combo_box.value() is not None
+            and has_valid_lifecycle_row  # Ensure there's at least one valid lifecycle row
         ):
             ok_button.setEnabled(True)
         else:
@@ -168,45 +235,72 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
 
     # ---
 
+    def add_lifecycle_row(self):
+        row_position = self.lifecycle_table.rowCount()
+        self.lifecycle_table.insertRow(row_position)
+
+        status = CodeComboBox(self)
+        status.populate_from_code_layer(LifeCycleStatusLayer)
+        self.lifecycle_table.setCellWidget(row_position, 0, status)
+
+        start_date_edit = QDateEdit(self)
+        start_date_edit.setDisplayFormat("yyyy-MM-dd")
+        start_date_edit.setCalendarPopup(True)
+        self.lifecycle_table.setCellWidget(row_position, 1, start_date_edit)
+
+        end_date_edit = QDateEdit(self)
+        end_date_edit.setDisplayFormat("yyyy-MM-dd")
+        end_date_edit.setCalendarPopup(True)
+        self.lifecycle_table.setCellWidget(row_position, 2, end_date_edit)
+
+        self.lifecycle_table.resizeRowsToContents()
+        self.lifecycle_table.resizeColumnsToContents()
+
+    def delete_lifecycle_row(self):
+        selected_rows = self.lifecycle_table.selectionModel().selectedRows()
+
+        if selected_rows:
+            row_position = selected_rows[0].row()
+            self.lifecycle_table.removeRow(row_position)
+            self._check_required_fields()
+
     def save_lifecycle(self):
-        # Get values from the widgets
-        status = self.lifecycle_status_combo_box.currentText()  # Get the selected text from the combo box
-        start_date = self.lifecycle_start_date.date().toString("yyyy-MM-dd")  # Format the QDate as a string
-        end_date = self.lifecycle_end_date.date().toString("yyyy-MM-dd") if self.lifecycle_end_date.date() else None
+        for row in range(self.lifecycle_table.rowCount()):
+            status = self.lifecycle_table.cellWidget(row, 0)
+            start_date_item = self.lifecycle_table.cellWidget(row, 1)
+            end_date_item = self.lifecycle_table.cellWidget(row, 2)
 
-        # Format the lifecycle entry
-        date_range = f"{start_date} - {end_date}" if end_date else start_date
-        lifecycle_entry = f"{status} | {date_range}"
+            if status and start_date_item:
+                status = status.value() if status.value() is not None else ""
+                start_date = start_date_item.date().toString("yyyy-MM-dd") if start_date_item.date() else ""
+                end_date = end_date_item.date().toString("yyyy-MM-dd") if end_date_item.date() else None
 
-        # Add to the model
-        item = QStandardItem(lifecycle_entry)
-        item.setData(self.lifecycle_status_combo_box.value(), Qt.UserRole + 1)
-        self.lifecycle_model.appendRow(item)
+                lifecycle_model_item = QStandardItem(status)
+                lifecycle_model_item.setData(status.value(), Qt.UserRole + 1)
+                start_date_model_item = QStandardItem(start_date)
+                end_date_model_item = QStandardItem(end_date if end_date else "")
 
-        # Optionally, check required fields again
+                self.lifecycle_table.model().appendRow(
+                    [lifecycle_model_item, start_date_model_item, end_date_model_item]
+                )
+
         self._check_required_fields()
 
     def into_lifecycle_model(self) -> list[LifeCycle]:
         lifecycles = []
 
-        for row in range(self.lifecycle_model.rowCount()):
-            item = self.lifecycle_model.item(row)
-            if item:
-                lifecycle_entry = item.text()
-                parts = lifecycle_entry.split(" | ")
-                date_range = parts[1]
-                date_parts = date_range.split(" - ")
-                start_date = date_parts[0]
-                end_date = date_parts[1] if len(date_parts) > 1 else None  # End date is optional
+        # Iterate through the rows in lifecycle_table
+        for row in range(self.lifecycle_table.rowCount()):
+            status_item = self.lifecycle_table.cellWidget(row, 0)
+            start_date_item = self.lifecycle_table.cellWidget(row, 1)
+            end_date_item = self.lifecycle_table.cellWidget(row, 2)
 
-                # Add the lifecycle to the list
-                lifecycles.append(
-                    LifeCycle(
-                        status_id=item.data(Qt.UserRole + 1),
-                        starting_at=start_date,
-                        ending_at=end_date,
-                    )
-                )
+            if status_item and start_date_item:
+                status_id = status_item.value()
+                start_date = start_date_item.date().toString("yyyy-MM-dd") if start_date_item.date() else ""
+                end_date = end_date_item.date().toString("yyyy-MM-dd") if end_date_item.date() else None
+
+                lifecycles.append(LifeCycle(status_id=status_id, starting_at=start_date, ending_at=end_date))
 
         return lifecycles
 
@@ -229,5 +323,4 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
 
     def _on_ok_clicked(self):
         self.model = self.into_model()
-        # self.lifecycle_model = self.into_lifecycle_model()
         self.accept()
