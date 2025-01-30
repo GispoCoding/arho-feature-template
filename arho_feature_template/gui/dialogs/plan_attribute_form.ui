@@ -26,7 +26,7 @@
       </sizepolicy>
      </property>
      <property name="currentIndex">
-      <number>2</number>
+      <number>3</number>
      </property>
      <widget class="QWidget" name="general_info_tab">
       <attribute name="title">
@@ -61,8 +61,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>829</width>
-            <height>569</height>
+            <width>831</width>
+            <height>562</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -342,7 +342,7 @@
       <attribute name="title">
        <string>Elinkaaret</string>
       </attribute>
-      <layout class="QVBoxLayout" name="verticalLayout">
+      <layout class="QVBoxLayout" name="lifecycle_tab_layout">
        <item>
         <widget class="QPushButton" name="add_lifecycle_button">
          <property name="sizePolicy">
@@ -355,9 +355,6 @@
           <string>Lisää elinkaari</string>
          </property>
         </widget>
-       </item>
-       <item>
-        <widget class="QTableWidget" name="lifecycle_table"/>
        </item>
       </layout>
      </widget>

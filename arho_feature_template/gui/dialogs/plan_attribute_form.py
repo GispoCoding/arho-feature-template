@@ -4,36 +4,21 @@ from importlib import resources
 from typing import TYPE_CHECKING
 
 from qgis.core import QgsApplication
-from qgis.gui import QgsDateTimeEdit
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtGui import QStandardItem
 from qgis.PyQt.QtWidgets import (
-    QComboBox,
-    QDateEdit,
     QDialog,
     QDialogButtonBox,
-    QHeaderView,
     QLineEdit,
     QPushButton,
-    QSizePolicy,
-    QSpacerItem,
-    QTableWidget,
-    QTableWidgetItem,
     QTextEdit,
-    QTreeWidgetItem,
-    QWidget,
 )
 
 from arho_feature_template.core.models import Document, Plan, RegulationGroup, RegulationGroupLibrary
+from arho_feature_template.gui.components.general_regulation_group_widget import GeneralRegulationGroupWidget
 
 # from arho_feature_template.gui.components.plan_regulation_group_widget import RegulationGroupWidget
-from arho_feature_template.gui.components.general_regulation_group_widget import GeneralRegulationGroupWidget
+from arho_feature_template.gui.components.lifecycle_table_widget import LifecycleTableWidget
 from arho_feature_template.gui.components.plan_document_widget import DocumentWidget
-from arho_feature_template.core.models import LifeCycle, Plan, RegulationGroup, RegulationGroupLibrary
-from arho_feature_template.gui.components.code_combobox import CodeComboBox
-from arho_feature_template.gui.components.plan_regulation_group_widget import RegulationGroupWidget
-from arho_feature_template.gui.components.tree_with_search_widget import TreeWithSearchWidget
 from arho_feature_template.project.layers.code_layers import (
     LifeCycleStatusLayer,
     OrganisationLayer,
@@ -44,7 +29,7 @@ from arho_feature_template.utils.misc_utils import disconnect_signal
 if TYPE_CHECKING:
     from qgis.PyQt.QtWidgets import QLineEdit, QPushButton, QTextEdit, QVBoxLayout
 
-    from arho_feature_template.gui.components.code_combobox import HierarchicalCodeComboBox
+    from arho_feature_template.gui.components.code_combobox import CodeComboBox, HierarchicalCodeComboBox
 
 ui_path = resources.files(__package__) / "plan_attribute_form.ui"
 FormClass, _ = uic.loadUiType(ui_path)
@@ -70,8 +55,8 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
     documents_layout: QVBoxLayout
     add_document_btn: QPushButton
 
-    lifecycle_table: QTableWidget
-    add_lifecycle: QPushButton
+    lifecycle_tab_layout: QVBoxLayout
+    add_lifecycle_button: QPushButton
     # delete_lifecycle: QPushButton
 
     button_box: QDialogButtonBox
@@ -132,21 +117,10 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
         self.add_document_btn.setIcon(QgsApplication.getThemeIcon("mActionAdd.svg"))
 
         # Lifecycle table setup
-        self.lifecycle_table.setColumnCount(4)
-        self.lifecycle_table.setHorizontalHeaderLabels(["Elinkaaren tila", "Alkupvm", "Loppupvm", "id"])
-        # self.lifecycle_table.setColumnHidden(3, True)
-        self.lifecycle_table.setRowCount(0)
-
-        header = self.lifecycle_table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.Stretch)
-        header.setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
-
-        self.populate_lifecycle_table()
-        # for lifecycle in plan.lifecycles:
-        # self.add_lifecycle_row(lifecycle)
-
-        self.add_lifecycle_button.clicked.connect(self.add_lifecycle_row)
+        self.lifecycle_table = LifecycleTableWidget(self.plan.lifecycles)
+        self.lifecycle_tab_layout.insertWidget(1, self.lifecycle_table)
+        self.lifecycle_table.table_edited.connect(self._check_required_fields)
+        self.add_lifecycle_button.clicked.connect(self.lifecycle_table.add_new_lifecycle_row)
         # self.delete_lifecycle_button.clicked.connect(self.delete_lifecycle_row)
 
         self.button_box.button(QDialogButtonBox.Ok).setEnabled(False)
@@ -156,32 +130,13 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
 
     def _check_required_fields(self) -> None:
         ok_button = self.button_box.button(QDialogButtonBox.Ok)
-
-        has_valid_lifecycle_row = False
-        for row in range(self.lifecycle_table.rowCount()):
-            status_item = self.lifecycle_table.cellWidget(row, 0)
-            start_date_item = self.lifecycle_table.cellWidget(row, 1)
-            end_date_item = self.lifecycle_table.cellWidget(row, 2)
-
-            if (
-                status_item
-                and status_item.value() is not None
-                # and start_date_item
-                and start_date_item.date()
-                and (end_date_item and end_date_item.date() or True)
-            ):
-                has_valid_lifecycle_row = True
-                break
-
         if (
             self.name_line_edit.text() != ""
             and self.plan_type_combo_box.value() is not None
             and self.organisation_combo_box.value() is not None
             and self.lifecycle_status_combo_box.value() is not None
             and all(document_widget.is_ok() for document_widget in self.document_widgets)
-            # and self.lifecycle_status_combo_box.value() is not None
-            # and self.lifecycle_model.rowCount() > 0
-            and has_valid_lifecycle_row  # Ensure there's at least one valid lifecycle row
+            and self.lifecycle_table.is_ok()
         ):
             ok_button.setEnabled(True)
         else:
@@ -247,140 +202,6 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
 
     # ---
 
-    def populate_lifecycle_table(self):
-        # kutsu add_lifecycle_row
-        self.lifecycle_table.setRowCount(len(self.lifecycle_models))
-
-        for row, lifecycle in enumerate(self.lifecycle_models):
-            # Populate the status combobox
-            status_combobox = CodeComboBox(self)
-            status_combobox.populate_from_code_layer(LifeCycleStatusLayer)
-            status_combobox.set_value(lifecycle.status_id)
-            self.lifecycle_table.setCellWidget(row, 0, status_combobox)
-
-            # Populate the start date edit field
-            start_date_edit = QDateEdit(self)
-            start_date_edit.setDisplayFormat("yyyy-MM-dd")
-            start_date_edit.setCalendarPopup(True)
-            start_date_edit.setDate(lifecycle.starting_at.date())
-            self.lifecycle_table.setCellWidget(row, 1, start_date_edit)
-
-            # Populate the end date edit field
-            end_date_edit = QDateEdit(self)
-            end_date_edit.setDisplayFormat("yyyy-MM-dd")
-            end_date_edit.setCalendarPopup(True)
-            if lifecycle.ending_at:
-                end_date_edit.setDate(lifecycle.ending_at.date())
-            self.lifecycle_table.setCellWidget(row, 2, end_date_edit)
-
-            # Populate the ID column
-            id_item = QTableWidgetItem(str(lifecycle.id_) if lifecycle.id_ else "")
-            id_item.setData(Qt.UserRole, lifecycle.id_)
-            self.lifecycle_table.setItem(row, 3, id_item)
-
-    def add_lifecycle_row(self):
-        row_position = self.lifecycle_table.rowCount()
-        self.lifecycle_table.insertRow(row_position)
-
-        status = CodeComboBox()
-        status.populate_from_code_layer(LifeCycleStatusLayer)
-        self.lifecycle_table.setCellWidget(row_position, 0, status)
-
-        start_date_edit = QgsDateTimeEdit()
-        start_date_edit.setDisplayFormat("yyyy-MM-dd")
-        start_date_edit.setCalendarPopup(True)
-        self.lifecycle_table.setCellWidget(row_position, 1, start_date_edit)
-
-        end_date_edit = QgsDateTimeEdit()
-        end_date_edit.setDisplayFormat("yyyy-MM-dd")
-        end_date_edit.setCalendarPopup(True)
-        end_date_edit.clear()
-        self.lifecycle_table.setCellWidget(row_position, 2, end_date_edit)
-
-    """ def add_lifecycle_row(self, lifecycle: LifeCycle | None):
-        # Add a new row at the end of the table
-        row_position = self.lifecycle_table.rowCount()
-        self.lifecycle_table.insertRow(row_position)
-
-        # Status combobox
-        status_combobox = CodeComboBox()
-        status_combobox.populate_from_code_layer(LifeCycleStatusLayer)
-        self.lifecycle_table.setCellWidget(row_position, 0, status_combobox)
-
-        # Start date field
-        start_date_edit = QgsDateTimeEdit()
-        start_date_edit.setDisplayFormat("yyyy-MM-dd")
-        start_date_edit.setCalendarPopup(True)
-        self.lifecycle_table.setCellWidget(row_position, 1, start_date_edit)
-
-        # End date field
-        end_date_edit = QgsDateTimeEdit()
-        end_date_edit.setDisplayFormat("yyyy-MM-dd")
-        end_date_edit.setCalendarPopup(True)
-        self.lifecycle_table.setCellWidget(row_position, 2, end_date_edit)
-
-        # ID field
-        id_item = QTableWidgetItem()
-        # If lifecycle exists and has an ID, set it
-        if lifecycle and lifecycle.id_:
-            id_item.setData(Qt.UserRole, lifecycle.id_)
-            id_item.setText(str(lifecycle.id_))
-        self.lifecycle_table.setItem(row_position, 3, id_item)
-
-        # If lifecycle is provided, populate the fields
-        if lifecycle:
-            # For existing lifecycle, populate its data
-            status_combobox.set_value(lifecycle.status_id)
-            if lifecycle.starting_at:
-                start_date_edit.setDate(lifecycle.starting_at.date())
-            if lifecycle.ending_at:
-                end_date_edit.setDate(lifecycle.ending_at.date())
-        else:
-            # For a new lifecycle, leave the fields empty
-            status_combobox.set_value(None)  # Do not set a default value
-            start_date_edit.clear()  # No date set initially
-            end_date_edit.clear()  # No date set initially """
-
-    #    def delete_lifecycle_row(self):
-    #       selected_rows = self.lifecycle_table.selectionModel().selectedRows()
-
-    #       if selected_rows:
-    #           row_position = selected_rows[0].row()
-    #           self.lifecycle_table.removeRow(row_position)
-    #           self._check_required_fields()
-
-    def into_lifecycle_model(self) -> list[LifeCycle]:
-        lifecycles = []
-
-        # Iterate through the rows in lifecycle_table
-        for row in range(self.lifecycle_table.rowCount()):
-            status_item = self.lifecycle_table.cellWidget(row, 0)
-            start_date_item = self.lifecycle_table.cellWidget(row, 1)
-            end_date_item = self.lifecycle_table.cellWidget(row, 2)
-            id_item = self.lifecycle_table.item(row, 3)
-
-            # Check if status_item and start_date_item exist, then create the LifeCycle
-            if status_item and start_date_item:
-                status_id = status_item.value()
-                start_date = start_date_item.date().toString("yyyy-MM-dd") if start_date_item.date() else ""
-                end_date = end_date_item.date().toString("yyyy-MM-dd") if end_date_item.date() else None
-
-                lifecycle_id = None
-                if id_item and id_item.text().strip():  # Check if the ID in the 4th column is not empty
-                    lifecycle_id = id_item.data(Qt.UserRole)
-
-                # Create the LifeCycle model and add it to the list
-                lifecycles.append(
-                    LifeCycle(
-                        status_id=status_id,
-                        starting_at=start_date,
-                        ending_at=end_date,
-                        id_=lifecycle_id,  # Set the ID only if not None
-                    )
-                )
-
-        return lifecycles
-
     def into_model(self) -> Plan:
         return Plan(
             id_=self.plan.id_,
@@ -393,7 +214,7 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
             producers_plan_identifier=self.producers_plan_identifier_line_edit.text() or None,
             matter_management_identifier=self.matter_management_identifier_line_edit.text() or None,
             lifecycle_status_id=self.lifecycle_status_combo_box.value(),  # Need to get the lifecycle with the latest lifecycle
-            lifecycles=self.into_lifecycle_model(),
+            lifecycles=self.lifecycle_table.into_model(),
             general_regulations=[reg_group_widget.into_model() for reg_group_widget in self.regulation_group_widgets],
             documents=[document_widget.into_model() for document_widget in self.document_widgets],
             geom=self.plan.geom,
