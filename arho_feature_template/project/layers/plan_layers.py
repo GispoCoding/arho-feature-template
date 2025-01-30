@@ -119,6 +119,11 @@ class PlanLayer(AbstractPlanLayer):
                 for feat in DocumentLayer.get_features_by_attribute_value("plan_id", feature["id"])
             ],
             id_=feature["id"],
+            lifecycles=[
+                LifeCycleLayer.model_from_feature(feat)
+                for feat in LifeCycleLayer.get_features_by_plan_id(feature["id"])
+                if feat is not None
+            ],
         )
 
     @classmethod
@@ -153,6 +158,8 @@ class PlanFeatureLayer(AbstractPlanLayer):
             RegulationGroupLayer.get_feature_by_id(group_id)
             for group_id in RegulationGroupAssociationLayer.get_group_ids_for_feature(feature["id"], cls.name)
         ]
+        plan_lifecycle_features = [LifeCycleLayer.get_features_by_plan_id(feature["id"])]
+
         return PlanFeature(
             geom=feature.geometry(),
             type_of_underground_id=feature["type_of_underground_id"],
@@ -161,6 +168,9 @@ class PlanFeatureLayer(AbstractPlanLayer):
             description=feature["description"][LANGUAGE],
             regulation_groups=[
                 RegulationGroupLayer.model_from_feature(feat) for feat in regulation_group_features if feat is not None
+            ],
+            lifecycles=[
+                LifeCycleLayer.model_from_feature(feat) for feat in plan_lifecycle_features if feat is not None
             ],
             plan_id=feature["plan_id"],
             id_=feature["id"],
@@ -493,7 +503,6 @@ class LifeCycleLayer(AbstractPlanLayer):
     @classmethod
     def feature_from_model(cls, model: LifeCycle) -> QgsFeature:
         feature = cls.initialize_feature_from_model(model)
-        # feature["id"] = model.id_
         feature["id"] = model.id_ if model.id_ else feature["id"]
         feature["lifecycle_status_id"] = model.status_id
         feature["starting_at"] = model.starting_at
@@ -525,6 +534,10 @@ class LifeCycleLayer(AbstractPlanLayer):
             plan_regulation_id=feature["plan_regulation_id"] if feature["plan_regulation_id"] else None,
             plan_proposition_id=feature["plan_proposition_id"] if feature["plan_proposition_id"] else None,
         )
+
+    @classmethod
+    def get_features_by_plan_id(cls, plan_id: str) -> list[QgsFeature]:
+        return list(cls.get_features_by_attribute_value("plan_id", plan_id))
 
 
 plan_layers = AbstractPlanLayer.__subclasses__()
