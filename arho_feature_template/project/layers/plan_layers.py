@@ -503,6 +503,7 @@ class LifeCycleLayer(AbstractPlanLayer):
     @classmethod
     def feature_from_model(cls, model: LifeCycle) -> QgsFeature:
         feature = cls.initialize_feature_from_model(model)
+
         feature["id"] = model.id_ if model.id_ else feature["id"]
         feature["lifecycle_status_id"] = model.status_id
         feature["starting_at"] = model.starting_at
@@ -524,15 +525,15 @@ class LifeCycleLayer(AbstractPlanLayer):
             id_=feature["id"],
             status_id=feature["lifecycle_status_id"],
             starting_at=feature["starting_at"],
-            ending_at=feature["ending_at"] if feature["ending_at"] else None,
+            ending_at=feature["ending_at"],
             plan_id=feature["plan_id"],
-            land_use_are_id=feature["land_use_area_id"] if feature["land_use_area_id"] else None,
-            other_area_id=feature["other_area_id"] if feature["other_area_id"] else None,
-            line_id=feature["line_id"] if feature["line_id"] else None,
-            land_use_point_id=feature["land_use_point_id"] if feature["land_use_point_id"] else None,
-            other_point_id=feature["other_point_id"] if feature["other_point_id"] else None,
-            plan_regulation_id=feature["plan_regulation_id"] if feature["plan_regulation_id"] else None,
-            plan_proposition_id=feature["plan_proposition_id"] if feature["plan_proposition_id"] else None,
+            land_use_are_id=feature["land_use_area_id"],
+            other_area_id=feature["other_area_id"],
+            line_id=feature["line_id"],
+            land_use_point_id=feature["land_use_point_id"],
+            other_point_id=feature["other_point_id"],
+            plan_regulation_id=feature["plan_regulation_id"],
+            plan_proposition_id=feature["plan_proposition_id"],
         )
 
     @classmethod

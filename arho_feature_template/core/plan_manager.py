@@ -528,7 +528,7 @@ def save_plan(plan: Plan) -> QgsFeature:
 
     # Save lifecycles
     for lifecycle in plan.lifecycles:
-        lifecycle.plan_id = feature["id"]
+        lifecycle.plan_id = plan_id
         save_lifecycle(lifecycle)
 
     return feature
@@ -704,20 +704,6 @@ def save_document(document: Document) -> QgsFeature:
         layer=layer,
         id_=document.id_,
         edit_text="Asiakirjan lisäys" if document.id_ is None else "Asiakirjan muokkaus",
-    )
-
-    return feature
-
-
-def save_proposition(proposition: Proposition) -> QgsFeature:
-    feature = PlanPropositionLayer.feature_from_model(proposition)
-    layer = PlanPropositionLayer.get_from_project()
-
-    _save_feature(
-        feature=feature,
-        layer=layer,
-        id_=proposition.id_,
-        edit_text="Kaavasuosituksen lisäys" if proposition.id_ is None else "Kaavasuosituksen muokkaus",
     )
 
     return feature
