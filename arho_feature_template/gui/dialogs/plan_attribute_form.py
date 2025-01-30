@@ -4,20 +4,22 @@ from importlib import resources
 from typing import TYPE_CHECKING
 
 from qgis.core import QgsApplication
+from qgis.gui import QgsDateTimeEdit
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import QDate, Qt
-from qgis.PyQt.QtGui import QStandardItem, QStandardItemModel
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtGui import QStandardItem
 from qgis.PyQt.QtWidgets import (
     QComboBox,
     QDateEdit,
     QDialog,
     QDialogButtonBox,
+    QHeaderView,
     QLineEdit,
     QPushButton,
     QSizePolicy,
     QSpacerItem,
-    QStyledItemDelegate,
     QTableWidget,
+    QTableWidgetItem,
     QTextEdit,
     QTreeWidgetItem,
     QWidget,
@@ -48,50 +50,6 @@ ui_path = resources.files(__package__) / "plan_attribute_form.ui"
 FormClass, _ = uic.loadUiType(ui_path)
 
 
-class LifecycleTableModel(QStandardItemModel):
-    def __init__(self, status_options, parent=None):
-        super().__init__(parent)
-        self.status_options = status_options
-
-    def flags(self, index):
-        if index.column() == 0:  # "Elinkaaren tila" - editable combo box
-            return Qt.ItemIsSelectable | Qt.ItemIsEnabled
-
-        if index.column() in (1, 2):  # Dates
-            return Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
-        return super().flags(index)
-
-
-class LifecycleDelegate(QStyledItemDelegate):
-    def create_editor(self, parent, option, index):
-        if index.column() == 0:  # Status column
-            lifecycle_combo_box = CodeComboBox(parent)
-            lifecycle_combo_box.populate_from_code_layer(LifeCycleStatusLayer)
-            return lifecycle_combo_box
-        if index.column() in (1, 2):  # Dates columns
-            date_edit = QDateEdit(parent)
-            date_edit.setDisplayFormat("yyyy-MM-dd")
-            date_edit.setCalendarPopup(True)
-            return date_edit
-        return super().createEditor(parent, option, index)
-
-    def set_editor_data(self, editor, index):
-        if isinstance(editor, CodeComboBox) and index.column() == 0:
-            value = index.data(Qt.EditRole)
-            if value is not None:
-                editor.set_value(value)
-        elif isinstance(editor, QDateEdit) and index.column() in (1, 2):
-            value = index.data(Qt.EditRole)
-            if value:
-                editor.setDate(QDate.fromString(value, "yyyy-MM-dd"))
-
-    def set_model_data(self, editor, model, index):
-        if isinstance(editor, CodeComboBox) and index.column() == 0:
-            model.setData(index, editor.value(), Qt.EditRole)
-        if isinstance(editor, QDateEdit) and index.column() in (1, 2):
-            model.setData(index, editor.date().toString("yyyy-MM-dd"), Qt.EditRole)
-
-
 class PlanAttributeForm(QDialog, FormClass):  # type: ignore
     permanent_identifier_line_edit: QLineEdit
     name_line_edit: QLineEdit
@@ -114,7 +72,7 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
 
     lifecycle_table: QTableWidget
     add_lifecycle: QPushButton
-    delete_lifecycle: QPushButton
+    # delete_lifecycle: QPushButton
 
     button_box: QDialogButtonBox
 
@@ -124,6 +82,7 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
         self.setupUi(self)
 
         self.plan = plan
+        self.lifecycle_models = plan.lifecycles
 
         self.plan_type_combo_box.populate_from_code_layer(PlanTypeLayer)
         self.lifecycle_status_combo_box.populate_from_code_layer(LifeCycleStatusLayer)
@@ -173,12 +132,22 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
         self.add_document_btn.setIcon(QgsApplication.getThemeIcon("mActionAdd.svg"))
 
         # Lifecycle table setup
-        self.lifecycle_table.setColumnCount(3)  # Three columns: Status, Start Date, End Date
-        self.lifecycle_table.setHorizontalHeaderLabels(["Elinkaaren tila", "Alkupvm", "Loppupvm"])
-        self.lifecycle_table.setRowCount(0)  # No rows initially
+        self.lifecycle_table.setColumnCount(4)
+        self.lifecycle_table.setHorizontalHeaderLabels(["Elinkaaren tila", "Alkupvm", "Loppupvm", "id"])
+        # self.lifecycle_table.setColumnHidden(3, True)
+        self.lifecycle_table.setRowCount(0)
+
+        header = self.lifecycle_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
+
+        self.populate_lifecycle_table()
+        # for lifecycle in plan.lifecycles:
+        # self.add_lifecycle_row(lifecycle)
 
         self.add_lifecycle_button.clicked.connect(self.add_lifecycle_row)
-        self.delete_lifecycle_button.clicked.connect(self.delete_lifecycle_row)
+        # self.delete_lifecycle_button.clicked.connect(self.delete_lifecycle_row)
 
         self.button_box.button(QDialogButtonBox.Ok).setEnabled(False)
         self.button_box.accepted.connect(self._on_ok_clicked)
@@ -188,7 +157,6 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
     def _check_required_fields(self) -> None:
         ok_button = self.button_box.button(QDialogButtonBox.Ok)
 
-        # Check if all required fields are filled and lifecycle table has at least one valid row
         has_valid_lifecycle_row = False
         for row in range(self.lifecycle_table.rowCount()):
             status_item = self.lifecycle_table.cellWidget(row, 0)
@@ -198,7 +166,7 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
             if (
                 status_item
                 and status_item.value() is not None
-                and start_date_item
+                # and start_date_item
                 and start_date_item.date()
                 and (end_date_item and end_date_item.date() or True)
             ):
@@ -279,56 +247,107 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
 
     # ---
 
+    def populate_lifecycle_table(self):
+        # kutsu add_lifecycle_row
+        self.lifecycle_table.setRowCount(len(self.lifecycle_models))
+
+        for row, lifecycle in enumerate(self.lifecycle_models):
+            # Populate the status combobox
+            status_combobox = CodeComboBox(self)
+            status_combobox.populate_from_code_layer(LifeCycleStatusLayer)
+            status_combobox.set_value(lifecycle.status_id)
+            self.lifecycle_table.setCellWidget(row, 0, status_combobox)
+
+            # Populate the start date edit field
+            start_date_edit = QDateEdit(self)
+            start_date_edit.setDisplayFormat("yyyy-MM-dd")
+            start_date_edit.setCalendarPopup(True)
+            start_date_edit.setDate(lifecycle.starting_at.date())
+            self.lifecycle_table.setCellWidget(row, 1, start_date_edit)
+
+            # Populate the end date edit field
+            end_date_edit = QDateEdit(self)
+            end_date_edit.setDisplayFormat("yyyy-MM-dd")
+            end_date_edit.setCalendarPopup(True)
+            if lifecycle.ending_at:
+                end_date_edit.setDate(lifecycle.ending_at.date())
+            self.lifecycle_table.setCellWidget(row, 2, end_date_edit)
+
+            # Populate the ID column
+            id_item = QTableWidgetItem(str(lifecycle.id_) if lifecycle.id_ else "")
+            id_item.setData(Qt.UserRole, lifecycle.id_)
+            self.lifecycle_table.setItem(row, 3, id_item)
+
     def add_lifecycle_row(self):
         row_position = self.lifecycle_table.rowCount()
         self.lifecycle_table.insertRow(row_position)
 
-        status = CodeComboBox(self)
+        status = CodeComboBox()
         status.populate_from_code_layer(LifeCycleStatusLayer)
         self.lifecycle_table.setCellWidget(row_position, 0, status)
 
-        start_date_edit = QDateEdit(self)
+        start_date_edit = QgsDateTimeEdit()
         start_date_edit.setDisplayFormat("yyyy-MM-dd")
         start_date_edit.setCalendarPopup(True)
         self.lifecycle_table.setCellWidget(row_position, 1, start_date_edit)
 
-        end_date_edit = QDateEdit(self)
+        end_date_edit = QgsDateTimeEdit()
+        end_date_edit.setDisplayFormat("yyyy-MM-dd")
+        end_date_edit.setCalendarPopup(True)
+        end_date_edit.clear()
+        self.lifecycle_table.setCellWidget(row_position, 2, end_date_edit)
+
+    """ def add_lifecycle_row(self, lifecycle: LifeCycle | None):
+        # Add a new row at the end of the table
+        row_position = self.lifecycle_table.rowCount()
+        self.lifecycle_table.insertRow(row_position)
+
+        # Status combobox
+        status_combobox = CodeComboBox()
+        status_combobox.populate_from_code_layer(LifeCycleStatusLayer)
+        self.lifecycle_table.setCellWidget(row_position, 0, status_combobox)
+
+        # Start date field
+        start_date_edit = QgsDateTimeEdit()
+        start_date_edit.setDisplayFormat("yyyy-MM-dd")
+        start_date_edit.setCalendarPopup(True)
+        self.lifecycle_table.setCellWidget(row_position, 1, start_date_edit)
+
+        # End date field
+        end_date_edit = QgsDateTimeEdit()
         end_date_edit.setDisplayFormat("yyyy-MM-dd")
         end_date_edit.setCalendarPopup(True)
         self.lifecycle_table.setCellWidget(row_position, 2, end_date_edit)
 
-        self.lifecycle_table.resizeRowsToContents()
-        self.lifecycle_table.resizeColumnsToContents()
+        # ID field
+        id_item = QTableWidgetItem()
+        # If lifecycle exists and has an ID, set it
+        if lifecycle and lifecycle.id_:
+            id_item.setData(Qt.UserRole, lifecycle.id_)
+            id_item.setText(str(lifecycle.id_))
+        self.lifecycle_table.setItem(row_position, 3, id_item)
 
-    def delete_lifecycle_row(self):
-        selected_rows = self.lifecycle_table.selectionModel().selectedRows()
+        # If lifecycle is provided, populate the fields
+        if lifecycle:
+            # For existing lifecycle, populate its data
+            status_combobox.set_value(lifecycle.status_id)
+            if lifecycle.starting_at:
+                start_date_edit.setDate(lifecycle.starting_at.date())
+            if lifecycle.ending_at:
+                end_date_edit.setDate(lifecycle.ending_at.date())
+        else:
+            # For a new lifecycle, leave the fields empty
+            status_combobox.set_value(None)  # Do not set a default value
+            start_date_edit.clear()  # No date set initially
+            end_date_edit.clear()  # No date set initially """
 
-        if selected_rows:
-            row_position = selected_rows[0].row()
-            self.lifecycle_table.removeRow(row_position)
-            self._check_required_fields()
+    #    def delete_lifecycle_row(self):
+    #       selected_rows = self.lifecycle_table.selectionModel().selectedRows()
 
-    def save_lifecycle(self):
-        for row in range(self.lifecycle_table.rowCount()):
-            status = self.lifecycle_table.cellWidget(row, 0)
-            start_date_item = self.lifecycle_table.cellWidget(row, 1)
-            end_date_item = self.lifecycle_table.cellWidget(row, 2)
-
-            if status and start_date_item:
-                status = status.value() if status.value() is not None else ""
-                start_date = start_date_item.date().toString("yyyy-MM-dd") if start_date_item.date() else ""
-                end_date = end_date_item.date().toString("yyyy-MM-dd") if end_date_item.date() else None
-
-                lifecycle_model_item = QStandardItem(status)
-                lifecycle_model_item.setData(status.value(), Qt.UserRole + 1)
-                start_date_model_item = QStandardItem(start_date)
-                end_date_model_item = QStandardItem(end_date if end_date else "")
-
-                self.lifecycle_table.model().appendRow(
-                    [lifecycle_model_item, start_date_model_item, end_date_model_item]
-                )
-
-        self._check_required_fields()
+    #       if selected_rows:
+    #           row_position = selected_rows[0].row()
+    #           self.lifecycle_table.removeRow(row_position)
+    #           self._check_required_fields()
 
     def into_lifecycle_model(self) -> list[LifeCycle]:
         lifecycles = []
@@ -338,13 +357,27 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
             status_item = self.lifecycle_table.cellWidget(row, 0)
             start_date_item = self.lifecycle_table.cellWidget(row, 1)
             end_date_item = self.lifecycle_table.cellWidget(row, 2)
+            id_item = self.lifecycle_table.item(row, 3)
 
+            # Check if status_item and start_date_item exist, then create the LifeCycle
             if status_item and start_date_item:
                 status_id = status_item.value()
                 start_date = start_date_item.date().toString("yyyy-MM-dd") if start_date_item.date() else ""
                 end_date = end_date_item.date().toString("yyyy-MM-dd") if end_date_item.date() else None
 
-                lifecycles.append(LifeCycle(status_id=status_id, starting_at=start_date, ending_at=end_date))
+                lifecycle_id = None
+                if id_item and id_item.text().strip():  # Check if the ID in the 4th column is not empty
+                    lifecycle_id = id_item.data(Qt.UserRole)
+
+                # Create the LifeCycle model and add it to the list
+                lifecycles.append(
+                    LifeCycle(
+                        status_id=status_id,
+                        starting_at=start_date,
+                        ending_at=end_date,
+                        id_=lifecycle_id,  # Set the ID only if not None
+                    )
+                )
 
         return lifecycles
 

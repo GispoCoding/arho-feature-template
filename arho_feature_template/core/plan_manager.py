@@ -232,7 +232,6 @@ class PlanManager:
 
         feature = PlanLayer.get_feature_by_id(get_active_plan_id(), no_geometries=False)
         if feature is None:
-            iface.messageBar().pushWarning("", "No active/open plan found!")
             return
         plan_model = PlanLayer.model_from_feature(feature)
 
@@ -305,7 +304,6 @@ class PlanManager:
         layer_class = FEATURE_LAYER_NAME_TO_CLASS_MAP[layer_name]
         plan_feature = layer_class.model_from_feature(feature)
 
-        # Geom editing handled with basic QGIS vertex editing?
         title = plan_feature.name if plan_feature.name else layer_name
         attribute_form = PlanFeatureForm(
             plan_feature, title, [*self.regulation_group_libraries, regulation_group_library_from_active_plan()]
@@ -752,7 +750,6 @@ def save_proposition(proposition: Proposition) -> QgsFeature:
     )
 
     return feature
-
 
 
 def save_lifecycle(lifecycle: LifeCycle) -> QgsFeature:
