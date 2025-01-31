@@ -12,6 +12,7 @@ from qgis.utils import iface
 
 from arho_feature_template.core.models import (
     Document,
+    LifeCycle,
     Plan,
     PlanFeature,
     Proposition,
@@ -28,11 +29,13 @@ logger = logging.getLogger(__name__)
 
 
 class AbstractPlanLayer(AbstractLayer):
-    filter_template: ClassVar[Template]
+    filter_template: ClassVar[Template | None]
 
     @classmethod
     def apply_filter(cls, plan_id: str | None) -> None:
         """Apply a filter to the layer based on the plan_id."""
+        if cls.filter_template is None:
+            return
         filter_expression = cls.filter_template.substitute(plan_id=plan_id) if plan_id else ""
         layer = cls.get_from_project()
         if layer.isEditable():
@@ -116,6 +119,11 @@ class PlanLayer(AbstractPlanLayer):
                 for feat in DocumentLayer.get_features_by_attribute_value("plan_id", feature["id"])
             ],
             id_=feature["id"],
+            lifecycles=[
+                LifeCycleLayer.model_from_feature(feat)
+                for feat in LifeCycleLayer.get_features_by_plan_id(feature["id"])
+                if feat is not None
+            ],
         )
 
     @classmethod
@@ -150,6 +158,8 @@ class PlanFeatureLayer(AbstractPlanLayer):
             RegulationGroupLayer.get_feature_by_id(group_id)
             for group_id in RegulationGroupAssociationLayer.get_group_ids_for_feature(feature["id"], cls.name)
         ]
+        plan_lifecycle_features = [LifeCycleLayer.get_features_by_plan_id(feature["id"])]
+
         return PlanFeature(
             geom=feature.geometry(),
             type_of_underground_id=feature["type_of_underground_id"],
@@ -158,6 +168,9 @@ class PlanFeatureLayer(AbstractPlanLayer):
             description=feature["description"][LANGUAGE],
             regulation_groups=[
                 RegulationGroupLayer.model_from_feature(feat) for feat in regulation_group_features if feat is not None
+            ],
+            lifecycles=[
+                LifeCycleLayer.model_from_feature(feat) for feat in plan_lifecycle_features if feat is not None
             ],
             plan_id=feature["plan_id"],
             id_=feature["id"],
@@ -492,6 +505,51 @@ class DocumentLayer(AbstractPlanLayer):
 class SourceDataLayer(AbstractPlanLayer):
     name = "Lähtötietoaineistot"
     filter_template = Template("plan_id = '$plan_id'")
+
+
+class LifeCycleLayer(AbstractPlanLayer):
+    name = "Elinkaaren päiväykset"
+    filter_template = None
+
+    @classmethod
+    def feature_from_model(cls, model: LifeCycle) -> QgsFeature:
+        feature = cls.initialize_feature_from_model(model)
+
+        feature["id"] = model.id_ if model.id_ else feature["id"]
+        feature["lifecycle_status_id"] = model.status_id
+        feature["starting_at"] = model.starting_at
+        feature["ending_at"] = model.ending_at if model.ending_at else None
+        feature["plan_id"] = model.plan_id
+        feature["land_use_area_id"] = model.land_use_are_id
+        feature["other_area_id"] = model.other_area_id
+        feature["line_id"] = model.line_id
+        feature["land_use_point_id"] = model.land_use_point_id
+        feature["other_point_id"] = model.other_point_id
+        feature["plan_regulation_id"] = model.plan_regulation_id
+        feature["plan_proposition_id"] = model.plan_proposition_id
+
+        return feature
+
+    @classmethod
+    def model_from_feature(cls, feature: QgsFeature) -> LifeCycle:
+        return LifeCycle(
+            id_=feature["id"],
+            status_id=feature["lifecycle_status_id"],
+            starting_at=feature["starting_at"],
+            ending_at=feature["ending_at"],
+            plan_id=feature["plan_id"],
+            land_use_are_id=feature["land_use_area_id"],
+            other_area_id=feature["other_area_id"],
+            line_id=feature["line_id"],
+            land_use_point_id=feature["land_use_point_id"],
+            other_point_id=feature["other_point_id"],
+            plan_regulation_id=feature["plan_regulation_id"],
+            plan_proposition_id=feature["plan_proposition_id"],
+        )
+
+    @classmethod
+    def get_features_by_plan_id(cls, plan_id: str) -> list[QgsFeature]:
+        return list(cls.get_features_by_attribute_value("plan_id", plan_id))
 
 
 plan_layers = AbstractPlanLayer.__subclasses__()

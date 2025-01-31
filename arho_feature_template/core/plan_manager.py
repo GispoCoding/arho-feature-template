@@ -12,6 +12,7 @@ from arho_feature_template.core.lambda_service import LambdaService
 from arho_feature_template.core.models import (
     Document,
     FeatureTemplateLibrary,
+    LifeCycle,
     Plan,
     PlanFeature,
     RegulationGroup,
@@ -32,6 +33,7 @@ from arho_feature_template.project.layers.plan_layers import (
     DocumentLayer,
     LandUseAreaLayer,
     LandUsePointLayer,
+    LifeCycleLayer,
     LineLayer,
     OtherAreaLayer,
     OtherPointLayer,
@@ -227,7 +229,6 @@ class PlanManager:
         active_plan_id = QgsExpressionContextUtils.projectScope(QgsProject.instance()).variable("active_plan_id")
         feature = PlanLayer.get_feature_by_id(active_plan_id, no_geometries=False)
         if feature is None:
-            iface.messageBar().pushWarning("", "No active/open plan found!")
             return
         plan_model = PlanLayer.model_from_feature(feature)
 
@@ -300,7 +301,6 @@ class PlanManager:
         layer_class = FEATURE_LAYER_NAME_TO_CLASS_MAP[layer_name]
         plan_feature = layer_class.model_from_feature(feature)
 
-        # Geom editing handled with basic QGIS vertex editing?
         title = plan_feature.name if plan_feature.name else layer_name
         attribute_form = PlanFeatureForm(
             plan_feature, title, [*self.regulation_group_libraries, regulation_group_library_from_active_plan()]
@@ -526,6 +526,11 @@ def save_plan(plan: Plan) -> QgsFeature:
         document.plan_id = plan_id
         save_document(document)
 
+    # Save lifecycles
+    for lifecycle in plan.lifecycles:
+        lifecycle.plan_id = plan_id
+        save_lifecycle(lifecycle)
+
     return feature
 
 
@@ -701,4 +706,18 @@ def save_document(document: Document) -> QgsFeature:
         edit_text="Asiakirjan lisäys" if document.id_ is None else "Asiakirjan muokkaus",
     )
 
+    return feature
+
+
+def save_lifecycle(lifecycle: LifeCycle) -> QgsFeature:
+    """Save a list of LifeCycle objects to the layer."""
+    feature = LifeCycleLayer.feature_from_model(lifecycle)
+    layer = LifeCycleLayer.get_from_project()
+
+    _save_feature(
+        feature=feature,
+        layer=layer,
+        id_=lifecycle.id_,
+        edit_text="Elinkaaren lisäys" if lifecycle.id_ is None else "Elinkaaren muokkaus",
+    )
     return feature
