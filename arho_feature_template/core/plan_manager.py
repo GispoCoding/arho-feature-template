@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from qgis.core import QgsProject, QgsVectorLayer, QgsWkbTypes
 from qgis.gui import QgsMapToolDigitizeFeature
-from qgis.PyQt.QtWidgets import QDialog, QMessageBox
+from qgis.PyQt.QtWidgets import QDialog
 
 from arho_feature_template.core.lambda_service import LambdaService
 from arho_feature_template.core.models import (
@@ -153,22 +153,34 @@ class PlanManager:
         self.new_feature_dock.initialize_feature_template_libraries(self.feature_template_libraries)
 
     def create_new_regulation_group(self):
-        self._open_regulation_group_form(RegulationGroup())
+        new_group = self._open_regulation_group_form(RegulationGroup())
+        if new_group:
+            iface.messageBar().pushSuccess(None, f"Kaavamääräysryhmä {new_group.describe()}luotiin onnistuneesti.")
 
     def edit_regulation_group(self, regulation_group: RegulationGroup):
-        self._open_regulation_group_form(regulation_group)
+        edited_group = self._open_regulation_group_form(regulation_group)
+        if edited_group:
+            iface.messageBar().pushSuccess(
+                None, f"Kaavamääräysryhmää {edited_group.describe()}muokattiin onnistuneesti."
+            )
 
-    def _open_regulation_group_form(self, regulation_group: RegulationGroup):
+    def _open_regulation_group_form(self, regulation_group: RegulationGroup) -> RegulationGroup | None:
         regulation_group_form = PlanRegulationGroupForm(regulation_group)
         if regulation_group_form.exec_():
+            model = regulation_group_form.model
             if regulation_group_form.save_as_config:
-                save_regulation_group_as_config(regulation_group_form.model)
+                save_regulation_group_as_config(model)
             else:
-                save_regulation_group(regulation_group_form.model)
+                save_regulation_group(model)
             self.regulation_groups_dock.initialize_regulation_groups(regulation_group_library_from_active_plan())
+            return model
+
+        return None
 
     def delete_regulation_group(self, group: RegulationGroup):
         delete_regulation_group(group)
+        iface.messageBar().pushSuccess(None, f"Kaavamääräysryhmä {group.describe()}poistettiin onnistuneesti.")
+
         self.regulation_groups_dock.initialize_regulation_groups(regulation_group_library_from_active_plan())
 
     def toggle_identify_plan_features(self, activate: bool):  # noqa: FBT001
@@ -230,13 +242,14 @@ class PlanManager:
 
         feature = PlanLayer.get_feature_by_id(get_active_plan_id(), no_geometries=False)
         if feature is None:
-            iface.messageBar().pushWarning("", "No active/open plan found!")
+            iface.messageBar().pushWarning("", "Mikään kaava ei ole avattuna.")
             return
         plan_model = PlanLayer.model_from_feature(feature)
 
         attribute_form = PlanAttributeForm(plan_model, self.regulation_group_libraries)
         if attribute_form.exec_():
             feature = save_plan(attribute_form.model)
+            iface.messageBar().pushSuccess("", f"Kaavan {attribute_form.model.name} tietoja muokattiin onnistuneesti.")
             self.regulation_groups_dock.initialize_regulation_groups(regulation_group_library_from_active_plan())
 
     def add_new_plan_feature(self):
@@ -269,6 +282,7 @@ class PlanManager:
         attribute_form = PlanAttributeForm(plan_model, self.regulation_group_libraries)
         if attribute_form.exec_():
             feature = save_plan(attribute_form.model)
+            iface.messageBar().pushSuccess("", f"Kaava {attribute_form.model.name} luotiin onnistuneesti.")
             plan_to_be_activated = feature["id"]
         else:
             plan_to_be_activated = self.previous_active_plan_id
@@ -297,6 +311,7 @@ class PlanManager:
         )
         if attribute_form.exec_():
             save_plan_feature(attribute_form.model)
+            iface.messageBar().pushSuccess("", f"Kaavakohde {attribute_form.model.describe()}luotiin onnistuneesti.")
             self.regulation_groups_dock.initialize_regulation_groups(regulation_group_library_from_active_plan())
 
     def edit_plan_feature(self, feature: QgsFeature, layer_name: str):
@@ -310,6 +325,9 @@ class PlanManager:
         )
         if attribute_form.exec_():
             save_plan_feature(attribute_form.model)
+            iface.messageBar().pushSuccess(
+                "", f"Kaavakohdetta {attribute_form.model.describe()}muokattiin onnistuneesti."
+            )
             self.regulation_groups_dock.initialize_regulation_groups(regulation_group_library_from_active_plan())
 
     def set_active_plan(self, plan_id: str | None):
@@ -343,7 +361,7 @@ class PlanManager:
         connection_names = get_existing_database_connection_names()
 
         if not connection_names:
-            QMessageBox.critical(None, "Error", "No database connections found.")
+            iface.messageBar().pushCritical("", "Tietokantayhteyksiä ei löytynyt.")
             return
 
         if not handle_unsaved_changes():
@@ -353,13 +371,12 @@ class PlanManager:
 
         if dialog.exec_() == QDialog.Accepted:
             selected_plan_id = dialog.get_selected_plan_id()
+            selected_plan_name = dialog.get_selected_plan_name()
             self.commit_all_editable_layers()
 
-            if not selected_plan_id:
-                QMessageBox.critical(None, "Error", "No plan was selected.")
-                return
-
             self.set_active_plan(selected_plan_id)
+
+            iface.messageBar().pushSuccess("", f"Kaava {selected_plan_name} avattiin onnistuneesti.")
 
     def commit_all_editable_layers(self):
         """Commit all changes in any editable layers."""
@@ -369,27 +386,27 @@ class PlanManager:
 
     def get_plan_json(self):
         """Serializes plan and plan outline to JSON"""
+        plan_id = get_active_plan_id()
+        if not plan_id:
+            iface.messageBar().pushWarning("", "Mikään kaava ei ole avattuna.")
+            return
+
         dialog = SerializePlan()
         if dialog.exec_() == QDialog.Accepted:
             self.json_plan_path = str(dialog.plan_file.filePath())
             self.json_plan_outline_path = str(dialog.plan_outline_file.filePath())
-
-            plan_id = get_active_plan_id()
-            if not plan_id:
-                QMessageBox.critical(None, "Virhe", "Ei aktiivista kaavaa.")
-                return
 
             self.lambda_service.serialize_plan(plan_id)
 
     def save_plan_jsons(self, plan_json, outline_json):
         """This slot saves the plan and outline JSONs to files."""
         if plan_json is None or outline_json is None:
-            QMessageBox.critical(None, "Virhe", "Kaava tai sen ulkoraja ei löytynyt.")
+            iface.messageBar().pushCritical("", "Kaavaa tai sen ulkorajaa ei löytynyt.")
             return
 
         # Retrieve paths
         if self.json_plan_path is None or self.json_plan_outline_path is None:
-            QMessageBox.critical(None, "Virhe", "Tiedostopolut eivät ole saatavilla.")
+            iface.messageBar().pushCritical("", "Tiedostopolut eivät ole saatavilla.")
             return
 
         # Save the JSONs
@@ -399,11 +416,7 @@ class PlanManager:
         with open(self.json_plan_outline_path, "w", encoding="utf-8") as outline_file:
             json.dump(outline_json, outline_file, ensure_ascii=False, indent=2)
 
-        QMessageBox.information(
-            None,
-            "Tallennus onnistui",
-            "Kaava ja sen ulkoraja tallennettu onnistuneesti.",
-        )
+        iface.messageBar().pushSuccess("", "Kaava ja sen ulkoraja tallennettu onnistuneesti.")
 
     def unload(self):
         # Set pan map tool as active (to deactivate our custom tools to avoid errors)
