@@ -17,7 +17,6 @@ from arho_feature_template.core.models import Document, Plan, RegulationGroup, R
 from arho_feature_template.gui.components.general_regulation_group_widget import GeneralRegulationGroupWidget
 
 # from arho_feature_template.gui.components.plan_regulation_group_widget import RegulationGroupWidget
-from arho_feature_template.gui.components.lifecycle_table_widget import LifecycleTableWidget
 from arho_feature_template.gui.components.plan_document_widget import DocumentWidget
 from arho_feature_template.project.layers.code_layers import (
     LifeCycleStatusLayer,
@@ -54,10 +53,6 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
 
     documents_layout: QVBoxLayout
     add_document_btn: QPushButton
-
-    lifecycle_tab_layout: QVBoxLayout
-    add_lifecycle_button: QPushButton
-    # delete_lifecycle: QPushButton
 
     button_box: QDialogButtonBox
 
@@ -116,13 +111,6 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
         self.add_document_btn.clicked.connect(self.add_new_document)
         self.add_document_btn.setIcon(QgsApplication.getThemeIcon("mActionAdd.svg"))
 
-        # Lifecycle table setup
-        self.lifecycle_table = LifecycleTableWidget(self.plan.lifecycles)
-        self.lifecycle_tab_layout.insertWidget(1, self.lifecycle_table)
-        self.lifecycle_table.table_edited.connect(self._check_required_fields)
-        self.add_lifecycle_button.clicked.connect(self.lifecycle_table.add_new_lifecycle_row)
-        # self.delete_lifecycle_button.clicked.connect(self.delete_lifecycle_row)
-
         self.button_box.button(QDialogButtonBox.Ok).setEnabled(False)
         self.button_box.accepted.connect(self._on_ok_clicked)
 
@@ -136,7 +124,6 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
             and self.organisation_combo_box.value() is not None
             and self.lifecycle_status_combo_box.value() is not None
             and all(document_widget.is_ok() for document_widget in self.document_widgets)
-            and self.lifecycle_table.is_ok()
         ):
             ok_button.setEnabled(True)
         else:
@@ -213,8 +200,7 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
             record_number=self.record_number_line_edit.text() or None,
             producers_plan_identifier=self.producers_plan_identifier_line_edit.text() or None,
             matter_management_identifier=self.matter_management_identifier_line_edit.text() or None,
-            lifecycle_status_id=self.lifecycle_status_combo_box.value(),  # Need to get the lifecycle with the latest lifecycle
-            lifecycles=self.lifecycle_table.into_model(),
+            lifecycle_status_id=self.lifecycle_status_combo_box.value(),
             general_regulations=[reg_group_widget.into_model() for reg_group_widget in self.regulation_group_widgets],
             documents=[document_widget.into_model() for document_widget in self.document_widgets],
             geom=self.plan.geom,

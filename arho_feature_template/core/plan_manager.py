@@ -21,6 +21,7 @@ from arho_feature_template.core.models import (
     RegulationGroupLibrary,
 )
 from arho_feature_template.exceptions import UnsavedChangesError
+from arho_feature_template.gui.dialogs.lifecycle_editor import LifecycleEditor
 from arho_feature_template.gui.dialogs.load_plan_dialog import LoadPlanDialog
 from arho_feature_template.gui.dialogs.plan_attribute_form import PlanAttributeForm
 from arho_feature_template.gui.dialogs.plan_feature_form import PlanFeatureForm
@@ -239,6 +240,22 @@ class PlanManager:
         if attribute_form.exec_():
             feature = save_plan(attribute_form.model)
             self.regulation_groups_dock.initialize_regulation_groups(regulation_group_library_from_active_plan())
+
+    def edit_lifecycles(self):
+        plan_layer = PlanLayer.get_from_project()
+        if not plan_layer:
+            return
+
+        active_plan_id = QgsExpressionContextUtils.projectScope(QgsProject.instance()).variable("active_plan_id")
+        feature = PlanLayer.get_feature_by_id(active_plan_id, no_geometries=False)
+        if feature is None:
+            return
+        plan_model = PlanLayer.model_from_feature(feature)
+
+        lifecycle_editor = LifecycleEditor(plan=plan_model)
+
+        if lifecycle_editor.exec_():
+            save_plan(plan_model)
 
     def add_new_plan_feature(self):
         if not handle_unsaved_changes():

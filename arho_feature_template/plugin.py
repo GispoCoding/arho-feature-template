@@ -227,6 +227,16 @@ class Plugin:
             status_tip="Tallenna aktiivinen kaava JSON muodossa",
         )
 
+        self.edit_lifecycles_action = self.add_action(
+            text="Muokkaa elinkaaria",
+            icon=QgsApplication.getThemeIcon("mActionFileSaveAs.svg"),
+            # icon=QIcon(resources_path("icons", "toolbar", "tallenna_jsonina2.svg")),
+            triggered_callback=self.edit_lifecycles,
+            add_to_menu=True,
+            add_to_toolbar=True,
+            status_tip="Muokkaa kaavan elinkaaria",
+        )
+
         self.plugin_settings_action = self.add_action(
             text="Asetukset",
             triggered_callback=self.open_settings,
@@ -253,6 +263,10 @@ class Plugin:
         """Open the plugin settings dialog."""
         settings = PluginSettings()
         settings.exec_()
+
+    def edit_lifecycles(self):
+        """Edit lifecycles of currently active plan."""
+        self.plan_manager.edit_lifecycles()
 
     def unload(self) -> None:
         """Removes the plugin menu item and icon from QGIS GUI."""
