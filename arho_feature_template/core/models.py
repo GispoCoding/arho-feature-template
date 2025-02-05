@@ -518,7 +518,7 @@ class RegulationGroup:
 @dataclass
 class LifeCycle:
     status_id: str | None = None
-    id_: int | None = None
+    id_: str | None = None
     plan_id: str | None = None
     plan_regulation_id: str | None = None
     plan_proposition_id: str | None = None
