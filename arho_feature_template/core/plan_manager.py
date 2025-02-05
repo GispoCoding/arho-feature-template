@@ -246,8 +246,7 @@ class PlanManager:
         if not plan_layer:
             return
 
-        active_plan_id = QgsExpressionContextUtils.projectScope(QgsProject.instance()).variable("active_plan_id")
-        feature = PlanLayer.get_feature_by_id(active_plan_id, no_geometries=False)
+        feature = PlanLayer.get_feature_by_id(get_active_plan_id(), no_geometries=False)
         if feature is None:
             return
         plan_model = PlanLayer.model_from_feature(feature)
