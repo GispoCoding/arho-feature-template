@@ -755,7 +755,7 @@ def save_document(document: Document) -> QgsFeature:
 
 
 def save_lifecycle(lifecycle: LifeCycle) -> QgsFeature:
-    """Save a list of LifeCycle objects to the layer."""
+    """Save a LifeCycle object to the layer."""
     feature = LifeCycleLayer.feature_from_model(lifecycle)
     layer = LifeCycleLayer.get_from_project()
 

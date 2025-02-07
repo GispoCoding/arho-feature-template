@@ -228,7 +228,7 @@ class Plugin:
         )
 
         self.edit_lifecycles_action = self.add_action(
-            text="Muokkaa elinkaaria",
+            text="Kaavan elinkaaret",
             icon=QgsApplication.getThemeIcon("mActionFileSaveAs.svg"),
             # icon=QIcon(resources_path("icons", "toolbar", "tallenna_jsonina2.svg")),
             triggered_callback=self.edit_lifecycles,

@@ -30,6 +30,7 @@ class LifecycleTableWidget(QTableWidget):
         header.setSectionResizeMode(0, QHeaderView.Stretch)
         for i in range(1, 3):
             header.setSectionResizeMode(i, QHeaderView.ResizeToContents)
+            header.setMinimumSectionSize(110)
 
         # Add given lifecycles
         for lifecycle in lifecycles:
