@@ -3,6 +3,7 @@ from __future__ import annotations
 from importlib import resources
 from typing import TYPE_CHECKING
 
+from qgis.core import QgsApplication
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox, QPushButton
 
@@ -30,6 +31,7 @@ class LifecycleEditor(QDialog, FormClass):  # type: ignore
 
         self.lifecycle_table = LifecycleTableWidget(self.plan.lifecycles)
         self.layout().insertWidget(1, self.lifecycle_table)
+        self.add_lifecycle_button.setIcon(QgsApplication.getThemeIcon("mActionAdd.svg"))
 
         self.add_lifecycle_button.clicked.connect(self.lifecycle_table.add_new_lifecycle_row)
         self.lifecycle_table.table_edited.connect(self._check_required_fields)
