@@ -14,6 +14,7 @@ from arho_feature_template.core.models import (
     AdditionalInformation,
     Document,
     FeatureTemplateLibrary,
+    LifeCycle,
     Plan,
     PlanFeature,
     RegulationGroup,
@@ -21,6 +22,7 @@ from arho_feature_template.core.models import (
     RegulationGroupLibrary,
 )
 from arho_feature_template.exceptions import UnsavedChangesError
+from arho_feature_template.gui.dialogs.lifecycle_editor import LifecycleEditor
 from arho_feature_template.gui.dialogs.load_plan_dialog import LoadPlanDialog
 from arho_feature_template.gui.dialogs.plan_attribute_form import PlanAttributeForm
 from arho_feature_template.gui.dialogs.plan_feature_form import PlanFeatureForm
@@ -35,6 +37,7 @@ from arho_feature_template.project.layers.plan_layers import (
     DocumentLayer,
     LandUseAreaLayer,
     LandUsePointLayer,
+    LifeCycleLayer,
     LineLayer,
     OtherAreaLayer,
     OtherPointLayer,
@@ -231,7 +234,6 @@ class PlanManager:
 
         feature = PlanLayer.get_feature_by_id(get_active_plan_id(), no_geometries=False)
         if feature is None:
-            iface.messageBar().pushWarning("", "No active/open plan found!")
             return
         plan_model = PlanLayer.model_from_feature(feature)
 
@@ -239,6 +241,21 @@ class PlanManager:
         if attribute_form.exec_():
             feature = save_plan(attribute_form.model)
             self.regulation_groups_dock.initialize_regulation_groups(regulation_group_library_from_active_plan())
+
+    def edit_lifecycles(self):
+        plan_layer = PlanLayer.get_from_project()
+        if not plan_layer:
+            return
+
+        feature = PlanLayer.get_feature_by_id(get_active_plan_id(), no_geometries=False)
+        if feature is None:
+            return
+        plan_model = PlanLayer.model_from_feature(feature)
+
+        lifecycle_editor = LifecycleEditor(plan=plan_model)
+
+        if lifecycle_editor.exec_():
+            save_plan(plan_model)
 
     def add_new_plan_feature(self):
         if not handle_unsaved_changes():
@@ -304,7 +321,6 @@ class PlanManager:
         layer_class = FEATURE_LAYER_NAME_TO_CLASS_MAP[layer_name]
         plan_feature = layer_class.model_from_feature(feature)
 
-        # Geom editing handled with basic QGIS vertex editing?
         title = plan_feature.name if plan_feature.name else layer_name
         attribute_form = PlanFeatureForm(
             plan_feature, title, [*self.regulation_group_libraries, regulation_group_library_from_active_plan()]
@@ -534,6 +550,11 @@ def save_plan(plan: Plan) -> QgsFeature:
         document.plan_id = plan_id
         save_document(document)
 
+    # Save lifecycles
+    for lifecycle in plan.lifecycles:
+        lifecycle.plan_id = plan_id
+        save_lifecycle(lifecycle)
+
     return feature
 
 
@@ -735,4 +756,18 @@ def save_document(document: Document) -> QgsFeature:
         edit_text="Asiakirjan lisäys" if document.id_ is None else "Asiakirjan muokkaus",
     )
 
+    return feature
+
+
+def save_lifecycle(lifecycle: LifeCycle) -> QgsFeature:
+    """Save a LifeCycle object to the layer."""
+    feature = LifeCycleLayer.feature_from_model(lifecycle)
+    layer = LifeCycleLayer.get_from_project()
+
+    _save_feature(
+        feature=feature,
+        layer=layer,
+        id_=lifecycle.id_,
+        edit_text="Elinkaaren lisäys" if lifecycle.id_ is None else "Elinkaaren muokkaus",
+    )
     return feature

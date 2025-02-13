@@ -9,13 +9,14 @@ from qgis.PyQt.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QLineEdit,
+    QPushButton,
     QTextEdit,
 )
 
 from arho_feature_template.core.models import Document, Plan, RegulationGroup, RegulationGroupLibrary
+from arho_feature_template.gui.components.general_regulation_group_widget import GeneralRegulationGroupWidget
 
 # from arho_feature_template.gui.components.plan_regulation_group_widget import RegulationGroupWidget
-from arho_feature_template.gui.components.general_regulation_group_widget import GeneralRegulationGroupWidget
 from arho_feature_template.gui.components.plan_document_widget import DocumentWidget
 from arho_feature_template.project.layers.code_layers import (
     LifeCycleStatusLayer,
@@ -61,6 +62,7 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
         self.setupUi(self)
 
         self.plan = plan
+        self.lifecycle_models = plan.lifecycles
 
         self.plan_type_combo_box.populate_from_code_layer(PlanTypeLayer)
         self.lifecycle_status_combo_box.populate_from_code_layer(LifeCycleStatusLayer)
@@ -98,6 +100,7 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
         for regulation_group in plan.general_regulations:
             self.add_plan_regulation_group(regulation_group)
 
+        # Documents
         self.document_widgets: list[DocumentWidget] = []
         for document in plan.documents:
             self.add_document(document)

@@ -96,6 +96,7 @@ class FeatureTemplateLibrary:
                                 for group_name in feature_data.get("regulation_groups", [])
                                 if (group := cls.find_matching_group_config(group_name, regulation_group_libraries))
                             ],
+                            lifecycles=[],
                             plan_id=None,
                             id_=None,
                         )
@@ -515,6 +516,23 @@ class RegulationGroup:
 
 
 @dataclass
+class LifeCycle:
+    status_id: str | None = None
+    id_: str | None = None
+    plan_id: str | None = None
+    plan_regulation_id: str | None = None
+    plan_proposition_id: str | None = None
+    starting_at: datetime | None = None
+    ending_at: datetime | None = None
+    # might not need the following
+    land_use_are_id: str | None = None
+    other_area_id: str | None = None
+    line_id: str | None = None
+    land_use_point_id: str | None = None
+    other_point_id: str | None = None
+
+
+@dataclass
 class PlanFeature:
     geom: QgsGeometry | None = None  # Need to allow None for feature templates
     type_of_underground_id: str | None = None
@@ -522,6 +540,7 @@ class PlanFeature:
     name: str | None = None
     description: str | None = None
     regulation_groups: list[RegulationGroup] = field(default_factory=list)
+    lifecycles: list[LifeCycle] = field(default_factory=list)
     plan_id: int | None = None
     id_: str | None = None
 
@@ -537,6 +556,7 @@ class Plan:
     description: str | None = None
     plan_type_id: str | None = None
     lifecycle_status_id: str | None = None
+    lifecycles: list[LifeCycle] = field(default_factory=list)
     record_number: str | None = None
     matter_management_identifier: str | None = None
     permanent_plan_identifier: str | None = None
