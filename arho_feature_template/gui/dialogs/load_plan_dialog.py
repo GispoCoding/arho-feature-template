@@ -64,6 +64,7 @@ class LoadPlanDialog(QDialog, LoadPlanDialogBase):  # type: ignore
         self.setupUi(self)
 
         self._selected_plan_id = None
+        self._selected_plan_name = None
 
         self.button_box.rejected.connect(self.reject)
         self.button_box.accepted.connect(self.accept)
@@ -193,9 +194,11 @@ class LoadPlanDialog(QDialog, LoadPlanDialogBase):  # type: ignore
         if selection:
             selected_row = selection[0].row()
             self._selected_plan_id = self.plan_table_view.model().index(selected_row, 0).data(Qt.UserRole)
+            self._selected_plan_name = self.plan_table_view.model().index(selected_row, 0)
             self.button_box.button(QDialogButtonBox.Ok).setEnabled(True)
         else:
             self._selected_plan_id = None
+            self._selected_plan_name = None
             self.button_box.button(QDialogButtonBox.Ok).setEnabled(False)
 
     def get_selected_connection(self):
@@ -203,3 +206,6 @@ class LoadPlanDialog(QDialog, LoadPlanDialogBase):  # type: ignore
 
     def get_selected_plan_id(self):
         return self._selected_plan_id
+
+    def get_selected_plan_name(self):
+        return self._selected_plan_name

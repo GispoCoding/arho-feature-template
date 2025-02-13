@@ -513,6 +513,15 @@ class RegulationGroup:
             id_=None,
         )
 
+    def describe(self) -> str:
+        if self.short_name and self.name:
+            return self.name + f" ({self.short_name}) "
+        if self.short_name:
+            return f"{self.short_name} "
+        if self.name:
+            return f"{self.name} "
+        return ""
+
 
 @dataclass
 class PlanFeature:
@@ -529,6 +538,9 @@ class PlanFeature:
     def from_config_data(cls, data: dict) -> PlanFeature:
         # TODO: Implement
         return cls(**data)
+
+    def describe(self) -> str:
+        return f"{self.name} " if self.name else ""
 
 
 @dataclass
