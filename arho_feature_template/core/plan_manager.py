@@ -625,21 +625,7 @@ def delete_regulation_group(regulation_group: RegulationGroup, plan_id: str | No
     feature = RegulationGroupLayer.feature_from_model(regulation_group, plan_id)
     layer = RegulationGroupLayer.get_from_project()
 
-    # Delete regulations
-    for regulation in regulation_group.regulations:
-        delete_regulation(regulation)
-
-    # Delete propositions
-    for proposition in regulation_group.propositions:
-        delete_proposition(proposition)
-
     _delete_feature(feature, layer, "Kaavamääräysryhmän poisto")
-
-    # # Handle assocations
-    # associations = RegulationGroupAssociationLayer.get_associations_for_regulation_group(str(regulation_group.id_))
-    # association_layer = RegulationGroupAssociationLayer.get_from_project()
-    # for association in associations:
-    #     _delete_feature(association, association_layer, "Kaavamääräysryhmän assosiaation poisto")
 
 
 def save_regulation_group_as_config(regulation_group: RegulationGroup):
@@ -696,9 +682,6 @@ def delete_additional_information(additional_information: AdditionalInformation)
 def delete_regulation(regulation: Regulation):
     feature = PlanRegulationLayer.feature_from_model(regulation)
     layer = PlanRegulationLayer.get_from_project()
-
-    for ai in regulation.additional_information:
-        delete_additional_information(ai)
 
     _delete_feature(feature, layer, "Kaavamääräyksen poisto")
 
