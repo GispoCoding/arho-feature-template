@@ -166,7 +166,7 @@ class PlanManager:
         self._open_regulation_group_form(regulation_group)
 
     def _open_regulation_group_form(self, regulation_group: RegulationGroup):
-        regulation_group_form = PlanRegulationGroupForm(regulation_group)
+        regulation_group_form = PlanRegulationGroupForm(regulation_group, self.active_plan_regulation_group_library)
         if regulation_group_form.exec_():
             if regulation_group_form.save_as_config:
                 save_regulation_group_as_config(regulation_group_form.model)
@@ -314,7 +314,7 @@ class PlanManager:
 
         plan_feature.geom = feature.geometry()
         attribute_form = PlanFeatureForm(
-            plan_feature, title, [*self.regulation_group_libraries, self.active_plan_regulation_group_library]
+            plan_feature, title, self.regulation_group_libraries, self.active_plan_regulation_group_library
         )
         if attribute_form.exec_():
             save_plan_feature(attribute_form.model)
@@ -326,7 +326,7 @@ class PlanManager:
 
         title = plan_feature.name if plan_feature.name else layer_name
         attribute_form = PlanFeatureForm(
-            plan_feature, title, [*self.regulation_group_libraries, self.active_plan_regulation_group_library]
+            plan_feature, title, self.regulation_group_libraries, self.active_plan_regulation_group_library
         )
         if attribute_form.exec_():
             save_plan_feature(attribute_form.model)
