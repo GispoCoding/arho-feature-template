@@ -95,12 +95,12 @@ class PlanManager:
         self.regulation_group_libraries = []
 
         # Initialize new feature dock
-        self.new_feature_dock = NewFeatureDock()
+        self.new_feature_dock = NewFeatureDock(iface.mainWindow())
         self.new_feature_dock.tool_activated.connect(self.add_new_plan_feature)
         self.new_feature_dock.hide()
 
         # Initialize regulation groups dock
-        self.regulation_groups_dock = RegulationGroupsDock()
+        self.regulation_groups_dock = RegulationGroupsDock(iface.mainWindow())
         self.regulation_groups_dock.new_regulation_group_requested.connect(self.create_new_regulation_group)
         self.regulation_groups_dock.edit_regulation_group_requested.connect(self.edit_regulation_group)
         self.regulation_groups_dock.delete_regulation_group_requested.connect(self.delete_regulation_group)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 
 from qgis.core import QgsApplication
 from qgis.PyQt.QtCore import QCoreApplication, Qt, QTranslator
@@ -14,6 +14,9 @@ from arho_feature_template.qgis_plugin_tools.tools.custom_logging import setup_l
 from arho_feature_template.qgis_plugin_tools.tools.i18n import setup_translation
 from arho_feature_template.qgis_plugin_tools.tools.resources import plugin_name, resources_path
 from arho_feature_template.utils.misc_utils import disconnect_signal, iface
+
+if TYPE_CHECKING:
+    from qgis.gui import QgsDockWidget
 
 
 class Plugin:
@@ -120,26 +123,15 @@ class Plugin:
         return action
 
     def initGui(self) -> None:  # noqa N802
+        # Plan manager
         self.plan_manager = PlanManager()
-
-        iface.addDockWidget(Qt.RightDockWidgetArea, self.plan_manager.new_feature_dock)
-        self.plan_manager.new_feature_dock.setUserVisible(False)
-
-        self.plan_manager.new_feature_dock.visibilityChanged.connect(self.new_feature_dock_visibility_changed)
-
-        self.validation_dock = ValidationDock()
-        iface.addDockWidget(Qt.RightDockWidgetArea, self.validation_dock)
-        self.validation_dock.setUserVisible(False)
-        self.validation_dock.visibilityChanged.connect(self.validation_dock_visibility_changed)
-
         iface.mapCanvas().mapToolSet.connect(self.plan_manager.plan_digitize_map_tool.deactivate)
 
-        # Regulation groups dock
+        # Docks
+        self.validation_dock = ValidationDock()
+        iface.addDockWidget(Qt.RightDockWidgetArea, self.validation_dock)
+        iface.addDockWidget(Qt.RightDockWidgetArea, self.plan_manager.new_feature_dock)
         iface.addDockWidget(Qt.RightDockWidgetArea, self.plan_manager.regulation_groups_dock)
-        self.plan_manager.regulation_groups_dock.setUserVisible(False)
-        self.plan_manager.regulation_groups_dock.visibilityChanged.connect(
-            self.regulation_groups_dock_visibility_changed
-        )
 
         # Try initializing the plugin immediately in case the project is already open
         self.plan_manager.initialize_from_project()
@@ -147,6 +139,7 @@ class Plugin:
         # (Re)initialize whenever a project is opened
         iface.projectRead.connect(self.plan_manager.initialize_from_project)
 
+        # Actions
         self.new_land_use_plan_action = self.add_action(
             text="Luo kaava",
             icon=QIcon(resources_path("icons", "toolbar", "luo_kaava2.svg")),
@@ -183,8 +176,7 @@ class Plugin:
             text="Luo kaavakohde",
             # icon=QgsApplication.getThemeIcon("mIconFieldGeometry.svg"),
             icon=QIcon(resources_path("icons", "toolbar", "luo_kaavakohde.svg")),
-            toggled_callback=self.toggle_new_feature_dock,
-            checkable=True,
+            triggered_callback=lambda _: self.toggle_dock_visibility(self.plan_manager.new_feature_dock),
             add_to_menu=True,
             add_to_toolbar=True,
         )
@@ -201,8 +193,7 @@ class Plugin:
         self.regulation_groups_dock_action = self.add_action(
             text="Hallitse kaavamääräysryhmiä",
             icon=QgsApplication.getThemeIcon("mActionOpenTable.svg"),
-            toggled_callback=self.toggle_regulation_groups_dock,
-            checkable=True,
+            triggered_callback=lambda _: self.toggle_dock_visibility(self.plan_manager.regulation_groups_dock),
             add_to_menu=True,
             add_to_toolbar=True,
         )
@@ -211,8 +202,7 @@ class Plugin:
             text="Validointi",
             # icon=QgsApplication.getThemeIcon("mActionEditNodesItem.svg"),
             icon=QIcon(resources_path("icons", "toolbar", "kaavan_validointi2.svg")),
-            toggled_callback=self.toggle_validation_dock,
-            checkable=True,
+            triggered_callback=lambda _: self.toggle_dock_visibility(self.validation_dock),
             add_to_menu=True,
             add_to_toolbar=True,
         )
@@ -248,6 +238,13 @@ class Plugin:
         self.plan_manager.inspect_plan_feature_tool.deactivated.connect(
             lambda: self.identify_plan_features_action.setChecked(False)
         )
+
+    def toggle_dock_visibility(self, dock_widget: QgsDockWidget):
+        if dock_widget.isUserVisible():
+            dock_widget.hide()
+        else:
+            dock_widget.show()
+            dock_widget.raise_()
 
     def add_new_plan(self):
         self.plan_manager.add_new_plan()
@@ -295,21 +292,3 @@ class Plugin:
 
         # Handle logger
         teardown_logger(Plugin.name)
-
-    def new_feature_dock_visibility_changed(self, visible: bool) -> None:  # noqa: FBT001
-        self.new_feature_dock_action.setChecked(visible)
-
-    def toggle_new_feature_dock(self, show: bool) -> None:  # noqa: FBT001
-        self.plan_manager.new_feature_dock.setUserVisible(show)
-
-    def regulation_groups_dock_visibility_changed(self, visible: bool) -> None:  # noqa: FBT001
-        self.regulation_groups_dock_action.setChecked(visible)
-
-    def toggle_regulation_groups_dock(self, show: bool) -> None:  # noqa: FBT001
-        self.plan_manager.regulation_groups_dock.setUserVisible(show)
-
-    def validation_dock_visibility_changed(self, visible: bool) -> None:  # noqa: FBT001
-        self.validation_dock_action.setChecked(visible)
-
-    def toggle_validation_dock(self, show: bool) -> None:  # noqa: FBT001
-        self.validation_dock.setUserVisible(show)

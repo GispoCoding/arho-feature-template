@@ -34,8 +34,8 @@ class RegulationGroupsDock(QgsDockWidget, DockClass):  # type: ignore
     edit_regulation_group_requested = pyqtSignal(RegulationGroup)
     delete_regulation_group_requested = pyqtSignal(RegulationGroup)
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.setupUi(self)
 
         self.new_btn.setIcon(QgsApplication.getThemeIcon("mActionAdd.svg"))
