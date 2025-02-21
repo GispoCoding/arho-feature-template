@@ -12,6 +12,7 @@ from qgis.PyQt.QtWidgets import (
     QDialogButtonBox,
     QHBoxLayout,
     QLabel,
+    QMessageBox,
     QSizePolicy,
     QTextBrowser,
     QTreeWidgetItem,
@@ -23,6 +24,7 @@ from arho_feature_template.core.models import (
     Regulation,
     RegulationConfig,
     RegulationGroup,
+    RegulationGroupLibrary,
     RegulationLibrary,
 )
 from arho_feature_template.gui.components.plan_proposition_widget import PropositionWidget
@@ -45,7 +47,9 @@ FormClass, _ = uic.loadUiType(ui_path)
 class PlanRegulationGroupForm(QDialog, FormClass):  # type: ignore
     """Form to create a new plan regulation group."""
 
-    def __init__(self, regulation_group: RegulationGroup):
+    def __init__(
+        self, regulation_group: RegulationGroup, active_plan_regulation_groups_library: RegulationGroupLibrary
+    ):
         super().__init__()
         self.setupUi(self)
 
@@ -74,6 +78,7 @@ class PlanRegulationGroupForm(QDialog, FormClass):  # type: ignore
         self.regulation_widgets: list[RegulationWidget] = []
         self.proposition_widgets: list[PropositionWidget] = []
         self.save_as_config = False
+        self.existing_group_short_names = active_plan_regulation_groups_library.get_short_names()
 
         # Initialize regulation library
         self.regulations_selection_widget = TreeWithSearchWidget()
@@ -138,6 +143,14 @@ class PlanRegulationGroupForm(QDialog, FormClass):  # type: ignore
         for child_config in config.child_regulations:
             self._initalize_regulation_from_config(child_config, item)
 
+    def _check_short_name(self) -> bool:
+        short_name = self.short_name.text()
+        if short_name and short_name in self.existing_group_short_names:
+            msg = f"Kaavamääräysryhmä lyhyellä nimellä '<b>{short_name}</b>' on jo olemassa."
+            QMessageBox.critical(self, "Virhe", msg)
+            return False
+        return True
+
     def update_selected_regulation(self, item: QTreeWidgetItem, column: int):
         config: RegulationConfig = item.data(column, Qt.UserRole)  # Retrieve the associated config
         self.regulation_info.setText(config.description)
@@ -191,5 +204,6 @@ class PlanRegulationGroupForm(QDialog, FormClass):  # type: ignore
         )
 
     def _on_ok_clicked(self):
-        self.model = self.into_model()
-        self.accept()
+        if self._check_short_name():
+            self.model = self.into_model()
+            self.accept()

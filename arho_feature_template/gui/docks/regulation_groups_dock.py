@@ -64,7 +64,7 @@ class RegulationGroupsDock(QgsDockWidget, DockClass):  # type: ignore
         self.edit_btn.clicked.connect(self.on_edit_btn_clicked)
         self.delete_btn.clicked.connect(self.on_delete_btn_clicked)
 
-    def initialize_regulation_groups(self, regulation_group_library: RegulationGroupLibrary):
+    def update_regulation_groups(self, regulation_group_library: RegulationGroupLibrary):
         self.regulation_group_list.clear()
 
         for category in regulation_group_library.regulation_group_categories:

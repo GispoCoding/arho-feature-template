@@ -104,8 +104,7 @@ class PlanManager:
         self.regulation_groups_dock.new_regulation_group_requested.connect(self.create_new_regulation_group)
         self.regulation_groups_dock.edit_regulation_group_requested.connect(self.edit_regulation_group)
         self.regulation_groups_dock.delete_regulation_group_requested.connect(self.delete_regulation_group)
-        if get_active_plan_id():
-            self.regulation_groups_dock.initialize_regulation_groups(regulation_group_library_from_active_plan())
+        self.update_active_plan_regulation_group_library()
         self.regulation_groups_dock.hide()
 
         # Initialize digitize tools
@@ -156,6 +155,10 @@ class PlanManager:
         ]
         self.new_feature_dock.initialize_feature_template_libraries(self.feature_template_libraries)
 
+    def update_active_plan_regulation_group_library(self):
+        self.active_plan_regulation_group_library = regulation_group_library_from_active_plan()
+        self.regulation_groups_dock.update_regulation_groups(self.active_plan_regulation_group_library)
+
     def create_new_regulation_group(self):
         self._open_regulation_group_form(RegulationGroup())
 
@@ -163,17 +166,17 @@ class PlanManager:
         self._open_regulation_group_form(regulation_group)
 
     def _open_regulation_group_form(self, regulation_group: RegulationGroup):
-        regulation_group_form = PlanRegulationGroupForm(regulation_group)
+        regulation_group_form = PlanRegulationGroupForm(regulation_group, self.active_plan_regulation_group_library)
         if regulation_group_form.exec_():
             if regulation_group_form.save_as_config:
                 save_regulation_group_as_config(regulation_group_form.model)
             else:
                 save_regulation_group(regulation_group_form.model)
-            self.regulation_groups_dock.initialize_regulation_groups(regulation_group_library_from_active_plan())
+            self.update_active_plan_regulation_group_library()
 
     def delete_regulation_group(self, group: RegulationGroup):
         delete_regulation_group(group)
-        self.regulation_groups_dock.initialize_regulation_groups(regulation_group_library_from_active_plan())
+        self.update_active_plan_regulation_group_library()
 
     def toggle_identify_plan_features(self, activate: bool):  # noqa: FBT001
         if activate:
@@ -240,7 +243,7 @@ class PlanManager:
         attribute_form = PlanAttributeForm(plan_model, self.regulation_group_libraries)
         if attribute_form.exec_():
             feature = save_plan(attribute_form.model)
-            self.regulation_groups_dock.initialize_regulation_groups(regulation_group_library_from_active_plan())
+            self.update_active_plan_regulation_group_library()
 
     def edit_lifecycles(self):
         plan_layer = PlanLayer.get_from_project()
@@ -311,11 +314,11 @@ class PlanManager:
 
         plan_feature.geom = feature.geometry()
         attribute_form = PlanFeatureForm(
-            plan_feature, title, [*self.regulation_group_libraries, regulation_group_library_from_active_plan()]
+            plan_feature, title, self.regulation_group_libraries, self.active_plan_regulation_group_library
         )
         if attribute_form.exec_():
             save_plan_feature(attribute_form.model)
-            self.regulation_groups_dock.initialize_regulation_groups(regulation_group_library_from_active_plan())
+            self.update_active_plan_regulation_group_library()
 
     def edit_plan_feature(self, feature: QgsFeature, layer_name: str):
         layer_class = FEATURE_LAYER_NAME_TO_CLASS_MAP[layer_name]
@@ -323,11 +326,11 @@ class PlanManager:
 
         title = plan_feature.name if plan_feature.name else layer_name
         attribute_form = PlanFeatureForm(
-            plan_feature, title, [*self.regulation_group_libraries, regulation_group_library_from_active_plan()]
+            plan_feature, title, self.regulation_group_libraries, self.active_plan_regulation_group_library
         )
         if attribute_form.exec_():
             save_plan_feature(attribute_form.model)
-            self.regulation_groups_dock.initialize_regulation_groups(regulation_group_library_from_active_plan())
+            self.update_active_plan_regulation_group_library()
 
     def set_active_plan(self, plan_id: str | None):
         """Update the project layers based on the selected land use plan.
@@ -352,8 +355,7 @@ class PlanManager:
         if previously_in_edit_mode:
             plan_layer.startEditing()
 
-        # Update regulation group dock
-        self.regulation_groups_dock.initialize_regulation_groups(regulation_group_library_from_active_plan())
+        self.update_active_plan_regulation_group_library()
 
     def load_land_use_plan(self):
         """Load an existing land use plan using a dialog selection."""
@@ -456,6 +458,11 @@ class PlanManager:
 
 
 def regulation_group_library_from_active_plan() -> RegulationGroupLibrary:
+    if not get_active_plan_id():
+        return RegulationGroupLibrary(
+            name="Käytössä olevat kaavamääräysryhmät", version=None, description=None, regulation_group_categories=[]
+        )
+
     id_of_general_regulation_group_type = PlanRegulationGroupTypeLayer.get_attribute_value_by_another_attribute_value(
         "id", "value", "generalRegulations"
     )

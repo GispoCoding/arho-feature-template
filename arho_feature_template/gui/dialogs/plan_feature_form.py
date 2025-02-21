@@ -10,6 +10,7 @@ from qgis.PyQt.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QLineEdit,
+    QMessageBox,
     QScrollArea,
     QSizePolicy,
     QSpacerItem,
@@ -39,7 +40,11 @@ class PlanFeatureForm(QDialog, FormClass):  # type: ignore
     """Parent class for feature forms for adding and modifying feature attribute data."""
 
     def __init__(
-        self, plan_feature: PlanFeature, form_title: str, regulation_group_libraries: list[RegulationGroupLibrary]
+        self,
+        plan_feature: PlanFeature,
+        form_title: str,
+        regulation_group_libraries: list[RegulationGroupLibrary],
+        active_plan_regulation_groups_library: RegulationGroupLibrary,
     ):
         super().__init__()
         self.setupUi(self)
@@ -57,7 +62,9 @@ class PlanFeatureForm(QDialog, FormClass):  # type: ignore
         self.regulation_groups_tree_layout: QVBoxLayout
 
         # INIT
-        self.regulation_group_libraries = regulation_group_libraries
+        self.existing_group_short_names = active_plan_regulation_groups_library.get_short_names()
+        self.active_plan_regulation_groups_library = active_plan_regulation_groups_library
+        self.regulation_group_libraries = [*regulation_group_libraries, active_plan_regulation_groups_library]
         self.plan_regulation_group_libraries_combobox.addItems(
             library.name for library in self.regulation_group_libraries
         )
@@ -97,6 +104,44 @@ class PlanFeatureForm(QDialog, FormClass):  # type: ignore
             self.plan_regulation_group_scrollarea_contents.layout().removeItem(self.scroll_area_spacer)
             self.scroll_area_spacer = None
 
+    def _check_regulation_group_short_names(self) -> bool:
+        seen_names = set()
+        existing_names = set()
+        duplicate_names = set()
+
+        for reg_group_widget in self.regulation_group_widgets:
+            short_name = reg_group_widget.short_name.text()
+            if not short_name:
+                continue
+
+            if short_name in self.existing_group_short_names:
+                existing_names.add(short_name)
+            if short_name in seen_names:
+                duplicate_names.add(short_name)
+            seen_names.add(short_name)
+
+        def format_names(names, last_item_conjucation: str = "ja"):
+            names = list(names)
+            formatted_names = ", ".join(f"'<b>{name}</b>'" for name in names[:-1])
+            formatted_names += f" {last_item_conjucation} " if len(names) > 1 else ""
+            formatted_names += f"'<b>{names[-1]}</b>'" if names else ""
+            return formatted_names
+
+        if existing_names:
+            if len(existing_names) == 1:
+                msg = f"Kaavamääräysryhmä lyhyellä nimellä {format_names(existing_names)} on jo olemassa."
+            else:
+                msg = f"Kaavamääräysryhmät lyhyillä nimillä {format_names(existing_names)} ovat jo olemassa."
+            QMessageBox.critical(self, "Virhe", msg)
+            return False
+
+        if duplicate_names:
+            msg = f"Lomakkeella on useita kaavamääräysryhmiä, joilla on lyhyt nimi {format_names(duplicate_names, 'tai')}."
+            QMessageBox.critical(self, "Virhe", msg)
+            return False
+
+        return True
+
     def add_selected_plan_regulation_group(self, item: QTreeWidgetItem, column: int):
         if not item.parent():
             return
@@ -113,7 +158,9 @@ class PlanFeatureForm(QDialog, FormClass):  # type: ignore
         self._add_spacer()
 
     def open_plan_regulation_group_form(self, regulation_group_widget: RegulationGroupWidget):
-        group_as_form = PlanRegulationGroupForm(regulation_group_widget.into_model())
+        group_as_form = PlanRegulationGroupForm(
+            regulation_group_widget.into_model(), self.active_plan_regulation_groups_library
+        )
         if group_as_form.exec_():
             regulation_group_widget.from_model(group_as_form.model)
 
@@ -144,5 +191,6 @@ class PlanFeatureForm(QDialog, FormClass):  # type: ignore
         )
 
     def _on_ok_clicked(self):
-        self.model = self.into_model()
-        self.accept()
+        if self._check_regulation_group_short_names():
+            self.model = self.into_model()
+            self.accept()
