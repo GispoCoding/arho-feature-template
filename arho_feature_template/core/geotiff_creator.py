@@ -62,12 +62,12 @@ class GeoTiffCreator:
         settings = QgsMapSettings()
         settings.setLayers(
             [
-                LandUseAreaLayer.get_from_project(),
-                OtherAreaLayer.get_from_project(),
-                LandUsePointLayer.get_from_project(),
-                LineLayer.get_from_project(),
-                OtherPointLayer.get_from_project(),
                 PlanLayer.get_from_project(),
+                LandUsePointLayer.get_from_project(),
+                OtherPointLayer.get_from_project(),
+                LineLayer.get_from_project(),
+                OtherAreaLayer.get_from_project(),
+                LandUseAreaLayer.get_from_project(),
             ]
         )
         settings.setBackgroundColor(QColor(255, 255, 255))
