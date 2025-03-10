@@ -64,7 +64,7 @@ class GeoTiffCreator:
         layer_tree = QgsProject.instance().layerTreeRoot()
 
         # Filter only visible layers
-        layers = [layer for layer in layer_tree.layerOrder() if layer_tree.findLayer(layer.id()).isVisible()]
+        layers = [node.layer() for node in layer_tree.findLayers() if node.isVisible()]
 
         settings.setLayers(layers)
         settings.setDestinationCrs(QgsCoordinateReferenceSystem("EPSG:3067"))
