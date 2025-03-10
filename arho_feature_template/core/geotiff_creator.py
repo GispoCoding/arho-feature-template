@@ -1,17 +1,18 @@
 import os
 
 from osgeo import gdal
-from qgis.core import QgsMapRendererParallelJob, QgsMapSettings, QgsMapSettingsUtils
+from qgis.core import (
+    QgsCoordinateReferenceSystem,
+    QgsMapRendererParallelJob,
+    QgsMapSettings,
+    QgsMapSettingsUtils,
+    QgsProject,
+)
 from qgis.PyQt.QtCore import QSize, Qt
 from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import QApplication, QFileDialog
 
 from arho_feature_template.project.layers.plan_layers import (
-    LandUseAreaLayer,
-    LandUsePointLayer,
-    LineLayer,
-    OtherAreaLayer,
-    OtherPointLayer,
     PlanLayer,
 )
 from arho_feature_template.utils.misc_utils import get_active_plan_id, iface
@@ -60,16 +61,13 @@ class GeoTiffCreator:
 
         # Rendering settings
         settings = QgsMapSettings()
-        settings.setLayers(
-            [
-                LandUseAreaLayer.get_from_project(),
-                OtherAreaLayer.get_from_project(),
-                LandUsePointLayer.get_from_project(),
-                LineLayer.get_from_project(),
-                OtherPointLayer.get_from_project(),
-                PlanLayer.get_from_project(),
-            ]
-        )
+        layer_tree = QgsProject.instance().layerTreeRoot()
+
+        # Filter only visible layers
+        layers = [node.layer() for node in layer_tree.findLayers() if node.isVisible()]
+
+        settings.setLayers(layers)
+        settings.setDestinationCrs(QgsCoordinateReferenceSystem("EPSG:3067"))
         settings.setBackgroundColor(QColor(255, 255, 255))
         width = int(buffered_bbox.width() / self.desired_pixel_size) * self.desired_pixel_size
         height = int(buffered_bbox.height() / self.desired_pixel_size) * self.desired_pixel_size
