@@ -22,6 +22,7 @@ from arho_feature_template.core.models import (
     RegulationGroupLibrary,
 )
 from arho_feature_template.exceptions import UnsavedChangesError
+from arho_feature_template.gui.dialogs.import_features_form import ImportFeaturesForm
 from arho_feature_template.gui.dialogs.lifecycle_editor import LifecycleEditor
 from arho_feature_template.gui.dialogs.load_plan_dialog import LoadPlanDialog
 from arho_feature_template.gui.dialogs.plan_attribute_form import PlanAttributeForm
@@ -33,16 +34,11 @@ from arho_feature_template.gui.docks.regulation_groups_dock import RegulationGro
 from arho_feature_template.gui.tools.inspect_plan_features_tool import InspectPlanFeatures
 from arho_feature_template.project.layers.code_layers import PlanRegulationGroupTypeLayer, code_layers
 from arho_feature_template.project.layers.plan_layers import (
+    FEATURE_LAYER_NAME_TO_CLASS_MAP,
     AdditionalInformationLayer,
     DocumentLayer,
-    LandUseAreaLayer,
-    LandUsePointLayer,
     LegalEffectAssociationLayer,
     LifeCycleLayer,
-    LineLayer,
-    OtherAreaLayer,
-    OtherPointLayer,
-    PlanFeatureLayer,
     PlanLayer,
     PlanPropositionLayer,
     PlanRegulationLayer,
@@ -71,14 +67,6 @@ if TYPE_CHECKING:
     from arho_feature_template.core.models import Proposition, Regulation
 
 logger = logging.getLogger(__name__)
-
-FEATURE_LAYER_NAME_TO_CLASS_MAP: dict[str, type[PlanFeatureLayer]] = {
-    LandUsePointLayer.name: LandUsePointLayer,
-    OtherPointLayer.name: OtherPointLayer,
-    LineLayer.name: LineLayer,
-    OtherAreaLayer.name: OtherAreaLayer,
-    LandUseAreaLayer.name: LandUseAreaLayer,
-}
 
 
 class PlanDigitizeMapTool(QgsMapToolDigitizeFeature): ...
@@ -157,6 +145,11 @@ class PlanManager:
             for file in feature_template_library_config_files()
         ]
         self.new_feature_dock.initialize_feature_template_libraries(self.feature_template_libraries)
+
+    def open_import_features_dialog(self):
+        import_features_form = ImportFeaturesForm(self.active_plan_regulation_group_library)
+        if import_features_form.exec_():
+            pass
 
     def update_active_plan_regulation_group_library(self):
         self.active_plan_regulation_group_library = regulation_group_library_from_active_plan()

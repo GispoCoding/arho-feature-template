@@ -721,6 +721,14 @@ class LifeCycleLayer(AbstractPlanLayer):
         return list(cls.get_features_by_attribute_value("plan_id", plan_id))
 
 
+FEATURE_LAYER_NAME_TO_CLASS_MAP: dict[str, type[PlanFeatureLayer]] = {
+    LandUsePointLayer.name: LandUsePointLayer,
+    OtherPointLayer.name: OtherPointLayer,
+    LineLayer.name: LineLayer,
+    OtherAreaLayer.name: OtherAreaLayer,
+    LandUseAreaLayer.name: LandUseAreaLayer,
+}
+
 plan_layers = AbstractPlanLayer.__subclasses__()
 plan_layers.remove(PlanFeatureLayer)
 

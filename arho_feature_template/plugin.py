@@ -259,6 +259,15 @@ class Plugin:
             status_tip="Tallenna aktiivinen kaava geotiff muodossa",
         )
 
+        self.import_features_action = self.add_action(
+            text="Tuo kaavakohteita",
+            icon=QgsApplication.getThemeIcon("mActionSharingImport.svg"),
+            triggered_callback=self.plan_manager.open_import_features_dialog,
+            add_to_menu=True,
+            add_to_toolbar=True,
+            status_tip="Tuo kaavakohteita tietokantaan toisilta vektoritasoilta",
+        )
+
         self.plugin_settings_action = self.add_action(
             text="Asetukset",
             triggered_callback=self.open_settings,
