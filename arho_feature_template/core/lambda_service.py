@@ -100,7 +100,6 @@ class LambdaService(QObject):
 
         try:
             response_data = reply.readAll().data().decode("utf-8")
-            # QgsMessageLog.logMessage(f"RAW RESPONSE ({action}): {response_data}", "MyPlugin", level=Qgis.Info)
             response_json = json.loads(response_data)
 
             if not self._is_api_gateway_request():

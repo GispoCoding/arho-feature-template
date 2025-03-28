@@ -376,9 +376,12 @@ class PlanManager(QObject):
         self.new_feature_dock.set_plan(plan_id)
         self.update_active_plan_regulation_group_library()
         if plan_id:
-            identifier = str(
-                PlanLayer.get_attribute_value_by_another_attribute_value("permanent_plan_identifier", "id", plan_id)
+            identifier = PlanLayer.get_attribute_value_by_another_attribute_value(
+                "permanent_plan_identifier", "id", plan_id
             )
+            if identifier is None or str(identifier).upper() == "NULL":
+                identifier = None
+
             self.set_permanent_identifier(identifier)
 
     def load_land_use_plan(self):
