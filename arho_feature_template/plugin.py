@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING, Callable
 
-from qgis.core import QgsApplication
+from qgis.core import QgsApplication, QgsExpressionContextUtils, QgsProject
 from qgis.PyQt.QtCore import QCoreApplication, Qt, QTranslator
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QMenu, QToolButton, QWidget
@@ -11,6 +11,7 @@ from qgis.PyQt.QtWidgets import QAction, QMenu, QToolButton, QWidget
 from arho_feature_template.core.geotiff_creator import GeoTiffCreator
 from arho_feature_template.core.plan_manager import PlanManager
 from arho_feature_template.gui.dialogs.plugin_settings import PluginSettings
+from arho_feature_template.gui.dialogs.post_plan import PostPlan
 from arho_feature_template.gui.docks.validation_dock import ValidationDock
 from arho_feature_template.qgis_plugin_tools.tools.custom_logging import setup_logger, teardown_logger
 from arho_feature_template.qgis_plugin_tools.tools.i18n import setup_translation
@@ -140,6 +141,7 @@ class Plugin:
         # Plan manager
         self.plan_manager = PlanManager()
         iface.mapCanvas().mapToolSet.connect(self.plan_manager.plan_digitize_map_tool.deactivate)
+        self.plan_manager.plan_identifier_set.connect(self.update_plan_buttons)
 
         # Docks
         self.validation_dock = ValidationDock()
@@ -149,6 +151,9 @@ class Plugin:
 
         # Try initializing the plugin immediately in case the project is already open
         self.plan_manager.initialize_from_project()
+
+        # Set the active plan again when QGIS is opened:
+        # self.plan_manager.set_active_plan(get_active_plan_id())
 
         # (Re)initialize whenever a project is opened
         iface.projectRead.connect(self.plan_manager.initialize_from_project)
@@ -259,6 +264,26 @@ class Plugin:
             status_tip="Tallenna aktiivinen kaava geotiff muodossa",
         )
 
+        self.post_plan_matter_action = self.add_action(
+            text="Vie kaavaasia",
+            icon=QgsApplication.getThemeIcon("mActionSharingExport.svg"),
+            triggered_callback=self.post_plan_matter,
+            add_to_menu=True,
+            add_to_toolbar=True,
+            status_tip="Vie kaava-asia Ryhtiin",
+        )
+        self.post_plan_matter_action.setEnabled(False)  # Disable button by default
+
+        self.get_permanent_identifier_action = self.add_action(
+            text="Hae pysyvä kaavatunnus",
+            # icon=QgsApplication.getThemeIcon(""),
+            triggered_callback=self.get_permanent_identifier,
+            add_to_menu=True,
+            add_to_toolbar=True,
+            status_tip="Hae kaavalle pysyvä kaavatunnus",
+        )
+        self.get_permanent_identifier_action.setEnabled(False)  # Disable button by default
+
         self.plugin_settings_action = self.add_action(
             text="Asetukset",
             triggered_callback=self.open_settings,
@@ -303,6 +328,24 @@ class Plugin:
         """Create geotiff from currently active plan."""
         geotiff_creator = GeoTiffCreator()
         geotiff_creator.select_output_file()
+
+    def post_plan_matter(self):
+        """Exports plan matter to Ryhti."""
+        dialog = PostPlan()
+        dialog.exec_()
+
+    def get_permanent_identifier(self):
+        """Gets the permanent plan identifier for active plan."""
+        self.plan_manager.get_permanent_plan_identifier()
+
+    def update_plan_buttons(self):
+        """Update the UI buttons based on whether the active plan has a permanent identifier."""
+        has_permanent_identifier = (
+            QgsExpressionContextUtils.projectScope(QgsProject.instance()).variable("permanent_identifier") is not None
+        )
+
+        self.get_permanent_identifier_action.setEnabled(not has_permanent_identifier)
+        self.post_plan_matter_action.setEnabled(has_permanent_identifier)
 
     def unload(self) -> None:
         """Removes the plugin menu item and icon from QGIS GUI."""
