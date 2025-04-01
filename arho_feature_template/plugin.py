@@ -8,6 +8,7 @@ from qgis.PyQt.QtCore import QCoreApplication, Qt, QTranslator
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QMenu, QToolButton, QWidget
 
+from arho_feature_template.core.event_bus import EventBus
 from arho_feature_template.core.geotiff_creator import GeoTiffCreator
 from arho_feature_template.core.plan_manager import PlanManager
 from arho_feature_template.gui.dialogs.plugin_settings import PluginSettings
@@ -276,9 +277,26 @@ class Plugin:
             status_tip="Muokkaa pluginin asetuksia",
         )
 
+        self.context_specific_actions = [
+            self.edit_land_use_plan_action,
+            self.edit_lifecycles_action,
+            self.new_feature_dock_action,
+            self.identify_plan_features_action,
+            self.regulation_groups_dock_action,
+            self.validation_dock_action,
+            self.serialize_plan_action,
+            self.create_geotiff_action,
+            self.import_features_action,
+        ]
+        # Initially actions are disabled because no plan is selected
+        self.on_active_plan_unset()
+
+        # Connect signals
         self.plan_manager.inspect_plan_feature_tool.deactivated.connect(
             lambda: self.identify_plan_features_action.setChecked(False)
         )
+        EventBus.instance().signals.plan_set.connect(self.on_active_plan_set)
+        EventBus.instance().signals.plan_unset.connect(self.on_active_plan_unset)
 
         self.check_timezone_variable()
 
@@ -312,6 +330,14 @@ class Plugin:
         """Create geotiff from currently active plan."""
         geotiff_creator = GeoTiffCreator()
         geotiff_creator.select_output_file()
+
+    def on_active_plan_set(self):
+        for action in self.context_specific_actions:
+            action.setEnabled(True)
+
+    def on_active_plan_unset(self):
+        for action in self.context_specific_actions:
+            action.setEnabled(False)
 
     def unload(self) -> None:
         """Removes the plugin menu item and icon from QGIS GUI."""

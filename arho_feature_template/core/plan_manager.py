@@ -9,6 +9,7 @@ from qgis.core import QgsProject, QgsVectorLayer, QgsWkbTypes
 from qgis.gui import QgsMapToolDigitizeFeature
 from qgis.PyQt.QtWidgets import QDialog
 
+from arho_feature_template.core.event_bus import EventBus
 from arho_feature_template.core.lambda_service import LambdaService
 from arho_feature_template.core.models import (
     AdditionalInformation,
@@ -352,6 +353,11 @@ class PlanManager:
             plan_layer.rollBack()
 
         set_active_plan_id(plan_id)
+        if plan_id:
+            EventBus.instance().signals.plan_set.emit()
+        else:
+            EventBus.instance().signals.plan_unset.emit()
+
         for layer in plan_layers:
             layer.apply_filter(plan_id)
 
