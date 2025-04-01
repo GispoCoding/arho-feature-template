@@ -1,10 +1,17 @@
 from __future__ import annotations
 
+import enum
 from typing import ClassVar, cast
 
 from arho_feature_template.exceptions import LayerNameNotFoundError
 from arho_feature_template.project.layers import AbstractLayer
 from arho_feature_template.utils.misc_utils import LANGUAGE
+
+
+class PlanType(str, enum.Enum):
+    REGIONAL = "regional"
+    GENERAL = "general"
+    TOWN = "town"
 
 
 class AbstractCodeLayer(AbstractLayer):
@@ -15,14 +22,38 @@ class PlanTypeLayer(AbstractCodeLayer):
     name = "Kaavalaji"
 
     category_only_codes: ClassVar[list[str]] = ["1", "2", "3"]  # "Maakuntakaava", "Asemakaava", "Yleiskaava"
-    general_plan_type_values: ClassVar[list[int]] = [2, 21, 22, 23, 24, 25]
+
+    regional_plan_type_first_character = "1"
+    general_plan_type_first_character = "2"
+    town_plan_type_first_character = "3"
+
+    @classmethod
+    def get_plan_type(cls, _id: str | None) -> PlanType | None:
+        if _id is None:
+            return None
+        attribute_value = cls.get_attribute_value_by_another_attribute_value("value", "id", _id)
+        if not attribute_value:
+            return None
+
+        if attribute_value[0] == cls.regional_plan_type_first_character:
+            return PlanType.REGIONAL
+        if attribute_value[0] == cls.general_plan_type_first_character:
+            return PlanType.GENERAL
+        if attribute_value[0] == cls.town_plan_type_first_character:
+            return PlanType.TOWN
+        return None
+
+    @classmethod
+    def is_regional_plan_type(cls, _id: str | None) -> bool:
+        return cls.get_plan_type(_id) == PlanType.REGIONAL
 
     @classmethod
     def is_general_plan_type(cls, _id: str | None) -> bool:
-        if _id is None:
-            return False
-        attribute_value = cls.get_attribute_value_by_another_attribute_value("value", "id", _id)
-        return int(attribute_value) in cls.general_plan_type_values if attribute_value is not None else False
+        return cls.get_plan_type(_id) == PlanType.GENERAL
+
+    @classmethod
+    def is_town_plan_type(cls, _id: str | None) -> bool:
+        return cls.get_plan_type(_id) == PlanType.TOWN
 
 
 class LifeCycleStatusLayer(AbstractCodeLayer):
