@@ -26,6 +26,7 @@ from arho_feature_template.exceptions import UnsavedChangesError
 from arho_feature_template.gui.dialogs.import_features_form import ImportFeaturesForm
 from arho_feature_template.gui.dialogs.lifecycle_editor import LifecycleEditor
 from arho_feature_template.gui.dialogs.load_plan_dialog import LoadPlanDialog
+from arho_feature_template.gui.dialogs.manage_libraries import ManageLibrariesForm
 from arho_feature_template.gui.dialogs.plan_attribute_form import PlanAttributeForm
 from arho_feature_template.gui.dialogs.plan_feature_form import PlanFeatureForm
 from arho_feature_template.gui.dialogs.plan_regulation_group_form import PlanRegulationGroupForm
@@ -183,6 +184,11 @@ class PlanManager(QObject):
 
     def edit_regulation_group(self, regulation_group: RegulationGroup):
         self._open_regulation_group_form(regulation_group)
+
+    def manage_libraries(self):
+        manage_libraries_form = ManageLibrariesForm()
+        if manage_libraries_form.exec_():
+            pass
 
     def _open_regulation_group_form(self, regulation_group: RegulationGroup):
         regulation_group_form = PlanRegulationGroupForm(regulation_group, self.active_plan_regulation_group_library)
