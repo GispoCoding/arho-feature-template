@@ -23,8 +23,9 @@ from arho_feature_template.core.models import PlanFeature, RegulationGroup
 from arho_feature_template.gui.components.plan_regulation_group_widget import RegulationGroupWidget
 from arho_feature_template.gui.components.tree_with_search_widget import TreeWithSearchWidget
 from arho_feature_template.gui.dialogs.plan_regulation_group_form import PlanRegulationGroupForm
-from arho_feature_template.project.layers.code_layers import UndergroundTypeLayer
-from arho_feature_template.utils.misc_utils import disconnect_signal
+from arho_feature_template.project.layers.code_layers import PlanType, PlanTypeLayer, UndergroundTypeLayer
+from arho_feature_template.project.layers.plan_layers import PlanLayer
+from arho_feature_template.utils.misc_utils import disconnect_signal, get_active_plan_id
 
 if TYPE_CHECKING:
     from qgis.PyQt.QtWidgets import QVBoxLayout, QWidget
@@ -77,7 +78,8 @@ class PlanFeatureForm(QDialog, FormClass):  # type: ignore
         self.regulation_groups_selection_widget = TreeWithSearchWidget()
         self.regulation_groups_tree_layout.insertWidget(2, self.regulation_groups_selection_widget)
         self.regulation_groups_selection_widget.tree.itemDoubleClicked.connect(self.add_selected_plan_regulation_group)
-        self.show_regulation_group_library(0)
+        self.select_library_by_active_plan_type()
+        self.show_regulation_group_library(self.plan_regulation_group_libraries_combobox.currentIndex())
 
         self.feature_type_of_underground.populate_from_code_layer(UndergroundTypeLayer)
         self.feature_type_of_underground.remove_item_by_text("NULL")
@@ -94,6 +96,26 @@ class PlanFeatureForm(QDialog, FormClass):  # type: ignore
             self.add_plan_regulation_group(regulation_group)
 
         self.button_box.accepted.connect(self._on_ok_clicked)
+
+    def select_library_by_active_plan_type(self):
+        feature = PlanLayer.get_feature_by_id(get_active_plan_id(), no_geometries=False)
+        model = PlanLayer.model_from_feature(feature)
+
+        plan_type = PlanTypeLayer.get_plan_type(model.plan_type_id)
+        library_name = ""
+        if plan_type == PlanType.REGIONAL:
+            library_name = "Maakuntakaavan kaavamääräysryhmät (Katja)"
+        elif plan_type == PlanType.GENERAL:
+            library_name = "Yleiskaavan kaavamääräysryhmät (Katja)"
+        elif plan_type == PlanType.TOWN:
+            library_name = "Asemakaavan kaavamääräysryhmät (Katja)"
+
+        for i, library in enumerate(self.regulation_group_libraries):
+            if library.name == library_name:
+                self.plan_regulation_group_libraries_combobox.setCurrentIndex(i)
+                return
+
+        self.plan_regulation_group_libraries_combobox.setCurrentIndex(0)
 
     def _add_spacer(self):
         self.scroll_area_spacer = QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Expanding)
