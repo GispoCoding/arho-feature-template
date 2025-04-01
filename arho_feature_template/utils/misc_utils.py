@@ -138,3 +138,9 @@ def use_wait_cursor(func):
             return func(*args, **kwargs)
 
     return wrapper
+
+
+def zoom_to_layer(layer: QgsVectorLayer):
+    canvas = iface.mapCanvas()
+    canvas.setExtent(layer.extent())
+    canvas.refresh()

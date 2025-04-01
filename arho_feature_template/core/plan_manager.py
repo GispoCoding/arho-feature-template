@@ -59,6 +59,7 @@ from arho_feature_template.utils.misc_utils import (
     iface,
     set_active_plan_id,
     use_wait_cursor,
+    zoom_to_layer,
 )
 
 if TYPE_CHECKING:
@@ -360,6 +361,7 @@ class PlanManager:
 
         self.new_feature_dock.set_plan(plan_id)
         self.update_active_plan_regulation_group_library()
+        zoom_to_layer(plan_layer)
 
     def load_land_use_plan(self):
         """Load an existing land use plan using a dialog selection."""
