@@ -3,7 +3,9 @@ from __future__ import annotations
 from importlib import resources
 from typing import TYPE_CHECKING, Generator
 
+from qgis import processing
 from qgis.core import (
+    QgsCoordinateReferenceSystem,
     QgsFeature,
     QgsFeatureIterator,
     QgsFeatureRequest,
@@ -18,6 +20,7 @@ from arho_feature_template.core.models import PlanFeature, RegulationGroupLibrar
 from arho_feature_template.project.layers.code_layers import UndergroundTypeLayer, code_layers
 from arho_feature_template.project.layers.plan_layers import (
     FEATURE_LAYER_NAME_TO_CLASS_MAP,
+    PlanLayer,
     RegulationGroupAssociationLayer,
     plan_feature_layers,
     plan_layers,
@@ -58,6 +61,8 @@ class ImportFeaturesForm(QDialog, FormClass):  # type: ignore
         self.process_button_box.button(QDialogButtonBox.Ok).setText("Import")
         self.process_button_box.accepted.connect(self.import_features)
         self.process_button_box.rejected.connect(self.reject)
+
+        self.target_crs: QgsCoordinateReferenceSystem | None = None
 
         # Source layer initialization
         # Exclude all project layers from valid source layers
@@ -129,11 +134,19 @@ class ImportFeaturesForm(QDialog, FormClass):  # type: ignore
 
     @use_wait_cursor
     def import_features(self):
+        self.progress_bar.setValue(0)
+
         if not self.source_layer or not self.target_layer:
             return
 
-        self.progress_bar.setValue(0)
-        source_features = list(self.get_source_features(self.source_layer))
+        if not self.target_crs:
+            self.target_crs = PlanLayer.get_from_project().crs()
+
+        if self.source_layer.crs() == self.target_crs:
+            source_features = list(self.get_source_features(self.source_layer))
+        else:
+            source_features = list(self.get_source_features(self.reproject_layer(self.target_crs, self.source_layer)))
+
         if not source_features:
             iface.messageBar().pushInfo("", "Yhtään kohdetta ei tuotu.")
             return
@@ -220,3 +233,10 @@ class ImportFeaturesForm(QDialog, FormClass):  # type: ignore
 
         layer.endEditCommand()
         return layer.commitChanges(stopEditing=False)
+
+    @staticmethod
+    def reproject_layer(target_crs: QgsCoordinateReferenceSystem, layer: QgsVectorLayer) -> QgsVectorLayer:
+        results = processing.run(
+            "native:reprojectlayer", {"INPUT": layer, "TARGET_CRS": target_crs, "OUTPUT": "TEMPORARY_OUTPUT"}
+        )
+        return results["OUTPUT"]
