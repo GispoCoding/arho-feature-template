@@ -57,10 +57,15 @@ class NewFeatureGridWidget(QListWidget):
 
     def update_height(self):
         """Adjust the height of the list widget dynamically based on the number of rows."""
+        # Buffer width to avoid flicker and height to show vertical scroll only when needed
+        item_width = FEATURE_BUTTON_WIDTH + 9
+        item_height = FEATURE_BUTTON_HEIGHT + 6
+
         available_width = self.viewport().width()
-        items_per_row = max(1, available_width // (FEATURE_BUTTON_WIDTH + 4 + 2))
+        items_per_row = max(1, available_width // item_width)
         rows_needed = (self.count() + items_per_row - 1) // items_per_row
-        new_height = rows_needed * (FEATURE_BUTTON_HEIGHT + 4 + 2)
+        new_height = rows_needed * item_height
+
         self.setFixedHeight(new_height)
 
     def handle_button_click(self, btn: FeatureButton):
