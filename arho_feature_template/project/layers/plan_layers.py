@@ -392,7 +392,8 @@ class PlanRegulationLayer(AbstractPlanLayer):
         feature["plan_regulation_group_id"] = model.regulation_group_id
         feature["type_of_plan_regulation_id"] = model.config.id
 
-        feature["subject_identifiers"] = model.topic_tag.split(",") if model.topic_tag else None
+        feature["subject_identifiers"] = model.subject_identifiers
+        feature["plan_theme_id"] = model.theme_id
 
         update_feature_from_attribute_value_model(model.value, feature)
 
@@ -420,8 +421,8 @@ class PlanRegulationLayer(AbstractPlanLayer):
             ],
             regulation_number=None,
             files=[],
-            theme=None,
-            topic_tag=None,
+            theme_id=feature["plan_theme_id"],
+            subject_identifiers=feature["subject_identifiers"],
             regulation_group_id=feature["plan_regulation_group_id"],
             verbal_regulation_type_ids=(
                 list(TypeOfVerbalRegulationAssociationLayer.get_verbal_type_ids_for_regulation(feature["id"]))

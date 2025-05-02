@@ -433,8 +433,8 @@ class Regulation:
     additional_information: list[AdditionalInformation] = field(default_factory=list)
     regulation_number: int | None = None
     files: list[str] = field(default_factory=list)
-    theme: str | None = None
-    topic_tag: str | None = None
+    theme_id: str | None = None
+    subject_identifiers: list[str] = field(default_factory=list)
     verbal_regulation_type_ids: list[str] = field(default_factory=list)
     regulation_group_id: str | None = None
     id_: str | None = None
@@ -503,8 +503,8 @@ class RegulationGroup:
                         ],
                         regulation_number=reg_data.get("regulation_number"),
                         files=reg_data.get("files") if reg_data.get("files") else [],
-                        theme=reg_data.get("theme"),
-                        topic_tag=reg_data.get("topic_tag"),
+                        theme_id=reg_data.get("theme"),  # TODO: If theme name is in config, needs to be converted to id
+                        subject_identifiers=reg_data.get("subject_identifiers"),
                         regulation_group_id=None,
                         id_=None,
                     )

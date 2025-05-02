@@ -3,8 +3,7 @@ from __future__ import annotations
 from importlib import resources
 from typing import cast
 
-from qgis.core import QgsApplication
-from qgis.gui import QgsFileWidget
+from qgis.core import NULL, QgsApplication
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtWidgets import (
@@ -26,14 +25,13 @@ from arho_feature_template.core.models import (
 )
 from arho_feature_template.gui.components.additional_information_widget import AdditionalInformationWidget
 from arho_feature_template.gui.components.required_field_label import RequiredFieldLabel
+from arho_feature_template.gui.components.subject_identifier_widget import SubjectIdentifierWidget
+from arho_feature_template.gui.components.theme_widget import ThemeWidget
 from arho_feature_template.gui.components.value_input_widgets import (
-    IntegerInputWidget,
-    SinglelineTextInputWidget,
     TypeOfVerbalRegulationWidget,
     ValueWidgetManager,
 )
 from arho_feature_template.project.layers.code_layers import PlanRegulationTypeLayer
-from arho_feature_template.utils.misc_utils import LANGUAGE, get_layer_by_name
 
 ui_path = resources.files(__package__) / "plan_regulation_widget.ui"
 FormClass, _ = uic.loadUiType(ui_path)
@@ -71,12 +69,14 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
 
         # For accessing correct widgets when data is sent
         self.value_widget: QWidget | None = None
-        self.regulation_number_widget: IntegerInputWidget | None = None
-        self.additional_information_widgets: list[AdditionalInformationWidget] = []
-        self.file_widgets: list[QgsFileWidget] = []
-        self.theme_widget: SinglelineTextInputWidget | None = None
-        self.topic_tag_widget: SinglelineTextInputWidget | None = None
         self.type_of_verbal_regulation_widgets: list[TypeOfVerbalRegulationWidget] = []
+        self.additional_information_widgets: list[AdditionalInformationWidget] = []
+
+        # TODO: Implement regulation numbers / ordering and files (?)
+        # self.regulation_number_widget: RegulationNumberWidget | None = None
+        # self.file_widgets: list[InputFileWidget] = []
+        self.subject_identifier_widgets: list[SubjectIdentifierWidget] = []
+        self.theme_widget: ThemeWidget | None = None
 
         self.expanded = True
         self.additional_information_frame.hide()
@@ -99,6 +99,12 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
                 self._add_type_of_verbal_regulation(type_id)
             if len(self.type_of_verbal_regulation_widgets) == 0:
                 self._add_type_of_verbal_regulation()
+
+        if self.regulation.theme_id:
+            self._add_theme(self.regulation.theme_id)
+        if self.regulation.subject_identifiers not in [None, NULL]:
+            for subject in self.regulation.subject_identifiers:
+                self._add_subject_identifier(subject)
 
         # Additional information
         for info in self.regulation.additional_information:
@@ -137,16 +143,10 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
 
     def _init_other_information_btn(self):
         add_field_menu = QMenu(self)
-        add_field_menu.addAction("Määräysnumero").triggered.connect(self._add_regulation_number)
-        add_field_menu.addAction("Liiteasiakirja").triggered.connect(self._add_file)
-        add_field_menu.addAction("Aihetunniste").triggered.connect(self._add_topic_tag)
-
-        theme_menu = QMenu("Kaavoitusteema", self)
-        for feature in get_layer_by_name("Kaavoitusteemat").getFeatures():
-            name = feature["name"][LANGUAGE]
-            action = theme_menu.addAction(name)
-            action.triggered.connect(lambda _, name=name: self._add_theme(name))
-        add_field_menu.addMenu(theme_menu)
+        # add_field_menu.addAction("Määräysnumero").triggered.connect(self._add_regulation_number)
+        # add_field_menu.addAction("Liiteasiakirja").triggered.connect(self._add_file)
+        add_field_menu.addAction("Aihetunniste").triggered.connect(self._add_subject_identifier)
+        add_field_menu.addAction("Kaavoitusteema").triggered.connect(self._add_theme)
 
         self.add_field_btn.setMenu(add_field_menu)
         self.add_field_btn.setIcon(QgsApplication.getThemeIcon("mActionAdd.svg"))
@@ -176,6 +176,18 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
         if not self.expanded:
             self._on_expand_hide_btn_clicked()
 
+    def _delete_widget(self, widget_to_delete: QWidget) -> bool:
+        for label, widget in self.widgets:
+            if widget == widget_to_delete:
+                if isinstance(widget, SubjectIdentifierWidget):
+                    self.subject_identifier_widgets.remove(widget)
+                elif isinstance(widget, ThemeWidget):
+                    self.theme_widget = None
+                self.form_layout.removeRow(widget_to_delete)
+                self.widgets.remove((label, widget))
+                return True
+        return False
+
     def _add_additional_info(self, additional_information: AdditionalInformation):
         widget = AdditionalInformationWidget(additional_information, self)
         widget.delete_signal.connect(self._delete_additional_info)
@@ -190,23 +202,20 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
         self.additional_information_widgets.remove(info_widget)
         info_widget.deleteLater()
 
-    def _add_regulation_number(self):
-        if not self.regulation_number_widget:
-            self.regulation_number_widget = IntegerInputWidget(None, None, True)
-            self._add_widget(QLabel("Määräysnumero"), self.regulation_number_widget)
-
-    def _add_file(self):
-        widget = QgsFileWidget()
-        self._add_widget(QLabel("Liiteasiakirja"), widget)
-        self.file_widgets.append(widget)
-
-    def _add_topic_tag(self):
-        self.topic_tag_widget = SinglelineTextInputWidget(None, True)
-        self._add_widget(QLabel("Aihetunniste"), self.topic_tag_widget)
+    def _add_subject_identifier(self, subject: str | None = None):
+        # self.topic_tag_widget = SinglelineTextInputWidget(None, True)
+        subject_widget = SubjectIdentifierWidget(subject)
+        subject_widget.delete_signal.connect(self._delete_widget)
+        self.subject_identifier_widgets.append(subject_widget)
+        self._add_widget(QLabel("Aihetunniste:"), subject_widget)
 
     def _add_theme(self, theme_name: str):
-        self.theme_widget = SinglelineTextInputWidget(theme_name, False)
-        self._add_widget(QLabel("Kaavoitusteema"), self.theme_widget)
+        # TODO: Make multiple themes possible
+        if not self.theme_widget:
+            # self.theme_widget = SinglelineTextInputWidget(theme_name, False)
+            self.theme_widget = ThemeWidget(theme_name)
+            self.theme_widget.delete_signal.connect(self._delete_widget)
+            self._add_widget(QLabel("Kaavoitusteema:"), self.theme_widget)
 
     def _add_type_of_verbal_regulation(self, type_id: str | None = None):
         if len(self.type_of_verbal_regulation_widgets) == 0:
@@ -236,11 +245,13 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
         return Regulation(
             config=self.config,
             value=self.value_widget_manager.into_model() if self.value_widget_manager else None,
-            regulation_number=self.regulation_number_widget.get_value() if self.regulation_number_widget else None,
+            regulation_number=None,
             additional_information=[ai_widget.into_model() for ai_widget in self.additional_information_widgets],
-            files=[file.filePath() for file in self.file_widgets],
-            theme=self.theme_widget.get_value() if self.theme_widget else None,
-            topic_tag=self.topic_tag_widget.get_value() if self.topic_tag_widget else None,
+            files=[],
+            theme_id=self.theme_widget.get_value() if self.theme_widget else None,
+            subject_identifiers=[
+                widget.get_value() for widget in self.subject_identifier_widgets if widget.get_value() != ""
+            ],
             verbal_regulation_type_ids=[value for value in verbal_regulation_type_ids if value is not None],
             id_=self.regulation.id_,
         )
