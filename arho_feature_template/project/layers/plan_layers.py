@@ -561,11 +561,8 @@ class PlanPropositionLayer(AbstractPlanLayer):
     @classmethod
     def model_from_feature(cls, feature: QgsFeature) -> Proposition:
         proposition_value = deserialize_localized_text(feature["text_value"])
-        if not proposition_value:
-            msg = "Proposition value cannot be empty."
-            raise ValueError(msg)
         return Proposition(
-            value=proposition_value,
+            value=proposition_value if proposition_value is not None else "",
             regulation_group_id=feature["plan_regulation_group_id"],
             proposition_number=feature["ordering"],
             theme_id=feature["plan_theme_id"],
