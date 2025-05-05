@@ -424,6 +424,7 @@ class AdditionalInformation:
     plan_regulation_id: str | None = None
     type_additional_information_id: str | None = None
     value: AttributeValue | None = None
+    modified: bool = True
 
 
 @dataclass
@@ -437,6 +438,7 @@ class Regulation:
     topic_tag: str | None = None
     verbal_regulation_type_ids: list[str] = field(default_factory=list)
     regulation_group_id: str | None = None
+    modified: bool = True
     id_: str | None = None
 
 
@@ -446,6 +448,7 @@ class Proposition:
     theme_id: str | None = None
     proposition_number: int | None = None
     regulation_group_id: str | None = None
+    modified: bool = True
     id_: str | None = None
 
 
@@ -458,6 +461,7 @@ class RegulationGroup:
     group_number: int | None = None
     regulations: list[Regulation] = field(default_factory=list)
     propositions: list[Proposition] = field(default_factory=list)
+    modified: bool = True
     id_: str | None = None
 
     @staticmethod
@@ -542,6 +546,7 @@ class LifeCycle:
     line_id: str | None = None
     land_use_point_id: str | None = None
     other_point_id: str | None = None
+    modified: bool = True
 
 
 @dataclass
@@ -553,6 +558,7 @@ class PlanFeature:
     description: str | None = None
     regulation_groups: list[RegulationGroup] = field(default_factory=list)
     plan_id: int | None = None
+    modified: bool = True
     id_: str | None = None
 
     @classmethod
@@ -580,6 +586,7 @@ class Plan:
     documents: list[Document] = field(default_factory=list)
     legal_effect_ids: list[str] = field(default_factory=list)
     geom: QgsGeometry | None = None
+    modified: bool = True
     id_: str | None = None
 
 
@@ -600,4 +607,5 @@ class Document:
     confirmation_date: datetime | None = None
     arrival_date: datetime | None = None
     plan_id: int | None = None
+    modified: bool = True
     id_: str | None = None
