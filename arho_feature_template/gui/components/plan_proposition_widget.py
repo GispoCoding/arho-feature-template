@@ -101,9 +101,15 @@ class PropositionWidget(QWidget, FormClass):  # type: ignore
             self.expanded = True
 
     def into_model(self) -> Proposition:
-        return Proposition(
+        model = Proposition(
+            regulation_group_id=self.proposition.regulation_group_id,
             value=self.text_input.toPlainText(),
             theme_id=self.theme_widget.value() if self.theme_widget else None,
             proposition_number=self.proposition_number_widget.get_value() if self.proposition_number_widget else None,
+            modified=self.proposition.modified,
             id_=self.proposition.id_,
         )
+        if not model.modified and model != self.proposition:
+            model.modified = True
+
+        return model

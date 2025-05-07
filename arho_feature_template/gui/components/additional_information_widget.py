@@ -13,7 +13,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from arho_feature_template.core.models import AdditionalInformation
+from arho_feature_template.core.models import AdditionalInformation, AttributeValue
 from arho_feature_template.gui.components.required_field_label import RequiredFieldLabel
 from arho_feature_template.gui.components.value_input_widgets import (
     ValueWidgetManager,
@@ -74,10 +74,15 @@ class AdditionalInformationWidget(QWidget, FormClass):  # type: ignore
         self.widgets.append((label, widget))
 
     def into_model(self) -> AdditionalInformation:
-        return AdditionalInformation(
+        model = AdditionalInformation(
             config=self.config,
             id_=self.additional_information.id_,
             plan_regulation_id=self.additional_information.plan_regulation_id,
             type_additional_information_id=self.additional_information.type_additional_information_id,
-            value=self.value_widget_manager.into_model() if self.value_widget_manager else None,
+            modified=self.additional_information.modified,
+            value=self.value_widget_manager.into_model() if self.value_widget_manager else AttributeValue(),
         )
+        if not model.modified and model != self.additional_information:
+            model.modified = True
+
+        return model

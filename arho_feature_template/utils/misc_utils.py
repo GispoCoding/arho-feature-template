@@ -6,7 +6,7 @@ from functools import wraps
 from typing import TYPE_CHECKING, Any, cast
 
 from qgis.core import QgsExpressionContextUtils, QgsProject, QgsVectorLayer
-from qgis.PyQt.QtCore import QSettings, Qt, pyqtBoundSignal
+from qgis.PyQt.QtCore import NULL, QSettings, Qt, pyqtBoundSignal
 from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.utils import OverrideCursor, iface
 
@@ -138,3 +138,9 @@ def use_wait_cursor(func):
             return func(*args, **kwargs)
 
     return wrapper
+
+
+def null_to_none(value) -> Any:
+    if value == NULL or value is None:
+        return None
+    return value
