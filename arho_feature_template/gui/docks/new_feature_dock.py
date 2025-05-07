@@ -13,7 +13,7 @@ from arho_feature_template.project.layers.plan_layers import PlanLayer
 
 if TYPE_CHECKING:
     from qgis.gui import QgsFilterLineEdit
-    from qgis.PyQt.QtWidgets import QComboBox, QLabel, QWidget
+    from qgis.PyQt.QtWidgets import QComboBox, QWidget
 
     from arho_feature_template.core.models import FeatureTemplateLibrary, PlanFeature
 
@@ -25,7 +25,6 @@ class NewFeatureDock(QgsDockWidget, DockClass):  # type: ignore
     library_selection: QComboBox
     search_box: QgsFilterLineEdit
     template_list: QListWidget
-    txt_tip: QLabel
     dockWidgetContents: QWidget  # noqa: N815
 
     tool_activated = pyqtSignal()
