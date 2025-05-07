@@ -210,15 +210,23 @@ class PlanFeatureForm(QDialog, FormClass):  # type: ignore
                 _ = self.regulation_groups_selection_widget.add_item_to_tree(str(group), group, category_item)
 
     def into_model(self) -> PlanFeature:
-        return PlanFeature(
-            name=self.feature_name.text(),
+        model = PlanFeature(
+            name=self.feature_name.text() if self.feature_name.text() != "" else None,
             type_of_underground_id=self.feature_type_of_underground.value(),
-            description=self.feature_description.toPlainText(),
+            description=self.feature_description.toPlainText()
+            if self.feature_description.toPlainText() != ""
+            else None,
             geom=self.plan_feature.geom,
             layer_name=self.plan_feature.layer_name,
             regulation_groups=[reg_group_widget.into_model() for reg_group_widget in self.regulation_group_widgets],
+            plan_id=self.plan_feature.plan_id,
             id_=self.plan_feature.id_,
+            modified=self.plan_feature.modified,
         )
+        if not model.modified and model != self.plan_feature:
+            model.modified = True
+
+        return model
 
     def _on_ok_clicked(self):
         if self._check_regulation_group_short_names():

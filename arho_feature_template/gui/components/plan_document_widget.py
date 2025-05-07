@@ -177,8 +177,8 @@ class DocumentWidget(QWidget, FormClass):  # type: ignore
             self.expanded = True
 
     def into_model(self) -> Document:
-        return Document(
-            name=self.name.text(),
+        model = Document(
+            name=self.name.text() if self.name.text() != "" else None,
             url=self.url.text(),
             identifier=self.identifier.text(),
             type_of_document_id=self.document_type.value(),
@@ -190,5 +190,10 @@ class DocumentWidget(QWidget, FormClass):  # type: ignore
             document_date=self.document_date.date(),
             # exported_at=self.document.exported_at,
             plan_id=self.document.plan_id,
+            modified=self.document.modified,
             id_=self.document.id_,
         )
+        if not model.modified and model != self.document:
+            model.modified = True
+
+        return model

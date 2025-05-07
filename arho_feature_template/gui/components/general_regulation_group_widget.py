@@ -106,12 +106,17 @@ class GeneralRegulationGroupWidget(QWidget, FormClass):  # type: ignore
         proposition_widget.deleteLater()
 
     def into_model(self) -> RegulationGroup:
-        return RegulationGroup(
+        model = RegulationGroup(
             type_code_id=self.regulation_group.type_code_id,
             name=self.name.text(),
             short_name=None,
             color_code=None,
             regulations=[widget.into_model() for widget in self.regulation_widgets],
             propositions=[widget.into_model() for widget in self.proposition_widgets],
+            modified=self.regulation_group.modified,
             id_=self.regulation_group.id_,
         )
+        if not model.modified and model != self.regulation_group:
+            model.modified = True
+
+        return model

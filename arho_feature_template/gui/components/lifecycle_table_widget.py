@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from qgis.gui import QgsDateTimeEdit
-from qgis.PyQt.QtCore import Qt, pyqtSignal
+from qgis.PyQt.QtCore import QDate, Qt, pyqtSignal
 from qgis.PyQt.QtWidgets import (
     QHeaderView,
     QTableWidget,
@@ -20,6 +20,7 @@ class LifecycleTableWidget(QTableWidget):
         super().__init__(parent)
 
         self.lifecycles = lifecycles
+        self.existing_lifecycles: dict[str, LifeCycle] = {}
 
         # Initialize table widget
         self.setColumnCount(3)
@@ -34,6 +35,7 @@ class LifecycleTableWidget(QTableWidget):
         # Add existing lifecycles
         for lifecycle in sorted(lifecycles, key=lambda x: x.starting_at):  # type: ignore[arg-type, return-value]
             self.add_lifecycle_row(lifecycle)
+            self.existing_lifecycles[str(lifecycle.id_)] = lifecycle
 
         # If 0 rows, initialize 1 row since Plan needs at least one lifecycle
         if self.rowCount() == 0:
@@ -62,7 +64,7 @@ class LifecycleTableWidget(QTableWidget):
         start_date_edit.setCalendarPopup(True)
         start_date_edit.valueChanged.connect(self.table_edited.emit)
         if lifecycle.starting_at:
-            start_date_edit.setDate(lifecycle.starting_at.date())
+            start_date_edit.setDate(lifecycle.starting_at)
         self.setCellWidget(row_position, 1, start_date_edit)
 
         end_date_edit = QgsDateTimeEdit()
@@ -70,7 +72,7 @@ class LifecycleTableWidget(QTableWidget):
         end_date_edit.setCalendarPopup(True)
         end_date_edit.setSpecialValueText("")  # Allow empty value
         if lifecycle.ending_at:
-            end_date_edit.setDate(lifecycle.ending_at.date())
+            end_date_edit.setDate(lifecycle.ending_at)
         else:
             end_date_edit.clear()
         self.setCellWidget(row_position, 2, end_date_edit)
@@ -93,12 +95,18 @@ class LifecycleTableWidget(QTableWidget):
 
         id_item = self.item(row_i, 0)
 
-        return LifeCycle(
+        model = LifeCycle(
             status_id=status_item.value(),
             starting_at=start_date_item.date(),
-            ending_at=end_date_item.date(),
+            ending_at=end_date_item.date() if end_date_item.date() != QDate() else None,
             id_=id_item.data(Qt.UserRole),
         )
+        if model.id_:
+            previous_model = self.existing_lifecycles.get(model.id_)
+            if previous_model and model == previous_model:
+                model.modified = False
+
+        return model
 
     def into_model(self) -> list[LifeCycle]:
         """Extracts all lifecycle data from the table into a list of LifeCycle objects."""

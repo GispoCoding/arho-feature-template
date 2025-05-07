@@ -202,16 +202,21 @@ class PlanRegulationGroupForm(QDialog, FormClass):  # type: ignore
         proposition_widget.deleteLater()
 
     def into_model(self) -> RegulationGroup:
-        return RegulationGroup(
+        model = RegulationGroup(
             type_code_id=self.type_of_regulation_group.value(),
-            name=self.name.text(),
-            short_name=self.short_name.text(),
-            color_code=self.color_code.text(),
+            name=self.name.text() if self.name.text() != "" else None,
+            short_name=self.short_name.text() if self.short_name.text() != "" else None,
+            color_code=self.color_code.text() if self.color_code.text() != "" else None,
             group_number=self.group_number.value() if self.group_number.value() > 0 else None,
             regulations=[widget.into_model() for widget in self.regulation_widgets],
             propositions=[widget.into_model() for widget in self.proposition_widgets],
+            modified=self.regulation_group.modified,
             id_=self.regulation_group.id_,
         )
+        if not model.modified and model != self.regulation_group:
+            model.modified = True
+
+        return model
 
     def _on_ok_clicked(self):
         if self._check_short_name():

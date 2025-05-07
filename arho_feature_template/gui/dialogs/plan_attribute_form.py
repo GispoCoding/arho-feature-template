@@ -248,7 +248,7 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
         else:
             legal_effect_ids = []
 
-        return Plan(
+        model = Plan(
             id_=self.plan.id_,
             name=self.name_line_edit.text(),
             description=self.description_text_edit.toPlainText() or None,
@@ -262,8 +262,13 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
             general_regulations=[reg_group_widget.into_model() for reg_group_widget in self.regulation_group_widgets],
             legal_effect_ids=[value for value in legal_effect_ids if value is not None],
             documents=[document_widget.into_model() for document_widget in self.document_widgets],
+            modified=self.plan.modified,
             geom=self.plan.geom,
         )
+        if not model.modified and model != self.plan:
+            model.modified = True
+
+        return model
 
     def _on_ok_clicked(self):
         self.model = self.into_model()

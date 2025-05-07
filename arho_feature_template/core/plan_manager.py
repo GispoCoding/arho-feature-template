@@ -587,23 +587,27 @@ def _delete_feature(feature: QgsFeature, layer: QgsVectorLayer, delete_text: str
 
 @use_wait_cursor
 def save_plan(plan: Plan) -> QgsFeature | None:
-    feature = PlanLayer.feature_from_model(plan)
-    layer = PlanLayer.get_from_project()
+    editing = plan.id_ is not None
 
-    if not _save_feature(
-        feature=feature,
-        layer=layer,
-        id_=plan.id_,
-        edit_text="Kaavan muokkaus" if plan.id_ is not None else "Kaavan luominen",
-    ):
-        iface.messageBar().pushCritical("", "Kaavan tallentaminen epäonnistui")
-        return None
+    if plan.id_ is None or plan.modified:
+        feature = PlanLayer.feature_from_model(plan)
+
+        if not _save_feature(
+            feature=feature,
+            layer=PlanLayer.get_from_project(),
+            id_=plan.id_,
+            edit_text="Kaavan muokkaus" if editing else "Kaavan luominen",
+        ):
+            iface.messageBar().pushCritical("", "Kaavan tallentaminen epäonnistui")
+            return None
+    else:
+        feature = PlanLayer.get_feature_by_id(plan.id_)
 
     plan_id = feature["id"]
-    if plan.id_ is not None:
+    if editing:
         # Check for deleted general regulations
         for association in RegulationGroupAssociationLayer.get_dangling_associations(
-            plan.general_regulations, plan.id_, PlanLayer.name
+            plan.general_regulations, plan_id, PlanLayer.name
         ):
             if not _delete_feature(
                 association,
@@ -623,7 +627,7 @@ def save_plan(plan: Plan) -> QgsFeature | None:
 
         # Check for documents to be deleted
         doc_layer = DocumentLayer.get_from_project()
-        for doc_feature in DocumentLayer.get_documents_to_delete(plan.documents, plan.id_):
+        for doc_feature in DocumentLayer.get_documents_to_delete(plan.documents, plan_id):
             if not _delete_feature(doc_feature, doc_layer, "Asiakirjan poisto"):
                 iface.messageBar().pushCritical("", "Asiakirjan poistaminen epäonnistui.")
 
@@ -653,8 +657,8 @@ def save_plan(plan: Plan) -> QgsFeature | None:
 
 
 @use_wait_cursor
-def save_plan_feature(plan_model: PlanFeature, plan_id: str | None = None) -> QgsFeature | None:
-    layer_name = plan_model.layer_name
+def save_plan_feature(plan_feature: PlanFeature, plan_id: str | None = None) -> QgsFeature | None:
+    layer_name = plan_feature.layer_name
     if not layer_name:
         msg = "Cannot save plan feature without a target layer"
         raise ValueError(msg)
@@ -663,23 +667,26 @@ def save_plan_feature(plan_model: PlanFeature, plan_id: str | None = None) -> Qg
         msg = f"Could not find plan feature layer class for layer name {layer_name}"
         raise ValueError(msg)
 
-    plan_feature = layer_class.feature_from_model(plan_model, plan_id)
-    layer = layer_class.get_from_project()
+    editing = plan_feature.id_ is not None
 
-    editing = plan_model.id_ is not None
-    if not _save_feature(
-        feature=plan_feature,
-        layer=layer,
-        id_=plan_model.id_,
-        edit_text="Kaavakohteen muokkaus" if editing else "Kaavakohteen lisäys",
-    ):
-        iface.messageBar().pushCritical("", "Kaavakohteen tallentaminen epäonnistui.")
-        return None
+    if plan_feature.id_ is None or plan_feature.modified:
+        feature = layer_class.feature_from_model(plan_feature, plan_id)
+
+        if not _save_feature(
+            feature=feature,
+            layer=layer_class.get_from_project(),
+            id_=plan_feature.id_,
+            edit_text="Kaavakohteen muokkaus" if editing else "Kaavakohteen lisäys",
+        ):
+            iface.messageBar().pushCritical("", "Kaavakohteen tallentaminen epäonnistui.")
+            return None
+    else:
+        feature = layer_class.get_feature_by_id(plan_feature.id_, no_geometries=False)
 
     # Check for deleted regulation groups
     if editing:
         for association in RegulationGroupAssociationLayer.get_dangling_associations(
-            plan_model.regulation_groups, plan_feature["id"], layer_name
+            plan_feature.regulation_groups, feature["id"], layer_name
         ):
             if not _delete_feature(
                 association,
@@ -689,34 +696,39 @@ def save_plan_feature(plan_model: PlanFeature, plan_id: str | None = None) -> Qg
                 iface.messageBar().pushCritical("", "Kaavamääräysryhmän assosiaation poistaminen epäonnistui.")
 
     # Save regulation groups
-    for group in plan_model.regulation_groups:
+    for group in plan_feature.regulation_groups:
         regulation_group_feature = save_regulation_group(group)
         if regulation_group_feature is None:
             continue  # Skip association saving if saving regulation group failed
-        save_regulation_group_association(regulation_group_feature["id"], layer_name, plan_feature["id"])
+        save_regulation_group_association(regulation_group_feature["id"], layer_name, feature["id"])
 
-    return plan_feature
+    return feature
 
 
 @use_wait_cursor
 def save_regulation_group(regulation_group: RegulationGroup, plan_id: str | None = None) -> QgsFeature | None:
-    feature = RegulationGroupLayer.feature_from_model(regulation_group, plan_id)
-    layer = RegulationGroupLayer.get_from_project()
+    editing = regulation_group.id_ is not None
 
-    if not _save_feature(
-        feature=feature,
-        layer=layer,
-        id_=regulation_group.id_,
-        edit_text="Kaavamääräysryhmän muokkaus" if regulation_group.id_ is not None else "Kaavamääräysryhmän lisäys",
-    ):
-        iface.messageBar().pushCritical("", "Kaavamääräysryhmän tallentaminen epäonnistui.")
-        return None
+    if regulation_group.id_ is None or regulation_group.modified:
+        feature = RegulationGroupLayer.feature_from_model(regulation_group, plan_id)
 
-    if regulation_group.id_ is not None:
+        if not _save_feature(
+            feature=feature,
+            layer=RegulationGroupLayer.get_from_project(),
+            id_=regulation_group.id_,
+            edit_text="Kaavamääräysryhmän muokkaus" if editing else "Kaavamääräysryhmän lisäys",
+        ):
+            iface.messageBar().pushCritical("", "Kaavamääräysryhmän tallentaminen epäonnistui.")
+            return None
+    else:
+        feature = RegulationGroupLayer.get_feature_by_id(regulation_group.id_)
+
+    regulation_group_id = feature["id"]
+    if editing:
         # Check for regulations to be deleted
         regulation_layer = PlanRegulationLayer.get_from_project()
         for reg_feature in PlanRegulationLayer.get_regulations_to_delete(
-            regulation_group.regulations, regulation_group.id_
+            regulation_group.regulations, regulation_group_id
         ):
             if not _delete_feature(reg_feature, regulation_layer, "Kaavamääräyksen poisto"):
                 iface.messageBar().pushCritical("", "Kaavamääräyksen poistaminen epäonnistui.")
@@ -724,7 +736,7 @@ def save_regulation_group(regulation_group: RegulationGroup, plan_id: str | None
         # Check for propositions to be deleted
         proposition_layer = PlanPropositionLayer.get_from_project()
         for prop_feature in PlanPropositionLayer.get_propositions_to_delete(
-            regulation_group.propositions, regulation_group.id_
+            regulation_group.propositions, regulation_group_id
         ):
             if not _delete_feature(prop_feature, proposition_layer, "Kaavasuosituksen poisto"):
                 iface.messageBar().pushCritical("", "Kaavasuosituksen poistaminen epäonnistui.")
@@ -732,13 +744,13 @@ def save_regulation_group(regulation_group: RegulationGroup, plan_id: str | None
     # Save regulations
     if regulation_group.regulations:
         for regulation in regulation_group.regulations:
-            regulation.regulation_group_id = feature["id"]  # Updating regulation group ID
+            regulation.regulation_group_id = regulation_group_id  # Updating regulation group ID
             save_regulation(regulation)
 
     # Save propositions
     if regulation_group.propositions:
         for proposition in regulation_group.propositions:
-            proposition.regulation_group_id = feature["id"]  # Updating regulation group ID
+            proposition.regulation_group_id = regulation_group_id  # Updating regulation group ID
             save_proposition(proposition)
 
     return feature
@@ -778,18 +790,21 @@ def save_regulation_group_association(regulation_group_id: str, layer_name: str,
 
 
 def save_regulation(regulation: Regulation) -> QgsFeature | None:
-    regulation_feature = PlanRegulationLayer.feature_from_model(regulation)
-    layer = PlanRegulationLayer.get_from_project()
-
     editing = regulation.id_ is not None
-    if not _save_feature(
-        feature=regulation_feature,
-        layer=layer,
-        id_=regulation.id_,
-        edit_text="Kaavamääräyksen muokkaus" if editing else "Kaavamääräyksen lisäys",
-    ):
-        iface.messageBar().pushCritical("", "Kaavamääräyksen tallentaminen epäonnistui.")
-        return None
+
+    if regulation.id_ is None or regulation.modified:
+        regulation_feature = PlanRegulationLayer.feature_from_model(regulation)
+
+        if not _save_feature(
+            feature=regulation_feature,
+            layer=PlanRegulationLayer.get_from_project(),
+            id_=regulation.id_,
+            edit_text="Kaavamääräyksen muokkaus" if editing else "Kaavamääräyksen lisäys",
+        ):
+            iface.messageBar().pushCritical("", "Kaavamääräyksen tallentaminen epäonnistui.")
+            return None
+    else:
+        regulation_feature = PlanRegulationLayer.get_feature_by_id(regulation.id_)
 
     reg_id = regulation_feature["id"]
 
@@ -854,17 +869,19 @@ def save_legal_effect_association(plan_id: str, legal_effect_id: str) -> bool:
 
 
 def save_additional_information(additional_information: AdditionalInformation) -> QgsFeature | None:
-    feature = AdditionalInformationLayer.feature_from_model(additional_information)
-    layer = AdditionalInformationLayer.get_from_project()
+    if additional_information.id_ is None or additional_information.modified:
+        feature = AdditionalInformationLayer.feature_from_model(additional_information)
 
-    if not _save_feature(
-        feature=feature,
-        layer=layer,
-        id_=additional_information.id_,
-        edit_text="Lisätiedon lisäys" if additional_information.id_ is None else "Lisätiedon muokkaus",
-    ):
-        iface.messageBar().pushCritical("", "Lisätiedon tallentaminen epäonnistui.")
-        return None
+        if not _save_feature(
+            feature=feature,
+            layer=AdditionalInformationLayer.get_from_project(),
+            id_=additional_information.id_,
+            edit_text="Lisätiedon lisäys" if additional_information.id_ is None else "Lisätiedon muokkaus",
+        ):
+            iface.messageBar().pushCritical("", "Lisätiedon tallentaminen epäonnistui.")
+            return None
+    else:
+        feature = AdditionalInformationLayer.get_feature_by_id(additional_information.id_)
 
     return feature
 
@@ -892,17 +909,19 @@ def delete_regulation(regulation: Regulation) -> bool:
 
 
 def save_proposition(proposition: Proposition) -> QgsFeature | None:
-    feature = PlanPropositionLayer.feature_from_model(proposition)
-    layer = PlanPropositionLayer.get_from_project()
+    if proposition.id_ is None or proposition.modified:
+        feature = PlanPropositionLayer.feature_from_model(proposition)
 
-    if not _save_feature(
-        feature=feature,
-        layer=layer,
-        id_=proposition.id_,
-        edit_text="Kaavasuosituksen lisäys" if proposition.id_ is None else "Kaavasuosituksen muokkaus",
-    ):
-        iface.messageBar().pushCritical("", "Kaavasuosituksen tallentaminen epäonnistui.")
-        return None
+        if not _save_feature(
+            feature=feature,
+            layer=PlanPropositionLayer.get_from_project(),
+            id_=proposition.id_,
+            edit_text="Kaavasuosituksen lisäys" if proposition.id_ is None else "Kaavasuosituksen muokkaus",
+        ):
+            iface.messageBar().pushCritical("", "Kaavasuosituksen tallentaminen epäonnistui.")
+            return None
+    else:
+        feature = AdditionalInformationLayer.get_feature_by_id(proposition.id_)
 
     return feature
 
@@ -919,32 +938,36 @@ def delete_proposition(proposition: Proposition) -> bool:
 
 
 def save_document(document: Document) -> QgsFeature | None:
-    feature = DocumentLayer.feature_from_model(document)
-    layer = DocumentLayer.get_from_project()
+    if document.id_ is None or document.modified:
+        feature = DocumentLayer.feature_from_model(document)
 
-    if not _save_feature(
-        feature=feature,
-        layer=layer,
-        id_=document.id_,
-        edit_text="Asiakirjan lisäys" if document.id_ is None else "Asiakirjan muokkaus",
-    ):
-        iface.messageBar().pushCritical("", "Asiakirjan tallentaminen epäonnistui.")
-        return None
+        if not _save_feature(
+            feature=feature,
+            layer=DocumentLayer.get_from_project(),
+            id_=document.id_,
+            edit_text="Asiakirjan lisäys" if document.id_ is None else "Asiakirjan muokkaus",
+        ):
+            iface.messageBar().pushCritical("", "Asiakirjan tallentaminen epäonnistui.")
+            return None
+    else:
+        feature = DocumentLayer.get_feature_by_id(document.id_)
 
     return feature
 
 
 def save_lifecycle(lifecycle: LifeCycle) -> QgsFeature | None:
-    feature = LifeCycleLayer.feature_from_model(lifecycle)
-    layer = LifeCycleLayer.get_from_project()
+    if lifecycle.id_ is None or lifecycle.modified:
+        feature = LifeCycleLayer.feature_from_model(lifecycle)
 
-    if not _save_feature(
-        feature=feature,
-        layer=layer,
-        id_=lifecycle.id_,
-        edit_text="Elinkaaren lisäys" if lifecycle.id_ is None else "Elinkaaren muokkaus",
-    ):
-        iface.messageBar().pushCritical("", "Elinkaaren tallentaminen epäonnistui.")
-        return None
+        if not _save_feature(
+            feature=feature,
+            layer=LifeCycleLayer.get_from_project(),
+            id_=lifecycle.id_,
+            edit_text="Elinkaaren lisäys" if lifecycle.id_ is None else "Elinkaaren muokkaus",
+        ):
+            iface.messageBar().pushCritical("", "Elinkaaren tallentaminen epäonnistui.")
+            return None
+    else:
+        feature = LifeCycleLayer.get_feature_by_id(lifecycle.id_)
 
     return feature
