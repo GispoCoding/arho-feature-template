@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 import logging
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -12,7 +12,7 @@ import yaml
 from arho_feature_template.exceptions import ConfigSyntaxError
 from arho_feature_template.project.layers.code_layers import AdditionalInformationTypeLayer, UndergroundTypeLayer
 from arho_feature_template.qgis_plugin_tools.tools.resources import resources_path
-from arho_feature_template.utils.misc_utils import deserialize_localized_text, get_layer_by_name, iface
+from arho_feature_template.utils.misc_utils import deserialize_localized_text, get_layer_by_name, iface, null_to_none
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -246,8 +246,16 @@ class RegulationLibrary:
         return cls._instance
 
 
+class PlanModel:
+    def __post_init__(self):
+        # Set all found NULLs to None
+        for _field in fields(self):
+            value = getattr(self, _field.name)
+            setattr(self, _field.name, null_to_none(value))
+
+
 @dataclass
-class RegulationConfig:
+class RegulationConfig(PlanModel):
     """
     Describes plan regulation type.
 
@@ -261,7 +269,7 @@ class RegulationConfig:
     status: str
     level: int
     parent_id: str | None
-    child_regulations: list[RegulationConfig] = field(default_factory=list)
+    child_regulations: list[RegulationConfig] = field(default_factory=list, compare=False)
 
     # Data from config file
     category_only: bool = False
@@ -293,7 +301,7 @@ class RegulationConfig:
 
 
 @dataclass
-class AdditionalInformationConfig:
+class AdditionalInformationConfig(PlanModel):
     # From layer
     id: str
     additional_information_type: str
@@ -303,7 +311,7 @@ class AdditionalInformationConfig:
     level: int
     parent_id: str | None
 
-    children: list[str] = field(default_factory=list)
+    children: list[str] = field(default_factory=list, compare=False)
 
     # From config file
     default_value: AttributeValue | None = None
@@ -397,7 +405,7 @@ class AdditionalInformationConfigLibrary:
 
 
 @dataclass
-class AttributeValue:
+class AttributeValue(PlanModel):
     value_data_type: AttributeValueDataType | None = None
 
     numeric_value: int | float | None = None
@@ -417,51 +425,51 @@ class AttributeValue:
 
 
 @dataclass
-class AdditionalInformation:
+class AdditionalInformation(PlanModel):
     config: AdditionalInformationConfig  # includes code and unit among other needed data for saving feature
 
     id_: str | None = None
     plan_regulation_id: str | None = None
     type_additional_information_id: str | None = None
     value: AttributeValue | None = None
-    modified: bool = True
+    modified: bool = field(compare=False, default=True)
 
 
 @dataclass
-class Regulation:
+class Regulation(PlanModel):
     config: RegulationConfig  # includes regulation_code and unit among other needed data for saving feature
     value: AttributeValue | None = None
     additional_information: list[AdditionalInformation] = field(default_factory=list)
     regulation_number: int | None = None
-    files: list[str] = field(default_factory=list)
+    files: list[str] = field(default_factory=list, compare=False)
     theme: str | None = None
     topic_tag: str | None = None
     verbal_regulation_type_ids: list[str] = field(default_factory=list)
     regulation_group_id: str | None = None
-    modified: bool = True
+    modified: bool = field(compare=False, default=True)
     id_: str | None = None
 
 
 @dataclass
-class Proposition:
+class Proposition(PlanModel):
     value: str
     theme_id: str | None = None
     proposition_number: int | None = None
     regulation_group_id: str | None = None
-    modified: bool = True
+    modified: bool = field(compare=False, default=True)
     id_: str | None = None
 
 
 @dataclass
-class RegulationGroup:
+class RegulationGroup(PlanModel):
     type_code_id: str | None = None
     name: str | None = None
     short_name: str | None = None
     color_code: str | None = None
     group_number: int | None = None
-    regulations: list[Regulation] = field(default_factory=list)
-    propositions: list[Proposition] = field(default_factory=list)
-    modified: bool = True
+    regulations: list[Regulation] = field(default_factory=list, compare=False)
+    propositions: list[Proposition] = field(default_factory=list, compare=False)
+    modified: bool = field(compare=False, default=True)
     id_: str | None = None
 
     @staticmethod
@@ -532,10 +540,11 @@ class RegulationGroup:
 
 
 @dataclass
-class LifeCycle:
+class LifeCycle(PlanModel):
     status_id: str | None = None
     id_: str | None = None
-    plan_id: str | None = None
+    # No need to compare `plan_id` since lifecycles can't be reassigned for another plan after creation
+    plan_id: str | None = field(compare=False, default=None)
     plan_regulation_id: str | None = None
     plan_proposition_id: str | None = None
     starting_at: QDate | None = None
@@ -546,19 +555,19 @@ class LifeCycle:
     line_id: str | None = None
     land_use_point_id: str | None = None
     other_point_id: str | None = None
-    modified: bool = True
+    modified: bool = field(compare=False, default=True)
 
 
 @dataclass
-class PlanFeature:
+class PlanFeature(PlanModel):
     geom: QgsGeometry | None = None  # Need to allow None for feature templates
     type_of_underground_id: str | None = None
     layer_name: str | None = None
     name: str | None = None
     description: str | None = None
-    regulation_groups: list[RegulationGroup] = field(default_factory=list)
+    regulation_groups: list[RegulationGroup] = field(default_factory=list, compare=False)
     plan_id: int | None = None
-    modified: bool = True
+    modified: bool = field(compare=False, default=True)
     id_: str | None = None
 
     @classmethod
@@ -571,27 +580,27 @@ class PlanFeature:
 
 
 @dataclass
-class Plan:
+class Plan(PlanModel):
     name: str | None = None
     description: str | None = None
     plan_type_id: str | None = None
     lifecycle_status_id: str | None = None
-    lifecycles: list[LifeCycle] = field(default_factory=list)
+    lifecycles: list[LifeCycle] = field(default_factory=list, compare=False)
     record_number: str | None = None
     matter_management_identifier: str | None = None
     permanent_plan_identifier: str | None = None
     producers_plan_identifier: str | None = None
     organisation_id: str | None = None
-    general_regulations: list[RegulationGroup] = field(default_factory=list)
-    documents: list[Document] = field(default_factory=list)
+    general_regulations: list[RegulationGroup] = field(default_factory=list, compare=False)
+    documents: list[Document] = field(default_factory=list, compare=False)
     legal_effect_ids: list[str] = field(default_factory=list)
     geom: QgsGeometry | None = None
-    modified: bool = True
+    modified: bool = field(compare=False, default=True)
     id_: str | None = None
 
 
 @dataclass
-class Document:
+class Document(PlanModel):
     name: str | None = None
     url: str | None = None
     type_of_document_id: str | None = None
@@ -607,5 +616,5 @@ class Document:
     confirmation_date: datetime | None = None
     arrival_date: datetime | None = None
     plan_id: int | None = None
-    modified: bool = True
+    modified: bool = field(compare=False, default=True)
     id_: str | None = None
