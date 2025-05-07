@@ -131,6 +131,7 @@ class PlanLayer(AbstractPlanLayer):
                 for feat in LifeCycleLayer.get_features_by_plan_id(feature["id"])
                 if feat is not None
             ],
+            modified=False,
         )
 
     @classmethod
@@ -189,6 +190,7 @@ class PlanFeatureLayer(AbstractPlanLayer):
                 RegulationGroupLayer.model_from_feature(feat) for feat in regulation_group_features if feat is not None
             ],
             plan_id=feature["plan_id"],
+            modified=False,
             id_=feature["id"],
         )
 
@@ -249,6 +251,7 @@ class RegulationGroupLayer(AbstractPlanLayer):
                 PlanPropositionLayer.model_from_feature(feat)
                 for feat in PlanPropositionLayer.propositions_with_group_id(feature["id"])
             ],
+            modified=False,
             id_=feature["id"],
         )
 
@@ -426,6 +429,7 @@ class PlanRegulationLayer(AbstractPlanLayer):
             verbal_regulation_type_ids=(
                 list(TypeOfVerbalRegulationAssociationLayer.get_verbal_type_ids_for_regulation(feature["id"]))
             ),
+            modified=False,
             id_=feature["id"],
         )
 
@@ -569,6 +573,7 @@ class PlanPropositionLayer(AbstractPlanLayer):
             regulation_group_id=feature["plan_regulation_group_id"],
             proposition_number=feature["ordering"],
             theme_id=feature["plan_theme_id"],
+            modified=False,
             id_=feature["id"],
         )
 
@@ -623,10 +628,11 @@ class DocumentLayer(AbstractPlanLayer):
             personal_data_content_id=feature["personal_data_content_id"],
             retention_time_id=feature["retention_time_id"],
             language_id=feature["language_id"],
-            document_date=feature["document_date"],
-            arrival_date=feature["arrival_date"],
-            confirmation_date=feature["confirmation_date"],
+            document_date=feature["document_date"].date() if feature["document_date"] else None,
+            arrival_date=feature["arrival_date"].date() if feature["confirmation_date"] else None,
+            confirmation_date=feature["confirmation_date"].date() if feature["confirmation_date"] else None,
             plan_id=feature["plan_id"],
+            modified=False,
             id_=feature["id"],
         )
 
@@ -682,6 +688,7 @@ class AdditionalInformationLayer(AbstractPlanLayer):
             plan_regulation_id=feature["plan_regulation_id"],
             type_additional_information_id=feature["type_additional_information_id"],
             value=attribute_value_model_from_feature(feature),
+            modified=False,
         )
 
     @classmethod
@@ -724,8 +731,8 @@ class LifeCycleLayer(AbstractPlanLayer):
         return LifeCycle(
             id_=feature["id"],
             status_id=feature["lifecycle_status_id"],
-            starting_at=feature["starting_at"],
-            ending_at=feature["ending_at"],
+            starting_at=feature["starting_at"].date() if feature["starting_at"] else None,
+            ending_at=feature["ending_at"].date() if feature["ending_at"] else None,
             plan_id=feature["plan_id"],
             land_use_are_id=feature["land_use_area_id"],
             other_area_id=feature["other_area_id"],
@@ -734,6 +741,7 @@ class LifeCycleLayer(AbstractPlanLayer):
             other_point_id=feature["other_point_id"],
             plan_regulation_id=feature["plan_regulation_id"],
             plan_proposition_id=feature["plan_proposition_id"],
+            modified=False,
         )
 
     @classmethod
