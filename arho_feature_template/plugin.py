@@ -143,10 +143,21 @@ class Plugin:
         iface.mapCanvas().mapToolSet.connect(self.plan_manager.plan_digitize_map_tool.deactivate)
 
         # Docks
+        iface.addDockWidget(Qt.RightDockWidgetArea, self.plan_manager.new_feature_dock)
+
+        iface.addDockWidget(Qt.RightDockWidgetArea, self.plan_manager.regulation_groups_dock)
+        iface.mainWindow().tabifyDockWidget(
+            self.plan_manager.new_feature_dock, self.plan_manager.regulation_groups_dock
+        )
+
         self.validation_dock = ValidationDock()
         iface.addDockWidget(Qt.RightDockWidgetArea, self.validation_dock)
-        iface.addDockWidget(Qt.RightDockWidgetArea, self.plan_manager.new_feature_dock)
-        iface.addDockWidget(Qt.RightDockWidgetArea, self.plan_manager.regulation_groups_dock)
+        iface.mainWindow().tabifyDockWidget(self.plan_manager.new_feature_dock, self.validation_dock)
+
+        # Hide the docks because they cannot be used before a plan has been selected/activated
+        self.plan_manager.new_feature_dock.hide()
+        self.plan_manager.regulation_groups_dock.hide()
+        self.validation_dock.hide()
 
         # Actions
         self.new_land_use_plan_action = self.add_action(
