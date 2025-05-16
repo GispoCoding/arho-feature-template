@@ -4,11 +4,14 @@ from importlib import resources
 from typing import TYPE_CHECKING, Generator
 
 from qgis.core import (
+    QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
     QgsFeature,
     QgsFeatureIterator,
     QgsFeatureRequest,
     QgsFieldProxyModel,
     QgsMapLayerProxyModel,
+    QgsProject,
     QgsVectorLayer,
 )
 from qgis.PyQt import uic
@@ -18,6 +21,7 @@ from arho_feature_template.core.models import PlanFeature, RegulationGroupLibrar
 from arho_feature_template.project.layers.code_layers import UndergroundTypeLayer, code_layers
 from arho_feature_template.project.layers.plan_layers import (
     FEATURE_LAYER_NAME_TO_CLASS_MAP,
+    PlanLayer,
     RegulationGroupAssociationLayer,
     plan_feature_layers,
     plan_layers,
@@ -58,6 +62,8 @@ class ImportFeaturesForm(QDialog, FormClass):  # type: ignore
         self.process_button_box.button(QDialogButtonBox.Ok).setText("Import")
         self.process_button_box.accepted.connect(self.import_features)
         self.process_button_box.rejected.connect(self.reject)
+
+        self.target_crs: QgsCoordinateReferenceSystem | None = None
 
         # Source layer initialization
         # Exclude all project layers from valid source layers
@@ -129,11 +135,16 @@ class ImportFeaturesForm(QDialog, FormClass):  # type: ignore
 
     @use_wait_cursor
     def import_features(self):
+        self.progress_bar.setValue(0)
+
         if not self.source_layer or not self.target_layer:
             return
 
-        self.progress_bar.setValue(0)
+        if not self.target_crs:
+            self.target_crs = PlanLayer.get_from_project().crs()
+
         source_features = list(self.get_source_features(self.source_layer))
+
         if not source_features:
             iface.messageBar().pushInfo("", "Yhtään kohdetta ei tuotu.")
             return
@@ -185,18 +196,29 @@ class ImportFeaturesForm(QDialog, FormClass):  # type: ignore
             msg = f"Could not find plan feature layer class for layer name {self.target_layer_name}"
             raise ValueError(msg)
 
-        return [
-            layer_class.feature_from_model(
-                PlanFeature(
-                    geom=feature.geometry(),
-                    type_of_underground_id=type_of_underground_id,
-                    layer_name=self.target_layer_name,
-                    name=feature[source_layer_name_field] if source_layer_name_field else None,
-                    description=feature[source_layer_description_field] if source_layer_description_field else None,
+        crs_mismatch = self.source_layer.crs() != self.target_crs
+        transform = QgsCoordinateTransform(
+            self.source_layer.crs(), PlanLayer.get_from_project().crs(), QgsProject.instance()
+        )
+
+        plan_features = []
+        for feature in source_features:
+            geom = feature.geometry()
+            if crs_mismatch:
+                geom.transform(transform)
+
+            plan_features.append(
+                layer_class.feature_from_model(
+                    PlanFeature(
+                        geom=geom,
+                        type_of_underground_id=type_of_underground_id,
+                        layer_name=self.target_layer_name,
+                        name=feature[source_layer_name_field] if source_layer_name_field else None,
+                        description=feature[source_layer_description_field] if source_layer_description_field else None,
+                    )
                 )
             )
-            for feature in source_features
-        ]
+        return plan_features
 
     def create_regulation_group_associations(self, plan_features: list[QgsFeature]) -> list[QgsFeature]:
         return [
