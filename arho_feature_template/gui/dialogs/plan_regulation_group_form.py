@@ -19,6 +19,7 @@ from qgis.PyQt.QtWidgets import (
     QTextBrowser,
     QTreeWidgetItem,
     QVBoxLayout,
+    QTabWidget
 )
 
 from arho_feature_template.core.models import (
@@ -56,6 +57,8 @@ class PlanRegulationGroupForm(QDialog, FormClass):  # type: ignore
         self.setupUi(self)
 
         # TYPES
+        self.tabs: QTabWidget
+
         self.name: QLineEdit
         self.short_name: QLineEdit
         self.group_number: QgsSpinBox
@@ -149,6 +152,9 @@ class PlanRegulationGroupForm(QDialog, FormClass):  # type: ignore
 
             self.regulation_group_info_tab.layout().insertLayout(1, layout)
             self.setWindowTitle("Muokkaa kaavamääräysryhmää")
+
+        # Ensure we open the form with first tab visible
+        self.tabs.setCurrentIndex(0)
 
     def _initalize_regulation_from_config(self, config: RegulationConfig, parent: QTreeWidgetItem | None = None):
         item = self.regulations_selection_widget.add_item_to_tree(config.name, config, parent)
