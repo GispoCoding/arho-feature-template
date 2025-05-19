@@ -105,6 +105,8 @@ class RegulationGroupsDock(QgsDockWidget, DockClass):  # type: ignore
 
     def on_edit_btn_clicked(self):
         selected = self.get_selected_regulation_groups()
+        if len(selected) == 0:
+            return
         if len(selected) == 1:
             self.request_edit_regulation_group.emit(selected[0])
         else:
