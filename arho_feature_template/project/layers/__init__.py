@@ -35,6 +35,23 @@ class AbstractLayer(ABC):
         return cls.get_from_project().getFeatures()
 
     @classmethod
+    def get_selected_features(cls, no_geometries: bool = True) -> Generator[QgsFeature]:  # noqa: FBT001, FBT002
+        layer = cls.get_from_project()
+        request = QgsFeatureRequest()
+        if no_geometries:
+            request.setFlags(QgsFeatureRequest.NoGeometry)
+        yield from layer.getSelectedFeatures(request)
+
+    @classmethod
+    def get_selected_feature_ids(cls) -> Generator[str]:
+        layer = cls.get_from_project()
+        request = QgsFeatureRequest()
+        request.setFlags(QgsFeatureRequest.NoGeometry)
+        request.setSubsetOfAttributes(["id"], layer.fields())
+        for feature in layer.getSelectedFeatures(request):
+            yield feature["id"]
+
+    @classmethod
     def get_features_by_attribute_value(
         cls,
         attribute: str,
