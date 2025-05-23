@@ -11,6 +11,7 @@ from qgis.core import (
     QgsMapLayerProxyModel,
     QgsProject,
     QgsVectorLayer,
+    QgsWkbTypes,
 )
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QCheckBox, QDialog, QDialogButtonBox, QProgressBar
@@ -127,7 +128,10 @@ class ImportFeaturesForm(QDialog, FormClass):  # type: ignore
     def source_and_target_layer_types_match(self) -> bool:
         if not self.source_layer or not self.target_layer:
             return False
-        return self.source_layer.wkbType() is self.target_layer.wkbType()
+
+        source_type = QgsWkbTypes.geometryType(self.source_layer.wkbType())
+        target_type = QgsWkbTypes.geometryType(self.target_layer.wkbType())
+        return source_type == target_type
 
     @use_wait_cursor
     def import_features(self):
@@ -196,6 +200,9 @@ class ImportFeaturesForm(QDialog, FormClass):  # type: ignore
             geom = feature.geometry()
             if crs_mismatch:
                 geom.transform(transform)
+
+            if not geom.isMultipart():
+                geom.convertToMultiType()
 
             plan_features.append(
                 layer_class.feature_from_model(
