@@ -394,9 +394,7 @@ class PlanRegulationLayer(AbstractPlanLayer):
 
         feature["plan_regulation_group_id"] = model.regulation_group_id
         feature["type_of_plan_regulation_id"] = model.config.id
-
         feature["subject_identifiers"] = model.subject_identifiers
-        feature["plan_theme_id"] = model.theme_id
 
         update_feature_from_attribute_value_model(model.value, feature)
 
@@ -424,7 +422,7 @@ class PlanRegulationLayer(AbstractPlanLayer):
             ],
             regulation_number=None,
             files=[],
-            theme_id=feature["plan_theme_id"],
+            theme_ids=(list(PlanThemeAssociationLayer.get_plan_theme_id_for_plan_regulation(feature["id"]))),
             subject_identifiers=feature["subject_identifiers"],
             regulation_group_id=feature["plan_regulation_group_id"],
             verbal_regulation_type_ids=(
@@ -558,7 +556,6 @@ class PlanPropositionLayer(AbstractPlanLayer):
         feature["text_value"] = serialize_localized_text(model.value)
         feature["plan_regulation_group_id"] = model.regulation_group_id
         feature["ordering"] = model.proposition_number
-        feature["plan_theme_id"] = model.theme_id
         feature["id"] = model.id_ if model.id_ else feature["id"]
 
         return feature
@@ -573,7 +570,7 @@ class PlanPropositionLayer(AbstractPlanLayer):
             value=proposition_value,
             regulation_group_id=feature["plan_regulation_group_id"],
             proposition_number=feature["ordering"],
-            theme_id=feature["plan_theme_id"],
+            theme_ids=(list(PlanThemeAssociationLayer.get_plan_theme_id_for_plan_proposition(feature["id"]))),
             modified=False,
             id_=feature["id"],
         )
@@ -590,6 +587,68 @@ class PlanPropositionLayer(AbstractPlanLayer):
             for prop in cls.get_features_by_attribute_value("plan_regulation_group_id", group_id)
             if prop["id"] not in updated_proposition_ids
         ]
+
+
+class PlanThemeAssociationLayer(AbstractPlanLayer):
+    name = "Kaavoitusteemojen assosiaatiot"
+    filter_template = None
+
+    @classmethod
+    def feature_from(
+        cls, plan_theme_id: str, plan_regulation_id: str | None = None, plan_proposition_id: str | None = None
+    ) -> QgsFeature | None:
+        layer = cls.get_from_project()
+
+        feature = QgsVectorLayerUtils.createFeature(layer)
+        feature["plan_regulation_id"] = plan_regulation_id
+        feature["plan_proposition_id"] = plan_proposition_id
+        feature["plan_theme_id"] = plan_theme_id
+        return feature
+
+    @classmethod
+    def association_exists(
+        cls, plan_theme_id: str, plan_regulation_id: str | None = None, plan_proposition_id: str | None = None
+    ) -> bool:
+        if plan_regulation_id:
+            for feature in cls.get_features_by_attribute_value("plan_regulation_id", plan_regulation_id):
+                if feature["plan_theme_id"] == plan_theme_id:
+                    return True
+        elif plan_proposition_id:
+            for feature in cls.get_features_by_attribute_value("plan_proposition_id", plan_proposition_id):
+                if feature["plan_theme_id"] == plan_theme_id:
+                    return True
+        return False
+
+    @classmethod
+    def get_associations_for_plan_regulation(cls, plan_regulation_id: str) -> Generator[QgsFeature]:
+        return cls.get_features_by_attribute_value("plan_regulation_id", plan_regulation_id)
+
+    @classmethod
+    def get_associations_for_plan_proposition(cls, plan_proposition_id: str) -> Generator[QgsFeature]:
+        return cls.get_features_by_attribute_value("plan_proposition_id", plan_proposition_id)
+
+    @classmethod
+    def get_plan_theme_id_for_plan_regulation(cls, plan_regulation_id: str) -> Generator[QgsFeature]:
+        return cls.get_attribute_values_by_another_attribute_value(
+            "plan_theme_id", "plan_regulation_id", plan_regulation_id
+        )
+
+    @classmethod
+    def get_plan_theme_id_for_plan_proposition(cls, plan_proposition_id: str) -> Generator[QgsFeature]:
+        return cls.get_attribute_values_by_another_attribute_value(
+            "plan_theme_id", "plan_proposition_id", plan_proposition_id
+        )
+
+    @classmethod
+    def get_dangling_associations(
+        cls, plan_regulation_id: str | None = None, plan_proposition_id: str | None = None
+    ) -> list[QgsFeature]:
+        associations: list[QgsFeature] = []
+        if plan_regulation_id:
+            associations.extend(cls.get_associations_for_plan_regulation(plan_regulation_id))
+        if plan_proposition_id:
+            associations.extend(cls.get_associations_for_plan_proposition(plan_proposition_id))
+        return associations
 
 
 class DocumentLayer(AbstractPlanLayer):

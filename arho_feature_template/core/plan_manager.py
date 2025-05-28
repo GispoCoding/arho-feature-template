@@ -43,6 +43,7 @@ from arho_feature_template.project.layers.plan_layers import (
     PlanLayer,
     PlanPropositionLayer,
     PlanRegulationLayer,
+    PlanThemeAssociationLayer,
     RegulationGroupAssociationLayer,
     RegulationGroupLayer,
     TypeOfVerbalRegulationAssociationLayer,
@@ -867,6 +868,15 @@ def save_regulation(regulation: Regulation) -> str | None:
                     "", "Sanallisen kaavamääräyksen lajin assosiaation poistaminen epäonnistui."
                 )
 
+        # Check for plan theme to be deleted
+        for association in PlanThemeAssociationLayer.get_dangling_associations(plan_regulation_id=reg_id):
+            if not _delete_feature(
+                association,
+                PlanThemeAssociationLayer.get_from_project(),
+                "Kaavoitusteeman assosiaation poisto",
+            ):
+                iface.messageBar().pushCritical("", "Kaavoitusteeman assosiaation poistaminen epäonnistui.")
+
     for additional_information in regulation.additional_information:
         additional_information.plan_regulation_id = reg_id
         save_additional_information(additional_information)
@@ -874,7 +884,29 @@ def save_regulation(regulation: Regulation) -> str | None:
     for verbal_regulation_type_id in regulation.verbal_regulation_type_ids:
         save_type_of_verbal_regulation_association(reg_id, verbal_regulation_type_id)
 
+    for plan_theme_id in regulation.theme_ids:
+        save_plan_theme_association(plan_theme_id=plan_theme_id, regulation_id=reg_id)
+
     return reg_id
+
+
+def save_plan_theme_association(
+    plan_theme_id: str, regulation_id: str | None = None, proposition_id: str | None = None
+) -> bool:
+    if PlanThemeAssociationLayer.association_exists(
+        plan_theme_id=plan_theme_id, plan_regulation_id=regulation_id, plan_proposition_id=proposition_id
+    ):
+        return True
+    feature = PlanThemeAssociationLayer.feature_from(
+        plan_theme_id=plan_theme_id, plan_regulation_id=regulation_id, plan_proposition_id=proposition_id
+    )
+    layer = PlanThemeAssociationLayer.get_from_project()
+
+    if not _save_feature(feature=feature, layer=layer, id_=None, edit_text="Kaavoitusteeman assosiaation lisäys"):
+        iface.messageBar().pushCritical("", "Kaavoitusteeman assosiaation tallentaminen epäonnistui.")
+        return False
+
+    return True
 
 
 def save_type_of_verbal_regulation_association(regulation_id: str, verbal_regulation_type_id: str) -> bool:
@@ -945,6 +977,8 @@ def delete_regulation(regulation: Regulation) -> bool:
 
 
 def save_proposition(proposition: Proposition) -> str | None:
+    prop_id = proposition.id_
+    editing = prop_id is not None
     if proposition.id_ is not None and not proposition.modified:
         return proposition.id_
 
@@ -952,11 +986,25 @@ def save_proposition(proposition: Proposition) -> str | None:
     if not _save_feature(
         feature=feature,
         layer=PlanPropositionLayer.get_from_project(),
-        id_=proposition.id_,
-        edit_text="Kaavasuosituksen lisäys" if proposition.id_ is None else "Kaavasuosituksen muokkaus",
+        id_=prop_id,
+        edit_text="Kaavasuosituksen lisäys" if prop_id is None else "Kaavasuosituksen muokkaus",
     ):
         iface.messageBar().pushCritical("", "Kaavasuosituksen tallentaminen epäonnistui.")
         return None
+    prop_id = cast(str, feature["id"])
+
+    if editing:
+        # Check for plan theme to be deleted
+        for association in PlanThemeAssociationLayer.get_dangling_associations(plan_proposition_id=prop_id):
+            if not _delete_feature(
+                association,
+                PlanThemeAssociationLayer.get_from_project(),
+                "Kaavoitusteeman assosiaation poisto",
+            ):
+                iface.messageBar().pushCritical("", "Kaavoitusteeman assosiaation poistaminen epäonnistui.")
+
+    for plan_theme_id in proposition.theme_ids:
+        save_plan_theme_association(plan_theme_id=plan_theme_id, proposition_id=prop_id)
 
     return feature["id"]
 
