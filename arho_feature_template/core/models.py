@@ -442,7 +442,7 @@ class Regulation(PlanBaseModel):
     additional_information: list[AdditionalInformation] = field(default_factory=list)
     regulation_number: int | None = None
     files: list[str] = field(default_factory=list, compare=False)
-    theme_ids: list[str] = field(default_factory=list)
+    theme_ids: list[str] = field(default_factory=list, compare=False)
     subject_identifiers: list[str] = field(default_factory=list)
     verbal_regulation_type_ids: list[str] = field(default_factory=list)
     regulation_group_id: str | None = None
@@ -453,7 +453,7 @@ class Regulation(PlanBaseModel):
 @dataclass
 class Proposition(PlanBaseModel):
     value: str
-    theme_ids: list[str] = field(default_factory=list)
+    theme_ids: list[str] = field(default_factory=list, compare=False)
     proposition_number: int | None = None
     regulation_group_id: str | None = None
     modified: bool = field(compare=False, default=True)
