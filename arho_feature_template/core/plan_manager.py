@@ -869,7 +869,7 @@ def save_regulation(regulation: Regulation) -> str | None:
                 )
 
         # Check for plan theme to be deleted
-        for association in PlanThemeAssociationLayer.get_dangling_associations(plan_regulation_id=reg_id):
+        for association in PlanThemeAssociationLayer.get_dangling_regulation_associations(plan_regulation_id=reg_id):
             if not _delete_feature(
                 association,
                 PlanThemeAssociationLayer.get_from_project(),
@@ -893,8 +893,10 @@ def save_regulation(regulation: Regulation) -> str | None:
 def save_plan_theme_association(
     plan_theme_id: str, regulation_id: str | None = None, proposition_id: str | None = None
 ) -> bool:
-    if PlanThemeAssociationLayer.association_exists(
-        plan_theme_id=plan_theme_id, plan_regulation_id=regulation_id, plan_proposition_id=proposition_id
+    if PlanThemeAssociationLayer.regulation_association_exists(
+        plan_theme_id=plan_theme_id, plan_regulation_id=regulation_id
+    ) or PlanThemeAssociationLayer.proposition_association_exists(
+        plan_theme_id=plan_theme_id, plan_proposition_id=proposition_id
     ):
         return True
     feature = PlanThemeAssociationLayer.feature_from(
@@ -995,7 +997,7 @@ def save_proposition(proposition: Proposition) -> str | None:
 
     if editing:
         # Check for plan theme to be deleted
-        for association in PlanThemeAssociationLayer.get_dangling_associations(plan_proposition_id=prop_id):
+        for association in PlanThemeAssociationLayer.get_dangling_proposition_associations(plan_proposition_id=prop_id):
             if not _delete_feature(
                 association,
                 PlanThemeAssociationLayer.get_from_project(),

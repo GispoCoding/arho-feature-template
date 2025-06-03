@@ -606,14 +606,16 @@ class PlanThemeAssociationLayer(AbstractPlanLayer):
         return feature
 
     @classmethod
-    def association_exists(
-        cls, plan_theme_id: str, plan_regulation_id: str | None = None, plan_proposition_id: str | None = None
-    ) -> bool:
+    def regulation_association_exists(cls, plan_theme_id: str, plan_regulation_id: str | None = None) -> bool:
         if plan_regulation_id:
             for feature in cls.get_features_by_attribute_value("plan_regulation_id", plan_regulation_id):
                 if feature["plan_theme_id"] == plan_theme_id:
                     return True
-        elif plan_proposition_id:
+        return False
+
+    @classmethod
+    def proposition_association_exists(cls, plan_theme_id: str, plan_proposition_id: str | None = None) -> bool:
+        if plan_proposition_id:
             for feature in cls.get_features_by_attribute_value("plan_proposition_id", plan_proposition_id):
                 if feature["plan_theme_id"] == plan_theme_id:
                     return True
@@ -640,15 +642,12 @@ class PlanThemeAssociationLayer(AbstractPlanLayer):
         )
 
     @classmethod
-    def get_dangling_associations(
-        cls, plan_regulation_id: str | None = None, plan_proposition_id: str | None = None
-    ) -> list[QgsFeature]:
-        associations: list[QgsFeature] = []
-        if plan_regulation_id:
-            associations.extend(cls.get_associations_for_plan_regulation(plan_regulation_id))
-        if plan_proposition_id:
-            associations.extend(cls.get_associations_for_plan_proposition(plan_proposition_id))
-        return associations
+    def get_dangling_regulation_associations(cls, plan_regulation_id: str) -> list[QgsFeature]:
+        return list(cls.get_associations_for_plan_regulation(plan_regulation_id))
+
+    @classmethod
+    def get_dangling_proposition_associations(cls, plan_proposition_id: str) -> list[QgsFeature]:
+        return list(cls.get_associations_for_plan_proposition(plan_proposition_id))
 
 
 class DocumentLayer(AbstractPlanLayer):
