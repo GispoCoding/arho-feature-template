@@ -186,6 +186,22 @@ class PlanFeatureForm(QDialog, FormClass):  # type: ignore
 
         return True
 
+    def _check_multiple_regulation_groups_with_principal_intended_use_regulations(self) -> bool:
+        principal_intended_use_groups = {
+            regulation_group_widget
+            for regulation_group_widget in self.regulation_group_widgets
+            for regulation_widget in regulation_group_widget.regulation_widgets
+            for additional_information_widget in regulation_widget.additional_information_widgets
+            if additional_information_widget.config.additional_information_type == "paakayttotarkoitus"
+        }
+
+        if len(principal_intended_use_groups) > 1:
+            msg = "Kaavakohteella voi olla vain yksi kaavamääräysryhmä, jossa pääkäyttötarkoituksia."
+            QMessageBox.critical(self, "Virhe", msg)
+            return False
+
+        return True
+
     def add_selected_plan_regulation_group(self, item: QTreeWidgetItem, column: int):
         if not item.parent():
             return
@@ -243,6 +259,9 @@ class PlanFeatureForm(QDialog, FormClass):  # type: ignore
         return model
 
     def _on_ok_clicked(self):
-        if self._check_regulation_group_short_names():
+        if (
+            self._check_regulation_group_short_names()
+            and self._check_multiple_regulation_groups_with_principal_intended_use_regulations()
+        ):
             self.model = self.into_model()
             self.accept()
