@@ -593,7 +593,7 @@ class RegulationGroup(PlanBaseModel):
             group_number=data.get("group_number"),
             regulations=[Regulation.from_template_dict(reg_data) for reg_data in data["plan_regulations"]],
             propositions=[Proposition(**prop_data) for prop_data in data["plan_propositions"]],
-            category=data.get("category"),
+            category=data.get("category", "Ryhmättömät"),
             id_=None,
         )
 
