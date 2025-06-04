@@ -102,6 +102,8 @@ class PlanFeatureForm(QDialog, FormClass):  # type: ignore
         # Initialize attributes from template
         self.plan_feature = plan_feature
 
+        self.template_categories: dict[str, QTreeWidgetItem] = {}
+
         if plan_feature.name:
             self.feature_name.setText(plan_feature.name)
         if plan_feature.description:
@@ -234,10 +236,18 @@ class PlanFeatureForm(QDialog, FormClass):  # type: ignore
     def show_regulation_group_library(self, i: int):
         self.regulation_groups_selection_widget.tree.clear()
         library = self.regulation_group_libraries[i]
-        for category in library.regulation_group_categories:
-            category_item = self.regulation_groups_selection_widget.add_item_to_tree(category.name)
-            for group in category.regulation_groups:
-                _ = self.regulation_groups_selection_widget.add_item_to_tree(str(group), group, category_item)
+
+        for group in library.regulation_groups:
+            category = group.category
+            if category is None:
+                pass  # TODO: Implement
+            elif category not in self.template_categories:
+                category_item = self.regulation_groups_selection_widget.add_item_to_tree(category)
+                self.template_categories[category] = category_item
+            else:
+                _ = self.regulation_groups_selection_widget.add_item_to_tree(
+                    str(group), group, self.template_categories[category]
+                )
 
     def into_model(self) -> PlanFeature:
         model = PlanFeature(

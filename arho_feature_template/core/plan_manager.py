@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
-from collections import defaultdict
+from pathlib import Path
 from typing import TYPE_CHECKING, Generator, Iterable, cast
 
 from qgis.core import QgsExpressionContextUtils, QgsProject, QgsVectorLayer, QgsWkbTypes
@@ -19,9 +19,9 @@ from arho_feature_template.core.models import (
     Plan,
     PlanFeature,
     RegulationGroup,
-    RegulationGroupCategory,
     RegulationGroupLibrary,
 )
+from arho_feature_template.core.template_manager import TemplateManager
 from arho_feature_template.exceptions import UnsavedChangesError
 from arho_feature_template.gui.dialogs.import_features_form import ImportFeaturesForm
 from arho_feature_template.gui.dialogs.lifecycle_editor import LifecycleEditor
@@ -52,10 +52,13 @@ from arho_feature_template.project.layers.plan_layers import (
     plan_layers,
 )
 from arho_feature_template.resources.libraries.feature_templates import feature_template_library_config_files
-from arho_feature_template.resources.libraries.regulation_groups import regulation_group_library_config_files
+from arho_feature_template.resources.libraries.regulation_groups import (
+    # get_default_regulation_group_library_config_files,
+    get_user_regulation_group_library_config_files,
+    set_user_regulation_group_library_config_files,
+)
 from arho_feature_template.utils.db_utils import get_existing_database_connection_names
 from arho_feature_template.utils.misc_utils import (
-    LANGUAGE,
     check_layer_changes,
     disconnect_signal,
     get_active_plan_id,
@@ -158,15 +161,40 @@ class PlanManager(QObject):
         return True
 
     def initialize_libraries(self):
+        self._initialize_regulation_group_libraries()
+        self._initialize_plan_feature_libraries()
+
+    def _initialize_regulation_group_libraries(self):
+        # Cannot initialize regulation group librarires if regulation layer is not found
         if not self.check_required_layers():
             return
 
-        self.regulation_group_libraries = [
-            RegulationGroupLibrary.from_config_file(file) for file in regulation_group_library_config_files()
-        ]
+        self.regulation_group_libraries: list[RegulationGroupLibrary] = []
+        # self.regulation_group_libraries = [
+        #     RegulationGroupLibrary.from_template_dict(
+        #         data=TemplateManager.read_template_file(file_path),
+        #         library_type=RegulationGroupLibrary.LibraryType.DEFAULT,
+        #         file_path=file_path
+        #     )
+        #     for file_path in get_default_regulation_group_library_config_files()
+        # ]
+        self.regulation_group_libraries.extend(
+            RegulationGroupLibrary.from_template_dict(
+                data=TemplateManager.read_template_file(file_path),
+                library_type=RegulationGroupLibrary.LibraryType.CUSTOM,
+                file_path=str(file_path),
+            )
+            for file_path in get_user_regulation_group_library_config_files()
+        )
+
+    def _initialize_plan_feature_libraries(self):
+        """Make sure regulation group libraries are updated before initializing plan feature libraries."""
         self.feature_template_libraries = [
-            FeatureTemplateLibrary.from_config_file(file, self.regulation_group_libraries)
-            for file in feature_template_library_config_files()
+            FeatureTemplateLibrary.from_template_dict(
+                data=TemplateManager.read_template_file(file_path),
+                regulation_group_libraries=self.regulation_group_libraries,
+            )
+            for file_path in feature_template_library_config_files()
         ]
         self.new_feature_dock.initialize_feature_template_libraries(self.feature_template_libraries)
 
@@ -186,9 +214,23 @@ class PlanManager(QObject):
         self._open_regulation_group_form(regulation_group)
 
     def manage_libraries(self):
-        manage_libraries_form = ManageLibrariesForm()
+        custom_libraries = [
+            library
+            for library in self.regulation_group_libraries
+            if library.library_type == RegulationGroupLibrary.LibraryType.CUSTOM
+        ]
+        manage_libraries_form = ManageLibrariesForm(custom_libraries)
         if manage_libraries_form.exec_():
-            pass
+            deleted_libraries = manage_libraries_form.deleted_libraries
+            for library in deleted_libraries:
+                TemplateManager.delete_template_file(library.file_path)
+            updated_libraries = manage_libraries_form.custom_regulation_group_libraries
+            for library in updated_libraries:
+                TemplateManager.write_template_file(
+                    library.into_template_dict(), Path(library.file_path), overwrite=True
+                )
+            set_user_regulation_group_library_config_files(library.file_path for library in updated_libraries)
+            self.initialize_libraries()
 
     def _open_regulation_group_form(self, regulation_group: RegulationGroup):
         regulation_group_form = PlanRegulationGroupForm(regulation_group, self.active_plan_regulation_group_library)
@@ -619,38 +661,27 @@ class PlanManager(QObject):
 
 
 def regulation_group_library_from_active_plan() -> RegulationGroupLibrary:
-    if not get_active_plan_id():
-        return RegulationGroupLibrary(
-            name="Käytössä olevat kaavamääräysryhmät", version=None, description=None, regulation_group_categories=[]
+    if get_active_plan_id():
+        id_of_general_regulation_group_type = (
+            PlanRegulationGroupTypeLayer.get_attribute_value_by_another_attribute_value(
+                "id", "value", "generalRegulations"
+            )
         )
-
-    id_of_general_regulation_group_type = PlanRegulationGroupTypeLayer.get_attribute_value_by_another_attribute_value(
-        "id", "value", "generalRegulations"
-    )
-    category_id_to_name: dict[str, str] = {
-        category["id"]: category["name"][LANGUAGE] for category in PlanRegulationGroupTypeLayer.get_features()
-    }
-
-    regulation_groups_by_category = defaultdict(list)
-    for feat in RegulationGroupLayer.get_features():
-        if feat["type_of_plan_regulation_group_id"] == id_of_general_regulation_group_type:
-            # Exclude general regulations from the library
-            continue
-        category_name = category_id_to_name[feat["type_of_plan_regulation_group_id"]]
-        regulation_groups_by_category[category_name].append(feat)
+        regulation_groups = [
+            RegulationGroupLayer.model_from_feature(feat)
+            for feat in RegulationGroupLayer.get_features()
+            if feat["type_of_plan_regulation_group_id"] != id_of_general_regulation_group_type
+        ]
+    else:
+        regulation_groups = []
 
     return RegulationGroupLibrary(
         name="Käytössä olevat kaavamääräysryhmät",
+        file_path=None,
         version=None,
         description=None,
-        regulation_group_categories=[
-            RegulationGroupCategory(
-                category_code=None,
-                name=category_name,
-                regulation_groups=[RegulationGroupLayer.model_from_feature(feat) for feat in regulation_groups],
-            )
-            for category_name, regulation_groups in regulation_groups_by_category.items()
-        ],
+        library_type=RegulationGroupLibrary.LibraryType.ACTIVE_PLAN_GROUPS,
+        regulation_groups=regulation_groups,
     )
 
 
