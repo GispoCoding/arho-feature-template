@@ -120,6 +120,9 @@ class ManageLibrariesForm(QDialog, FormClass):  # type: ignore
         self._update_template_view()
 
     def _on_library_name_changed(self, new_name: str):
+        if self.active_library is None:
+            return
+
         self.active_library.name = new_name
         i = self.regulation_group_libarary_selection.currentIndex()
         if new_name == "":
@@ -131,10 +134,16 @@ class ManageLibrariesForm(QDialog, FormClass):  # type: ignore
         self._check_required_fields()
 
     def _on_library_file_path_changed(self, new_path: str):
+        if self.active_library is None:
+            return
+
         self.active_library.file_path = new_path
         self._check_required_fields()
 
     def _on_library_description_changed(self):
+        if self.active_library is None:
+            return
+
         self.active_library.description = self.description.toPlainText()
 
     def _handle_no_libraries_present(self):

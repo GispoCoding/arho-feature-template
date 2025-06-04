@@ -85,9 +85,8 @@ class RegulationGroupsDock(QgsDockWidget, DockClass):  # type: ignore
     def update_regulation_groups(self, regulation_group_library: RegulationGroupLibrary):
         self.regulation_group_list.clear()
 
-        for category in regulation_group_library.regulation_group_categories:
-            for group in category.regulation_groups:
-                self.add_regulation_group_to_list(group)
+        for group in regulation_group_library.regulation_groups:
+            self.add_regulation_group_to_list(group)
 
     def add_regulation_group_to_list(self, group: RegulationGroup):
         text = str(group)

@@ -10,9 +10,13 @@ from typing import TYPE_CHECKING
 import yaml
 
 from arho_feature_template.exceptions import ConfigSyntaxError
-from arho_feature_template.project.layers.code_layers import AdditionalInformationTypeLayer, UndergroundTypeLayer
+from arho_feature_template.project.layers.code_layers import (
+    AdditionalInformationTypeLayer,
+    UndergroundTypeLayer,
+    VerbalRegulationType,
+)
 from arho_feature_template.qgis_plugin_tools.tools.resources import resources_path
-from arho_feature_template.utils.misc_utils import deserialize_localized_text, get_layer_by_name, iface, null_to_none
+from arho_feature_template.utils.misc_utils import deserialize_localized_text, get_layer_by_name, null_to_none
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -62,97 +66,97 @@ class FeatureTemplateLibrary:
     @classmethod
     def find_matching_group_config(cls, group_name: str, regulation_group_libraries: list[RegulationGroupLibrary]):
         for library in regulation_group_libraries:
-            for category in library.regulation_group_categories:
-                for group in category.regulation_groups:
-                    if group.name == group_name:
-                        return group
+            for group in library.regulation_groups:
+                if group.name == group_name:
+                    return group
         return None
 
     @classmethod
-    def from_config_file(
-        cls, config_fp: Path, regulation_group_libraries: list[RegulationGroupLibrary]
+    def from_template_dict(
+        cls, data: dict, regulation_group_libraries: list[RegulationGroupLibrary]
     ) -> FeatureTemplateLibrary:
         get_underground_id = UndergroundTypeLayer.get_attribute_value_by_another_attribute_value
-
-        with config_fp.open(encoding="utf-8") as f:
-            data = yaml.safe_load(f)
-            try:
-                return FeatureTemplateLibrary(
-                    name=data["name"],
-                    version=data.get("version"),
-                    description=data.get("description"),
-                    feature_templates=[
-                        PlanFeature(
-                            geom=None,
-                            type_of_underground_id=(
-                                get_underground_id("id", "value", feature_data.get("type_of_underground"))
-                                if feature_data.get("type_of_underground")
-                                else None
-                            ),
-                            layer_name=feature_data.get("layer_name"),
-                            name=feature_data.get("name"),
-                            description=feature_data.get("description"),
-                            regulation_groups=[
-                                group
-                                for group_name in feature_data.get("regulation_groups", [])
-                                if (group := cls.find_matching_group_config(group_name, regulation_group_libraries))
-                            ],
-                            plan_id=None,
-                            id_=None,
-                        )
-                        for feature_data in data["feature_templates"]
-                    ],
-                )
-            except KeyError as e:
-                raise TemplateSyntaxError(str(cls), str(e)) from e
-
-
-@dataclass
-class RegulationGroupCategory:
-    category_code: str | None
-    name: str | None
-    regulation_groups: list[RegulationGroup]
+        try:
+            return FeatureTemplateLibrary(
+                name=data["name"],
+                version=data.get("version"),
+                description=data.get("description"),
+                feature_templates=[
+                    PlanFeature(
+                        geom=None,
+                        type_of_underground_id=(
+                            get_underground_id("id", "value", feature_data.get("type_of_underground"))
+                            if feature_data.get("type_of_underground")
+                            else None
+                        ),
+                        layer_name=feature_data.get("layer_name"),
+                        name=feature_data.get("name"),
+                        description=feature_data.get("description"),
+                        regulation_groups=[
+                            group
+                            for group_name in feature_data.get("regulation_groups", [])
+                            if (group := cls.find_matching_group_config(group_name, regulation_group_libraries))
+                        ],
+                        plan_id=None,
+                        id_=None,
+                    )
+                    for feature_data in data["feature_templates"]
+                ],
+            )
+        except KeyError as e:
+            raise TemplateSyntaxError(str(cls), str(e)) from e
 
 
 @dataclass
 class RegulationGroupLibrary:
-    """Describes the configuration of a plan regulation group library"""
+    """A collection of plan regulation groups."""
 
-    name: str
-    version: int | None
-    description: str | None
-    regulation_group_categories: list[RegulationGroupCategory]
-    # regulation_groups: list[RegulationGroup]
+    class LibraryType(str, enum.Enum):
+        DEFAULT = "default"
+        CUSTOM = "custom"
+        ACTIVE_PLAN_GROUPS = "active_plan_groups"
+
+    name: str = ""
+    file_path: str | None = None
+    version: int | None = None
+    description: str | None = None
+    library_type: LibraryType = LibraryType.CUSTOM
+    regulation_groups: list[RegulationGroup] = field(default_factory=list, compare=False)
 
     @classmethod
-    def from_config_file(cls, config_fp: Path) -> RegulationGroupLibrary:
-        with config_fp.open(encoding="utf-8") as f:
-            data = yaml.safe_load(f)
+    def from_template_dict(
+        cls, data: dict, library_type: LibraryType, file_path: str | None = None
+    ) -> RegulationGroupLibrary:
+        if data == {}:
+            return RegulationGroupLibrary(library_type=library_type, file_path=file_path)
+        try:
             return RegulationGroupLibrary(
-                name=data["name"],
+                name=data.get("name", ""),
+                file_path=file_path,
                 version=data.get("version"),
                 description=data.get("description"),
-                regulation_group_categories=[
-                    RegulationGroupCategory(
-                        category_code=category_data["category_code"],
-                        name=category_data.get("name"),
-                        regulation_groups=[
-                            RegulationGroup.from_config_data(config_data)
-                            for config_data in category_data["plan_regulation_groups"]
-                        ],
-                    )
-                    for category_data in data["categories"]
-                ],
+                library_type=library_type,
+                regulation_groups=[
+                    RegulationGroup.from_template_dict(group_data) for group_data in data["plan_regulation_groups"]
+                ]
+                if data.get("plan_regulation_groups")
+                else [],
             )
+        except KeyError as e:
+            raise TemplateSyntaxError(str(cls), str(e)) from e
+
+    def into_template_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "file_path": self.file_path,
+            "version": self.version,
+            "description": self.description,
+            "plan_regulation_groups": [group.into_template_dict() for group in self.regulation_groups],
+        }
 
     def get_short_names(self) -> set[str]:
         """Returns set of non-empty short names (letter codes) of regulation groups part of the library."""
-        return {
-            regulation_group.short_name
-            for category in self.regulation_group_categories
-            for regulation_group in category.regulation_groups
-            if regulation_group.short_name
-        }
+        return {group.short_name for group in self.regulation_groups if group.short_name}
 
 
 @dataclass
@@ -183,9 +187,13 @@ class RegulationLibrary:
         return cls.get_instance().regulations_dict
 
     @classmethod
-    def get_regulation_by_code(cls, regulation_code: str) -> RegulationConfig | None:
-        """Get a regulation by it's regulation code (if exists)."""
-        return cls.get_instance().regulations_dict.get(regulation_code)
+    def get_regulation_by_code(cls, regulation_code: str) -> RegulationConfig:
+        """
+        Get a regulation by it's regulation code (if exists).
+
+        Raises a KeyError if code does not exist.
+        """
+        return cls.get_instance().regulations_dict[regulation_code]
 
     @classmethod
     def initialize(
@@ -423,6 +431,37 @@ class AttributeValue(PlanBaseModel):
 
     height_reference_point: str | None = None
 
+    @staticmethod
+    def from_template_dict(data: dict, default_value: AttributeValue | None = None) -> AttributeValue:
+        return AttributeValue(
+            value_data_type=data.get("value_data_type", default_value.value_data_type if default_value else None),
+            numeric_value=data.get("numeric_value"),
+            numeric_range_min=data.get("numeric_range_min"),
+            numeric_range_max=data.get("numeric_range_max"),
+            unit=data.get("unit", default_value.unit if default_value else None),
+            text_value=data.get("text_value"),
+            text_syntax=data.get("text_syntax"),
+            code_list=data.get("code_list"),
+            code_value=data.get("code_value"),
+            code_title=data.get("code_title"),
+            height_reference_point=data.get("height_reference_point"),
+        )
+
+    def into_template_dict(self) -> dict:
+        return {
+            "value_data_type": self.value_data_type.value if self.value_data_type else None,
+            "numeric_value": self.numeric_value,
+            "numeric_range_min": self.numeric_range_min,
+            "numeric_range_max": self.numeric_range_max,
+            "unit": self.unit,
+            "text_value": self.text_value,
+            "text_syntax": self.text_syntax,
+            "code_list": self.code_list,
+            "code_value": self.code_value,
+            "code_title": self.code_title,
+            "height_reference_point": self.height_reference_point,
+        }
+
 
 @dataclass
 class AdditionalInformation(PlanBaseModel):
@@ -433,6 +472,22 @@ class AdditionalInformation(PlanBaseModel):
     type_additional_information_id: str | None = None
     value: AttributeValue | None = None
     modified: bool = field(compare=False, default=True)
+
+    @staticmethod
+    def from_template_dict(data: dict) -> AdditionalInformation:
+        ai_config = AdditionalInformationConfigLibrary.get_config_by_code(data["type"])
+        default_value = ai_config.default_value if ai_config.default_value else None
+
+        return AdditionalInformation(
+            config=ai_config,
+            value=AttributeValue.from_template_dict(data, default_value=default_value),
+        )
+
+    def into_template_dict(self) -> dict:
+        return {
+            "type": self.config.additional_information_type,
+            **(self.value.into_template_dict() if self.value else {}),
+        }
 
 
 @dataclass
@@ -449,6 +504,52 @@ class Regulation(PlanBaseModel):
     modified: bool = field(compare=False, default=True)
     id_: str | None = None
 
+    @classmethod
+    def from_template_dict(cls, data: dict) -> Regulation:
+        try:
+            reg_code = data["regulation_code"]
+            config = RegulationLibrary.get_regulation_by_code(reg_code)
+            return Regulation(
+                config=config,
+                value=AttributeValue.from_template_dict(data),
+                additional_information=[
+                    AdditionalInformation.from_template_dict(info) for info in data.get("additional_information", [])
+                ],
+                regulation_number=data.get("regulation_number"),
+                # files=data.get("files") if data.get("files") else [],
+                # theme_id=data.get("theme"),
+                subject_identifiers=data["subject_identifiers"] if data.get("subject_identifiers") else [],
+                verbal_regulation_type_ids=[
+                    verbal_type_id
+                    for verbal_type_id in (
+                        VerbalRegulationType.get_id_by_attribute("value", verbal_type)
+                        for verbal_type in data["verbal_regulation_types"]
+                    )
+                    if verbal_type_id is not None
+                ]
+                if data.get("verbal_regulation_types") is not None
+                else [],
+                regulation_group_id=None,
+                id_=None,
+            )
+        except KeyError as e:
+            raise TemplateSyntaxError(str(cls), str(e)) from e
+
+    def into_template_dict(self) -> dict:
+        return {
+            "regulation_code": self.config.regulation_code,
+            **(self.value.into_template_dict() if self.value else {}),
+            "additional_information": [info.into_template_dict() for info in self.additional_information],
+            "regulation_number": self.regulation_number,
+            # "files": self.files,
+            # "theme_id": self.theme_id,  # Themes will be changed in a to-be-merged PR
+            "subject_identifiers": self.subject_identifiers,
+            "verbal_regulation_types": [
+                VerbalRegulationType.get_attribute_by_id("value", verbal_type_id)
+                for verbal_type_id in self.verbal_regulation_type_ids
+            ],
+        }
+
 
 @dataclass
 class Proposition(PlanBaseModel):
@@ -458,6 +559,13 @@ class Proposition(PlanBaseModel):
     regulation_group_id: str | None = None
     modified: bool = field(compare=False, default=True)
     id_: str | None = None
+
+    def into_template_dict(self) -> dict:
+        return {
+            "value": self.value,
+            # "theme_id": self.theme_id,  # Themes will be changed in a to-be-merged PR
+            "proposition_number": self.proposition_number,
+        }
 
 
 @dataclass
@@ -470,70 +578,36 @@ class RegulationGroup(PlanBaseModel):
     regulations: list[Regulation] = field(default_factory=list, compare=False)
     propositions: list[Proposition] = field(default_factory=list, compare=False)
     modified: bool = field(compare=False, default=True)
+    category: str | None = None
     id_: str | None = None
 
-    @staticmethod
-    def _additional_information_model_from_config(info_data: dict) -> AdditionalInformation:
-        ai_config = AdditionalInformationConfigLibrary.get_config_by_code(info_data["type"])
-        return AdditionalInformation(
-            config=ai_config,
-            value=AttributeValue(
-                value_data_type=info_data.get(
-                    "value_data_type",
-                    ai_config.default_value.value_data_type if ai_config.default_value is not None else None,
-                ),
-                numeric_value=info_data.get("numeric_value"),
-                numeric_range_min=info_data.get("numeric_range_min"),
-                numeric_range_max=info_data.get("numeric_range_max"),
-                unit=info_data.get(
-                    "unit",
-                    ai_config.default_value.unit if ai_config.default_value is not None else None,
-                ),
-                text_value=info_data.get("text_value"),
-                text_syntax=info_data.get("text_syntax"),
-                code_list=info_data.get("code_list"),
-                code_value=info_data.get("code_value"),
-                code_title=info_data.get("code_title"),
-                height_reference_point=info_data.get("height_reference_point"),
-            ),
-        )
-
     @classmethod
-    def from_config_data(cls, data: dict) -> RegulationGroup:
-        regulations = []
-        for reg_data in data["plan_regulations"]:
-            reg_code = reg_data["regulation_code"]
-            config = RegulationLibrary.get_regulation_by_code(reg_code)
-            if config:
-                regulations.append(
-                    Regulation(
-                        config=config,
-                        value=reg_data.get("value"),
-                        additional_information=[
-                            cls._additional_information_model_from_config(info)
-                            for info in reg_data.get("additional_information", [])
-                        ],
-                        regulation_number=reg_data.get("regulation_number"),
-                        files=reg_data.get("files") if reg_data.get("files") else [],
-                        theme_id=reg_data.get("theme"),  # TODO: If theme name is in config, needs to be converted to id
-                        subject_identifiers=reg_data.get("subject_identifiers"),
-                        regulation_group_id=None,
-                        id_=None,
-                    )
-                )
-            else:
-                iface.messageBar().pushWarning("", f"Could not find plan regulation {reg_code}!")
+    def from_template_dict(cls, data: dict) -> RegulationGroup:
         return cls(
-            type_code_id=data.get("type"),  # NOTE: Might need to convert type code into type code ID here when
+            # NOTE: Might need to convert type code into type code ID here when
             # config file has type codes for regulation groups
+            # type_code_id=data.get("type"),
             name=data.get("name"),
             short_name=data.get("short_name"),
             color_code=data.get("color_code"),
             group_number=data.get("group_number"),
-            regulations=regulations,
-            propositions=[],
+            regulations=[Regulation.from_template_dict(reg_data) for reg_data in data["plan_regulations"]],
+            propositions=[Proposition(**prop_data) for prop_data in data["plan_propositions"]],
+            category=data.get("category"),
             id_=None,
         )
+
+    def into_template_dict(self) -> dict:
+        return {
+            # "type": self.type_code_id,
+            "name": self.name,
+            "short_name": self.short_name,
+            "color_code": self.color_code,
+            "group_number": self.group_number,
+            "plan_regulations": [regulation.into_template_dict() for regulation in self.regulations],
+            "plan_propositions": [proposition.into_template_dict() for proposition in self.propositions],
+            "category": self.category,
+        }
 
     def __str__(self):
         return " - ".join(part for part in (self.short_name, self.name) if part)
@@ -571,9 +645,13 @@ class PlanFeature(PlanBaseModel):
     id_: str | None = None
 
     @classmethod
-    def from_config_data(cls, data: dict) -> PlanFeature:
+    def from_template_dict(cls, data: dict) -> PlanFeature:
         # TODO: Implement
         return cls(**data)
+
+    def into_template_dict(self) -> dict:
+        # TODO: Implement
+        return {}
 
     def __str__(self):
         return self.name if self.name else ""

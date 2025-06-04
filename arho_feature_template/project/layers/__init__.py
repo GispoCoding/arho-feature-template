@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import TYPE_CHECKING, Any, ClassVar, Generator
+from typing import TYPE_CHECKING, Any, ClassVar, Generator, cast
 
 from qgis.core import QgsFeatureRequest, QgsProject, QgsVectorLayer
 
@@ -75,10 +75,6 @@ class AbstractLayer(ABC):
         return next(gen, None)
 
     @classmethod
-    def get_feature_by_id(cls, id_: str, no_geometries: bool = True) -> QgsFeature | None:  # noqa: FBT001, FBT002
-        return cls.get_feature_by_attribute_value("id", id_, no_geometries)
-
-    @classmethod
     def get_attribute_values_by_another_attribute_value(
         cls, target_attribute: str, filter_attribute: str, filter_value: str
     ) -> Generator[Any]:
@@ -95,3 +91,16 @@ class AbstractLayer(ABC):
     ) -> Any | None:
         gen = cls.get_attribute_values_by_another_attribute_value(target_attribute, filter_attribute, filter_value)
         return next(gen, None)
+
+    @classmethod
+    def get_feature_by_id(cls, id_: str, no_geometries: bool = True) -> QgsFeature | None:  # noqa: FBT001, FBT002
+        return cls.get_feature_by_attribute_value("id", id_, no_geometries)
+
+    @classmethod
+    def get_attribute_by_id(cls, target_attribute: str, id_: str) -> Any | None:
+        return cls.get_attribute_value_by_another_attribute_value(target_attribute, "id", id_)
+
+    @classmethod
+    def get_id_by_attribute(cls, attribute: str, attribute_value: str) -> str | None:
+        id_ = cls.get_attribute_value_by_another_attribute_value("id", attribute, attribute_value)
+        return cast(str, id_) if id_ else id_
