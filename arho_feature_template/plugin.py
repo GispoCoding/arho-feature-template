@@ -237,6 +237,14 @@ class Plugin:
             add_to_toolbar=True,
         )
 
+        self.manage_libraries_action = self.add_action(
+            text="Hallitse kirjastoja",
+            icon=QgsApplication.getThemeIcon("mActionOpenTable.svg"),
+            triggered_callback=self.plan_manager.manage_libraries,
+            add_to_menu=True,
+            add_to_toolbar=True,
+        )
+
         self.validation_dock_action = self.add_action(
             text="Validointi",
             # icon=QgsApplication.getThemeIcon("mActionEditNodesItem.svg"),

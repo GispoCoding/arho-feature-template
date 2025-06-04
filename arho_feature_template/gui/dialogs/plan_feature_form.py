@@ -25,9 +25,14 @@ from arho_feature_template.core.models import PlanFeature, RegulationGroup
 from arho_feature_template.gui.components.plan_regulation_group_widget import RegulationGroupWidget
 from arho_feature_template.gui.components.tree_with_search_widget import TreeWithSearchWidget
 from arho_feature_template.gui.dialogs.plan_regulation_group_form import PlanRegulationGroupForm
-from arho_feature_template.project.layers.code_layers import PlanType, PlanTypeLayer, UndergroundTypeLayer
+from arho_feature_template.project.layers.code_layers import (
+    PlanRegulationGroupTypeLayer,
+    PlanType,
+    PlanTypeLayer,
+    UndergroundTypeLayer,
+)
 from arho_feature_template.project.layers.plan_layers import PlanLayer
-from arho_feature_template.utils.misc_utils import disconnect_signal, get_active_plan_id
+from arho_feature_template.utils.misc_utils import LANGUAGE, disconnect_signal, get_active_plan_id
 
 if TYPE_CHECKING:
     from qgis.PyQt.QtWidgets import QWidget
@@ -93,6 +98,8 @@ class PlanFeatureForm(QDialog, FormClass):  # type: ignore
         self.libraries_widget.layout().insertWidget(2, self.regulation_groups_selection_widget)
         self.regulation_groups_selection_widget.tree.itemDoubleClicked.connect(self.add_selected_plan_regulation_group)
         self.select_library_by_active_plan_type()
+
+        self.template_categories: dict[str, QTreeWidgetItem] = {}
         self.show_regulation_group_library(self.plan_regulation_group_libraries_combobox.currentIndex())
 
         self.feature_type_of_underground.populate_from_code_layer(UndergroundTypeLayer)
@@ -217,11 +224,29 @@ class PlanFeatureForm(QDialog, FormClass):  # type: ignore
 
     def show_regulation_group_library(self, i: int):
         self.regulation_groups_selection_widget.tree.clear()
+        self.template_categories.clear()
+
         library = self.regulation_group_libraries[i]
-        for category in library.regulation_group_categories:
-            category_item = self.regulation_groups_selection_widget.add_item_to_tree(category.name)
-            for group in category.regulation_groups:
-                _ = self.regulation_groups_selection_widget.add_item_to_tree(str(group), group, category_item)
+        for group in library.regulation_groups:
+            category = group.category
+
+            # Fallback strategies when category not saved in model
+            if category is None:
+                if group.type_code_id is not None:
+                    group_type = PlanRegulationGroupTypeLayer.get_attribute_by_id("name", group.type_code_id)
+                    category = group_type[LANGUAGE] if group_type else "Ryhmättömät"
+                else:
+                    category = "Ryhmättömät"
+
+            if category not in self.template_categories:
+                # Create category item
+                category_item = self.regulation_groups_selection_widget.add_item_to_tree(category)
+                self.template_categories[category] = category_item
+
+            # Add group item to tree
+            _ = self.regulation_groups_selection_widget.add_item_to_tree(
+                str(group), group, self.template_categories[category]
+            )
 
     def into_model(self) -> PlanFeature:
         model = PlanFeature(

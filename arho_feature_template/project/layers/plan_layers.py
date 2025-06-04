@@ -396,7 +396,7 @@ class PlanRegulationLayer(AbstractPlanLayer):
         feature["type_of_plan_regulation_id"] = model.config.id
 
         feature["subject_identifiers"] = model.subject_identifiers
-        feature["plan_theme_id"] = model.theme_id
+        # feature["plan_theme_id"] = model.theme_id
 
         update_feature_from_attribute_value_model(model.value, feature)
 
@@ -424,7 +424,7 @@ class PlanRegulationLayer(AbstractPlanLayer):
             ],
             regulation_number=None,
             files=[],
-            theme_id=feature["plan_theme_id"],
+            # theme_id=feature["plan_theme_id"],
             subject_identifiers=feature["subject_identifiers"],
             regulation_group_id=feature["plan_regulation_group_id"],
             verbal_regulation_type_ids=(
@@ -558,7 +558,7 @@ class PlanPropositionLayer(AbstractPlanLayer):
         feature["text_value"] = serialize_localized_text(model.value)
         feature["plan_regulation_group_id"] = model.regulation_group_id
         feature["ordering"] = model.proposition_number
-        feature["plan_theme_id"] = model.theme_id
+        # feature["plan_theme_id"] = model.theme_id
         feature["id"] = model.id_ if model.id_ else feature["id"]
 
         return feature
@@ -573,7 +573,7 @@ class PlanPropositionLayer(AbstractPlanLayer):
             value=proposition_value,
             regulation_group_id=feature["plan_regulation_group_id"],
             proposition_number=feature["ordering"],
-            theme_id=feature["plan_theme_id"],
+            # theme_id=feature["plan_theme_id"],
             modified=False,
             id_=feature["id"],
         )
