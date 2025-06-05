@@ -38,7 +38,7 @@
      <item row="0" column="1">
       <widget class="QgsFileWidget" name="plan_matter_file">
        <property name="dialogTitle">
-        <string>Valitse kaavan ulkorajan tallennuspolku</string>
+        <string>Valitse kaava-asian tallennuspolku</string>
        </property>
        <property name="filter">
         <string>JSON Files (*.json)</string>
