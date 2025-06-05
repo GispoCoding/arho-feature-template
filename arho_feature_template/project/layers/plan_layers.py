@@ -591,7 +591,26 @@ class PlanPropositionLayer(AbstractPlanLayer):
 
 class PlanThemeAssociationLayer(AbstractPlanLayer):
     name = "Kaavoitusteemojen assosiaatiot"
-    filter_template = None
+    filter_template = Template(
+        dedent(
+            """\
+            EXISTS (
+                SELECT 1
+                FROM
+                    hame.plan_regulation_group prg
+                    LEFT JOIN hame.plan_regulation pr
+                        ON prg.id = pr.plan_regulation_group_id
+                    LEFT JOIN hame.plan_proposition pp
+                        ON prg.id = pp.plan_regulation_group_id
+                WHERE
+                    prg.plan_id = '$plan_id'
+                    AND (
+                    hame.plan_theme_association.plan_regulation_id = pr.id
+                        OR hame.plan_theme_association.plan_proposition_id = pp.id
+                )
+            )"""
+        )
+    )
 
     @classmethod
     def feature_from(
