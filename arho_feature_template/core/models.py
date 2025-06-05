@@ -433,8 +433,15 @@ class AttributeValue(PlanBaseModel):
 
     @staticmethod
     def from_template_dict(data: dict, default_value: AttributeValue | None = None) -> AttributeValue:
+        if "value_data_type" in data:
+            value_data_type = AttributeValueDataType(data["value_data_type"])
+        elif default_value and default_value.value_data_type:
+            value_data_type = default_value.value_data_type
+        else:
+            value_data_type = None
+
         return AttributeValue(
-            value_data_type=data.get("value_data_type", default_value.value_data_type if default_value else None),
+            value_data_type=value_data_type,
             numeric_value=data.get("numeric_value"),
             numeric_range_min=data.get("numeric_range_min"),
             numeric_range_max=data.get("numeric_range_max"),
