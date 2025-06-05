@@ -246,15 +246,33 @@ class Plugin:
             add_to_toolbar=True,
         )
 
+        self.serialize_tool_button = QToolButton()
+        self.serialize_tool_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.serialize_tool_button.setMenu(QMenu())
+        self.serialize_tool_button.setPopupMode(QToolButton.MenuButtonPopup)
+        self.serialize_tool_action = self.toolbar.addWidget(self.serialize_tool_button)
+
         self.serialize_plan_action = self.add_action(
             text="Tallenna kaava JSON",
             # icon=QgsApplication.getThemeIcon("mActionFileSaveAs.svg"),
             icon=QIcon(resources_path("icons", "toolbar", "tallenna_jsonina2.svg")),
             triggered_callback=self.serialize_plan,
             add_to_menu=True,
-            add_to_toolbar=True,
+            add_to_toolbar=False,
             status_tip="Tallenna aktiivinen kaava JSON muodossa",
         )
+        self.serialize_tool_button.menu().addAction(self.serialize_plan_action)
+        self.serialize_tool_button.setDefaultAction(self.serialize_plan_action)
+
+        self.serialize_plan_matter_action = self.add_action(
+            text="Tallenna kaava-asian JSON",
+            icon=QIcon(resources_path("icons", "toolbar", "tallenna_jsonina2.svg")),
+            triggered_callback=self.serialize_plan_matter,
+            add_to_menu=True,
+            add_to_toolbar=False,
+            status_tip="Tallenna aktiivisen kaavan kaava-asia JSON muodossa",
+        )
+        self.serialize_tool_button.menu().addAction(self.serialize_plan_matter_action)
 
         self.create_geotiff_action = self.add_action(
             text="Tallenna kaavakartta",
@@ -357,6 +375,10 @@ class Plugin:
     def serialize_plan(self):
         """Serializes currently active plan."""
         self.plan_manager.get_plan_json()
+
+    def serialize_plan_matter(self):
+        """Serializes currently activate plan's plan matter."""
+        self.plan_manager.get_plan_matter_json()
 
     def open_settings(self):
         """Open the plugin settings dialog."""

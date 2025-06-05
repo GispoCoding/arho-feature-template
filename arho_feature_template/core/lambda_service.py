@@ -14,7 +14,8 @@ from arho_feature_template.utils.misc_utils import get_active_plan_id, get_setti
 
 
 class LambdaService(QObject):
-    jsons_received = pyqtSignal(dict, dict)
+    plan_matter_json_received = pyqtSignal(dict)
+    plan_jsons_received = pyqtSignal(dict, dict)
     validation_received = pyqtSignal(dict)
     validation_failed = pyqtSignal()
     plan_matter_received = pyqtSignal(dict)
@@ -24,6 +25,7 @@ class LambdaService(QObject):
     ACTION_VALIDATE_PLANS = "validate_plans"
     ACTION_VALIDATE_PLAN_MATTERS = "validate_plan_matters"
     ACTION_GET_PLANS = "get_plans"
+    ACTION_GET_PLAN_MATTERS = "get_plan_matters"
     ACTION_POST_PLAN_MATTERS = "post_plan_matters"
     ACTION_GET_PERMANENT_IDENTIFIERS = "get_permanent_plan_identifiers"
 
@@ -34,6 +36,9 @@ class LambdaService(QObject):
 
     def serialize_plan(self, plan_id: str):
         self._send_request(action=self.ACTION_GET_PLANS, plan_id=plan_id)
+
+    def serialize_plan_matter(self, plan_id: str):
+        self._send_request(action=self.ACTION_GET_PLAN_MATTERS, plan_id=plan_id)
 
     def validate_plan(self, plan_id: str):
         self._send_request(action=self.ACTION_VALIDATE_PLANS, plan_id=plan_id)
@@ -76,7 +81,8 @@ class LambdaService(QObject):
 
     def _get_response_handler(self, action: str) -> Callable[[dict], None]:
         handlers = {
-            self.ACTION_GET_PLANS: self._process_json_reply,
+            self.ACTION_GET_PLANS: self._process_plan_json_reply,
+            self.ACTION_GET_PLAN_MATTERS: self._process_plan_matter_json_reply,
             self.ACTION_VALIDATE_PLANS: self._process_validation_reply,
             self.ACTION_VALIDATE_PLAN_MATTERS: self._process_validation_reply,
             self.ACTION_POST_PLAN_MATTERS: self._process_plan_matter_reply,
@@ -87,6 +93,7 @@ class LambdaService(QObject):
     def _get_error_handler(self, action: str) -> Callable[[], None]:
         handlers = {
             self.ACTION_GET_PLANS: lambda: None,
+            self.ACTION_GET_PLAN_MATTERS: lambda: None,
             self.ACTION_VALIDATE_PLANS: self._handle_validation_error,
             self.ACTION_VALIDATE_PLAN_MATTERS: self._handle_validation_error,
             self.ACTION_POST_PLAN_MATTERS: lambda: None,
@@ -162,7 +169,7 @@ class LambdaService(QObject):
         validation_errors = response_json.get("ryhti_responses")
         self.validation_received.emit(validation_errors)
 
-    def _process_json_reply(self, response_json: dict):
+    def _process_plan_json_reply(self, response_json: dict):
         """Processes the reply from the lambda and emits signal."""
         plan_id = get_active_plan_id()
 
@@ -183,4 +190,18 @@ class LambdaService(QObject):
                 }
 
         # Emit the signal with the two JSONs
-        self.jsons_received.emit(plan_json, outline_json)
+        self.plan_jsons_received.emit(plan_json, outline_json)
+
+    def _process_plan_matter_json_reply(self, response_json: dict):
+        """Processes the reply from the lambda and emits signal."""
+        plan_id = get_active_plan_id()
+
+        details = response_json.get("details", {})
+
+        # Extract the plan matter JSON for the given plan_id
+        plan_matter_json = details.get(plan_id, {})
+        if not isinstance(plan_matter_json, dict):
+            plan_matter_json = {}
+
+        # Emit the signal with the JSON
+        self.plan_matter_json_received.emit(plan_matter_json)

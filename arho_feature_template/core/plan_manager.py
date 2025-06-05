@@ -30,6 +30,7 @@ from arho_feature_template.gui.dialogs.plan_attribute_form import PlanAttributeF
 from arho_feature_template.gui.dialogs.plan_feature_form import PlanFeatureForm
 from arho_feature_template.gui.dialogs.plan_regulation_group_form import PlanRegulationGroupForm
 from arho_feature_template.gui.dialogs.serialize_plan import SerializePlan
+from arho_feature_template.gui.dialogs.serialize_plan_matter import SerializePlanMatter
 from arho_feature_template.gui.docks.new_feature_dock import NewFeatureDock
 from arho_feature_template.gui.docks.regulation_groups_dock import RegulationGroupsDock
 from arho_feature_template.gui.tools.inspect_plan_features_tool import InspectPlanFeatures
@@ -89,6 +90,7 @@ class PlanManager(QObject):
         super().__init__()
         self.json_plan_path = None
         self.json_plan_outline_path = None
+        self.json_plan_matter_path = None
 
         self.feature_template_libraries = []
         self.regulation_group_libraries = []
@@ -132,7 +134,8 @@ class PlanManager(QObject):
         self.lambda_service.plan_identifier_received.connect(
             lambda value: self.set_permanent_identifier(value["identifier"])
         )
-        self.lambda_service.jsons_received.connect(self.save_plan_jsons)
+        self.lambda_service.plan_jsons_received.connect(self.save_plan_jsons)
+        self.lambda_service.plan_matter_json_received.connect(self.save_plan_matter_json)
 
     def initialize_from_project(self):
         # # If project is not open, don't try to initialize
@@ -489,6 +492,19 @@ class PlanManager(QObject):
 
             self.lambda_service.serialize_plan(plan_id)
 
+    def get_plan_matter_json(self):
+        """Serializes plan matter to JSON"""
+        plan_id = get_active_plan_id()
+        if not plan_id:
+            iface.messageBar().pushWarning("", "Mikään kaava ei ole avattuna.")
+            return
+
+        dialog = SerializePlanMatter()
+        if dialog.exec_() == QDialog.Accepted:
+            self.json_plan_matter_path = str(dialog.plan_matter_file.filePath())
+
+            self.lambda_service.serialize_plan_matter(plan_id)
+
     def get_permanent_plan_identifier(self):
         """Gets the permanent plan identifier for the active plan."""
         plan_id = get_active_plan_id()
@@ -528,6 +544,23 @@ class PlanManager(QObject):
 
         iface.messageBar().pushSuccess("", "Kaava ja kaavan ulkoraja tallennettu.")
 
+    def save_plan_matter_json(self, plan_matter_json):
+        """This slot saves the plan matter JSON to file."""
+        if plan_matter_json is None:
+            iface.messageBar().pushCritical("", "Kaava-asiaa ei löytynyt.")
+            return
+
+        # Retrieve path
+        if self.json_plan_matter_path is None:
+            iface.messageBar().pushCritical("", "Tiedostopolku ei ole saatavilla.")
+            return
+
+        # Save the JSON
+        with open(self.json_plan_matter_path, "w", encoding="utf-8") as file:
+            json.dump(plan_matter_json, file, ensure_ascii=False, indent=2)
+
+        iface.messageBar().pushSuccess("", "Kaava-asia tallennettu.")
+
     def on_project_loaded(self):
         self.initialize_from_project()
 
@@ -549,7 +582,8 @@ class PlanManager(QObject):
         iface.actionPan().trigger()
 
         # Lambda service
-        disconnect_signal(self.lambda_service.jsons_received)
+        disconnect_signal(self.lambda_service.plan_jsons_received)
+        disconnect_signal(self.lambda_service.plan_matter_json_received)
         self.lambda_service.deleteLater()
 
         # Feature digitize tool
