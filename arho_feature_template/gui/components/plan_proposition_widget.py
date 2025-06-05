@@ -113,7 +113,9 @@ class PropositionWidget(QWidget, FormClass):  # type: ignore
         model = Proposition(
             regulation_group_id=self.proposition.regulation_group_id,
             value=self.text_input.toPlainText(),
-            theme_ids=[theme_widget.get_value() for theme_widget in self.theme_widgets],
+            theme_ids=[
+                theme_widget.get_value() for theme_widget in self.theme_widgets if theme_widget.get_value() != NULL
+            ],
             proposition_number=self.proposition_number_widget.get_value() if self.proposition_number_widget else None,
             modified=self.proposition.modified,
             id_=self.proposition.id_,

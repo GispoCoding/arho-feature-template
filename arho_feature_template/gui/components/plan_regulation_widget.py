@@ -248,7 +248,9 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
             regulation_number=None,
             additional_information=[ai_widget.into_model() for ai_widget in self.additional_information_widgets],
             files=[],
-            theme_ids=[theme_widget.get_value() for theme_widget in self.theme_widgets],
+            theme_ids=[
+                theme_widget.get_value() for theme_widget in self.theme_widgets if theme_widget.get_value() != NULL
+            ],
             subject_identifiers=[
                 widget.get_value() for widget in self.subject_identifier_widgets if widget.get_value() != ""
             ],
