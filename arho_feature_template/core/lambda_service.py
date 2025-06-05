@@ -14,8 +14,8 @@ from arho_feature_template.utils.misc_utils import get_active_plan_id, get_setti
 
 
 class LambdaService(QObject):
-    json_received = pyqtSignal(dict)
-    jsons_received = pyqtSignal(dict, dict)
+    plan_matter_json_received = pyqtSignal(dict)
+    plan_jsons_received = pyqtSignal(dict, dict)
     validation_received = pyqtSignal(dict)
     validation_failed = pyqtSignal()
     plan_matter_received = pyqtSignal(dict)
@@ -190,7 +190,7 @@ class LambdaService(QObject):
                 }
 
         # Emit the signal with the two JSONs
-        self.jsons_received.emit(plan_json, outline_json)
+        self.plan_jsons_received.emit(plan_json, outline_json)
 
     def _process_plan_matter_json_reply(self, response_json: dict):
         """Processes the reply from the lambda and emits signal."""
@@ -204,4 +204,4 @@ class LambdaService(QObject):
             plan_matter_json = {}
 
         # Emit the signal with the JSON
-        self.json_received.emit(plan_matter_json)
+        self.plan_matter_json_received.emit(plan_matter_json)

@@ -134,8 +134,8 @@ class PlanManager(QObject):
         self.lambda_service.plan_identifier_received.connect(
             lambda value: self.set_permanent_identifier(value["identifier"])
         )
-        self.lambda_service.jsons_received.connect(self.save_plan_jsons)
-        self.lambda_service.json_received.connect(self.save_plan_matter_json)
+        self.lambda_service.plan_jsons_received.connect(self.save_plan_jsons)
+        self.lambda_service.plan_matter_json_received.connect(self.save_plan_matter_json)
 
     def initialize_from_project(self):
         # # If project is not open, don't try to initialize
@@ -582,7 +582,8 @@ class PlanManager(QObject):
         iface.actionPan().trigger()
 
         # Lambda service
-        disconnect_signal(self.lambda_service.jsons_received)
+        disconnect_signal(self.lambda_service.plan_jsons_received)
+        disconnect_signal(self.lambda_service.plan_matter_json_received)
         self.lambda_service.deleteLater()
 
         # Feature digitize tool
