@@ -77,7 +77,7 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
         # self.regulation_number_widget: RegulationNumberWidget | None = None
         # self.file_widgets: list[InputFileWidget] = []
         self.subject_identifier_widgets: list[SubjectIdentifierWidget] = []
-        self.theme_widget: ThemeWidget | None = None
+        self.theme_widgets: list[ThemeWidget] = []
 
         self.expanded = True
         self.additional_information_frame.hide()
@@ -101,8 +101,9 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
             if len(self.type_of_verbal_regulation_widgets) == 0:
                 self._add_type_of_verbal_regulation()
 
-        if self.regulation.theme_id:
-            self._add_theme(self.regulation.theme_id)
+        if self.regulation.theme_ids not in [None, NULL]:
+            for theme_id in self.regulation.theme_ids:
+                self._add_theme(theme_id)
         if self.regulation.subject_identifiers not in [None, NULL]:
             for subject in self.regulation.subject_identifiers:
                 self._add_subject_identifier(subject)
@@ -183,7 +184,7 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
                 if isinstance(widget, SubjectIdentifierWidget):
                     self.subject_identifier_widgets.remove(widget)
                 elif isinstance(widget, ThemeWidget):
-                    self.theme_widget = None
+                    self.theme_widgets.remove(widget)
                 self.form_layout.removeRow(widget_to_delete)
                 self.widgets.remove((label, widget))
                 return True
@@ -211,12 +212,10 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
         self._add_widget(QLabel("Aihetunniste:"), subject_widget)
 
     def _add_theme(self, theme_name: str):
-        # TODO: Make multiple themes possible
-        if not self.theme_widget:
-            # self.theme_widget = SinglelineTextInputWidget(theme_name, False)
-            self.theme_widget = ThemeWidget(theme_name)
-            self.theme_widget.delete_signal.connect(self._delete_widget)
-            self._add_widget(QLabel("Kaavoitusteema:"), self.theme_widget)
+        theme_widget = ThemeWidget(theme_name)
+        self.theme_widgets.append(theme_widget)
+        theme_widget.delete_signal.connect(self._delete_widget)
+        self._add_widget(QLabel("Kaavoitusteema:"), theme_widget)
 
     def _add_type_of_verbal_regulation(self, type_id: str | None = None):
         if len(self.type_of_verbal_regulation_widgets) == 0:
@@ -249,7 +248,9 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
             regulation_number=None,
             additional_information=[ai_widget.into_model() for ai_widget in self.additional_information_widgets],
             files=[],
-            theme_id=self.theme_widget.get_value() if self.theme_widget else None,
+            theme_ids=[
+                theme_widget.get_value() for theme_widget in self.theme_widgets if theme_widget.get_value() != NULL
+            ],
             subject_identifiers=[
                 widget.get_value() for widget in self.subject_identifier_widgets if widget.get_value() != ""
             ],
