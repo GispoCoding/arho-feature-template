@@ -10,6 +10,7 @@ from qgis.PyQt.QtWidgets import (
     QComboBox,
     QDialog,
     QDialogButtonBox,
+    QFileDialog,
     QGroupBox,
     QLineEdit,
     QListWidgetItem,
@@ -19,6 +20,7 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from arho_feature_template.core.models import RegulationGroup, RegulationGroupLibrary
+from arho_feature_template.core.template_manager import TemplateManager
 from arho_feature_template.gui.dialogs.plan_regulation_group_form import PlanRegulationGroupForm
 from arho_feature_template.utils.misc_utils import iface
 
@@ -40,6 +42,7 @@ class ManageLibrariesForm(QDialog, FormClass):  # type: ignore
 
         # TYPES
         self.new_regulation_group_library_btn: QPushButton
+        self.import_regulation_group_library_btn: QPushButton
         self.delete_regulation_group_library_btn: QPushButton
         self.regulation_group_libarary_selection: QComboBox
 
@@ -65,6 +68,7 @@ class ManageLibrariesForm(QDialog, FormClass):  # type: ignore
         self.description.textChanged.connect(self._on_library_description_changed)
 
         self.new_regulation_group_library_btn.clicked.connect(lambda: self._add_library(RegulationGroupLibrary()))
+        self.import_regulation_group_library_btn.clicked.connect(self._on_import_regulation_group_library_clicked)
         self.delete_regulation_group_library_btn.clicked.connect(self._on_delete_regulation_group_library_clicked)
 
         self.new_regulation_group_template_btn.clicked.connect(self._on_new_regulation_group_template_clicked)
@@ -83,6 +87,7 @@ class ManageLibrariesForm(QDialog, FormClass):  # type: ignore
         self.deleted_libraries: list[RegulationGroupLibrary] = []
 
         self.new_regulation_group_library_btn.setIcon(QgsApplication.getThemeIcon("mActionAdd.svg"))
+        self.import_regulation_group_library_btn.setIcon(QgsApplication.getThemeIcon("mActionFileOpen.svg"))
         self.delete_regulation_group_library_btn.setIcon(QgsApplication.getThemeIcon("mActionDeleteSelected.svg"))
 
         self.new_regulation_group_template_btn.setIcon(QgsApplication.getThemeIcon("mActionAdd.svg"))
@@ -160,6 +165,19 @@ class ManageLibrariesForm(QDialog, FormClass):  # type: ignore
 
         self.library_details_groupbox.setEnabled(True)
         self.regulation_group_templates_groupbox.setEnabled(True)
+
+    def _on_import_regulation_group_library_clicked(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "Tuo kaavamääräysryhmäkirjasto", "", "YAML files (*.yaml)")
+        if file_path:
+            # Attempt import
+            library = RegulationGroupLibrary.from_template_dict(
+                data=TemplateManager.read_template_file(file_path),
+                library_type=RegulationGroupLibrary.LibraryType.CUSTOM,
+                file_path=str(file_path),
+            )
+            self._add_library(library)
+            # TODO: Success msg?
+            # TODO: Invalid YAML?
 
     def _on_delete_regulation_group_library_clicked(self):
         if not self.active_library:

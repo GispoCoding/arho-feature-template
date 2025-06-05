@@ -41,6 +41,9 @@
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
+           <property name="toolTip">
+            <string>Valitse aktiivinen kirjasto</string>
+           </property>
           </widget>
          </item>
          <item>
@@ -50,6 +53,25 @@
              <width>30</width>
              <height>16777215</height>
             </size>
+           </property>
+           <property name="toolTip">
+            <string>Luo uusi kaavamääräysryhmäkirjasto</string>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="import_regulation_group_library_btn">
+           <property name="maximumSize">
+            <size>
+             <width>30</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="toolTip">
+            <string>Tuo kaavamääräysryhmäkirjasto</string>
            </property>
            <property name="text">
             <string/>
@@ -63,6 +85,9 @@
              <width>30</width>
              <height>16777215</height>
             </size>
+           </property>
+           <property name="toolTip">
+            <string>Poista kaavamääräysryhmäkirjasto</string>
            </property>
            <property name="text">
             <string/>
@@ -107,25 +132,9 @@
            </widget>
           </item>
           <item row="0" column="1">
-           <widget class="QLineEdit" name="name"/>
-          </item>
-          <item row="1" column="0">
-           <widget class="QLabel" name="label_2">
-            <property name="text">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; color:#ff0000;&quot;&gt;*&lt;/span&gt; Tiedostopolku:&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="1">
-           <widget class="QgsFileWidget" name="file_path">
-            <property name="dialogTitle">
-             <string>Kirjaston tiedostopolku</string>
-            </property>
-            <property name="filter">
-             <string>YAML files (*.yaml)</string>
-            </property>
-            <property name="storageMode">
-             <enum>QgsFileWidget::SaveFile</enum>
+           <widget class="QLineEdit" name="name">
+            <property name="toolTip">
+             <string>Kirjaston nimi</string>
             </property>
            </widget>
           </item>
@@ -143,6 +152,32 @@
               <width>16777215</width>
               <height>75</height>
              </size>
+            </property>
+            <property name="toolTip">
+             <string>Kirjaston kuvaus</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_2">
+            <property name="text">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; color:#ff0000;&quot;&gt;*&lt;/span&gt; Tallennuspolku:&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QgsFileWidget" name="file_path">
+            <property name="toolTip">
+             <string>Kirjaston tallennuspolku</string>
+            </property>
+            <property name="dialogTitle">
+             <string>Kirjaston tiedostopolku</string>
+            </property>
+            <property name="filter">
+             <string>YAML files (*.yaml)</string>
+            </property>
+            <property name="storageMode">
+             <enum>QgsFileWidget::SaveFile</enum>
             </property>
            </widget>
           </item>
@@ -190,6 +225,9 @@
                 <height>16777215</height>
                </size>
               </property>
+              <property name="toolTip">
+               <string>Luo uusi kaavamääräysryhmäpohja</string>
+              </property>
               <property name="text">
                <string/>
               </property>
@@ -203,6 +241,9 @@
                 <height>16777215</height>
                </size>
               </property>
+              <property name="toolTip">
+               <string>Muokkaa kaavamääräysryhmäpohjaa</string>
+              </property>
               <property name="text">
                <string/>
               </property>
@@ -215,6 +256,9 @@
                 <width>30</width>
                 <height>16777215</height>
                </size>
+              </property>
+              <property name="toolTip">
+               <string>Poista kaavamääräysryhmä pohja(t)</string>
               </property>
               <property name="text">
                <string/>
@@ -238,6 +282,9 @@
           </item>
           <item>
            <widget class="QgsFilterLineEdit" name="regulation_group_templates_filter">
+            <property name="toolTip">
+             <string>Suodata kaavamääräysryhmäpohjia</string>
+            </property>
             <property name="showSearchIcon">
              <bool>true</bool>
             </property>
@@ -248,6 +295,9 @@
           </item>
           <item>
            <widget class="QListWidget" name="regulation_group_templates_list">
+            <property name="toolTip">
+             <string>Kirjaston kaavamääräysryhmäpohjat</string>
+            </property>
             <property name="selectionMode">
              <enum>QAbstractItemView::ExtendedSelection</enum>
             </property>

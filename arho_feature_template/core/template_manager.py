@@ -1,12 +1,9 @@
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING
+from pathlib import Path
 
 import yaml
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 from arho_feature_template.utils.misc_utils import iface
 
@@ -60,20 +57,23 @@ class TemplateManager:
             return {}
 
     @classmethod
-    def read_template_file(cls, file_path: Path) -> dict:
-        return cls._read_from_yaml_file(file_path)
+    def read_template_file(cls, file_path: Path | str) -> dict:
+        return cls._read_from_yaml_file(file_path if type(file_path) is Path else Path(file_path))
 
     @classmethod
     def write_template_file(
         cls,
         regulation_group_config_data: dict,
-        file_path: Path,
+        file_path: Path | str,
         overwrite: bool = True,  # noqa: FBT001, FBT002
     ):
-        cls._write_to_yaml_file(regulation_group_config_data, file_path, overwrite)
+        cls._write_to_yaml_file(
+            regulation_group_config_data, file_path if type(file_path) is Path else Path(file_path), overwrite
+        )
 
     @classmethod
-    def delete_template_file(cls, file_path: Path) -> bool:
+    def delete_template_file(cls, file_path: Path | str) -> bool:
+        file_path = file_path if type(file_path) is Path else Path(file_path)
         if os.path.exists(file_path):
             os.remove(file_path)
             return True
