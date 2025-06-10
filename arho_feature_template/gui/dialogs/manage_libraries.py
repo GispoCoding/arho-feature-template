@@ -12,6 +12,7 @@ from qgis.PyQt.QtWidgets import (
     QDialogButtonBox,
     QFileDialog,
     QGroupBox,
+    QLabel,
     QLineEdit,
     QListWidgetItem,
     QMessageBox,
@@ -46,9 +47,12 @@ class ManageLibrariesForm(QDialog, FormClass):  # type: ignore
         self.delete_regulation_group_library_btn: QPushButton
         self.regulation_group_libarary_selection: QComboBox
 
+        self.file_path: QgsFileWidget
+        self.reload_library_file_btn: QPushButton
+        self.broken_path_warning_label: QLabel
+
         self.library_details_groupbox: QgsCollapsibleGroupBox
         self.name: QLineEdit
-        self.file_path: QgsFileWidget
         self.description: QTextEdit
 
         self.regulation_group_templates_groupbox: QGroupBox
@@ -61,13 +65,21 @@ class ManageLibrariesForm(QDialog, FormClass):  # type: ignore
 
         self.button_box: QDialogButtonBox
 
+        # VARS
+        self.active_library: RegulationGroupLibrary | None = None
+        self.new_libraries: list[RegulationGroupLibrary] = []
+        self.deleted_libraries: list[RegulationGroupLibrary] = []
+
+        self.custom_regulation_group_libraries = custom_regulation_group_libraries
+
         # SIGNALS
         self.regulation_group_libarary_selection.currentIndexChanged.connect(self._on_regulation_group_library_changed)
+        self.reload_library_file_btn.clicked.connect(self._on_reload_library_file_clicked)
         self.name.textChanged.connect(self._on_library_name_changed)
         self.file_path.fileChanged.connect(self._on_library_file_path_changed)
         self.description.textChanged.connect(self._on_library_description_changed)
 
-        self.new_regulation_group_library_btn.clicked.connect(lambda: self._add_library(RegulationGroupLibrary()))
+        self.new_regulation_group_library_btn.clicked.connect(self._on_new_regulation_group_library_clicked)
         self.import_regulation_group_library_btn.clicked.connect(self._on_import_regulation_group_library_clicked)
         self.delete_regulation_group_library_btn.clicked.connect(self._on_delete_regulation_group_library_clicked)
 
@@ -79,12 +91,8 @@ class ManageLibrariesForm(QDialog, FormClass):  # type: ignore
 
         self.button_box.accepted.connect(self._on_ok_clicked)
 
-        # INIT
-        self.active_library: RegulationGroupLibrary | None = None
-        self.custom_regulation_group_libraries = custom_regulation_group_libraries
-        for library in self.custom_regulation_group_libraries:
-            self._add_library(library)
-        self.deleted_libraries: list[RegulationGroupLibrary] = []
+        # ICONS
+        self.reload_library_file_btn.setIcon(QgsApplication.getThemeIcon("mActionRefresh.svg"))
 
         self.new_regulation_group_library_btn.setIcon(QgsApplication.getThemeIcon("mActionAdd.svg"))
         self.import_regulation_group_library_btn.setIcon(QgsApplication.getThemeIcon("mActionFileOpen.svg"))
@@ -94,7 +102,10 @@ class ManageLibrariesForm(QDialog, FormClass):  # type: ignore
         self.edit_regulation_group_template_btn.setIcon(QgsApplication.getThemeIcon("mActionEditTable.svg"))
         self.delete_regulation_group_template_btn.setIcon(QgsApplication.getThemeIcon("mActionDeleteSelected.svg"))
 
-        # Initialize selection and widgets
+        # Initialize existing libraries, selection and widgets
+        for library in self.custom_regulation_group_libraries:
+            self._add_library(library)
+
         self.library_details_groupbox.setCollapsed(False)
         if self.regulation_group_libarary_selection.count() != 0:
             self.regulation_group_libarary_selection.setCurrentIndex(0)
@@ -112,17 +123,7 @@ class ManageLibrariesForm(QDialog, FormClass):  # type: ignore
         if self.regulation_group_libarary_selection.count() == 0:
             self._handle_no_libraries_present()
         else:
-            # Change active library
-            library = self.regulation_group_libarary_selection.currentData(DATA_ROLE)
-            self.active_library = library
-
-            # Update detail widget contents
-            self.name.setText(self.active_library.name)
-            self.file_path.setFilePath(self.active_library.file_path)
-            self.description.setText(self.active_library.description)
-
-        # Update template list contets
-        self._update_template_view()
+            self._change_active_library(self.regulation_group_libarary_selection.currentData(DATA_ROLE))
 
     def _on_library_name_changed(self, new_name: str):
         if self.active_library is None:
@@ -131,12 +132,25 @@ class ManageLibrariesForm(QDialog, FormClass):  # type: ignore
         self.active_library.name = new_name
         i = self.regulation_group_libarary_selection.currentIndex()
         if new_name == "":
-            self.regulation_group_libarary_selection.setItemText(i, "Nimetön kirjasto")
+            pass
+            # self.regulation_group_libarary_selection.setItemText(i, "Nimetön kirjasto")
             # self.regulation_group_libarary_selection.setItemData(i, self.italic_font, Qt.FontRole)
         else:
             self.regulation_group_libarary_selection.setItemText(i, new_name)
             # self.regulation_group_libarary_selection.setItemData(i, self.basic_font, Qt.FontRole)
         self._check_required_fields()
+
+    def _on_reload_library_file_clicked(self):
+        file_path = self.file_path.filePath()
+        loaded_library = RegulationGroupLibrary.from_template_dict(
+            data=TemplateManager.read_template_file(file_path),
+            library_type=RegulationGroupLibrary.LibraryType.CUSTOM,
+            file_path=str(file_path),
+        )
+        self.regulation_group_libarary_selection.setItemData(
+            self.regulation_group_libarary_selection.currentIndex(), loaded_library, DATA_ROLE
+        )
+        self._change_active_library(loaded_library)
 
     def _on_library_file_path_changed(self, new_path: str):
         if self.active_library is None:
@@ -155,16 +169,52 @@ class ManageLibrariesForm(QDialog, FormClass):  # type: ignore
         self.name.clear()
         self.file_path.setFilePath("")
         self.description.clear()
+        self.regulation_group_templates_list.clear()
 
         self.library_details_groupbox.setEnabled(False)
         self.regulation_group_templates_groupbox.setEnabled(False)
+
+    def _change_active_library(self, library: RegulationGroupLibrary):
+        self.active_library = library
+
+        self.file_path.setFilePath(library.file_path)
+        if library.status is True:
+            # Enable widgets and show contents
+            self.name.setEnabled(True)
+            self.name.setText(library.name)
+            self.description.setEnabled(True)
+            self.description.setText(library.description)
+            self.library_details_groupbox.setEnabled(True)
+            self.regulation_group_templates_groupbox.setEnabled(True)
+
+            self.broken_path_warning_label.hide()
+        else:
+            # Disable and clear widgets
+            self.name.setEnabled(False)
+            self.name.clear()
+            self.description.setEnabled(False)
+            self.description.clear()
+            self.library_details_groupbox.setEnabled(True)
+            self.regulation_group_templates_groupbox.setEnabled(False)
+
+            self.broken_path_warning_label.show()
+
+        # Cannot reload a new library from file (this would be importing)
+        if self._is_new_library(library):
+            self.reload_library_file_btn.setEnabled(False)
+        else:
+            self.reload_library_file_btn.setEnabled(True)
+
+        self._update_template_view()
 
     def _add_library(self, library: RegulationGroupLibrary):
         self.regulation_group_libarary_selection.addItem(library.name, library)
         self.regulation_group_libarary_selection.setCurrentIndex(self.regulation_group_libarary_selection.count() - 1)
 
-        self.library_details_groupbox.setEnabled(True)
-        self.regulation_group_templates_groupbox.setEnabled(True)
+    def _on_new_regulation_group_library_clicked(self):
+        library = RegulationGroupLibrary()
+        self.new_libraries.append(library)
+        self._add_library(library)
 
     def _on_import_regulation_group_library_clicked(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Tuo kaavamääräysryhmäkirjasto", "", "YAML files (*.yaml)")
@@ -183,6 +233,11 @@ class ManageLibrariesForm(QDialog, FormClass):  # type: ignore
         if not self.active_library:
             return
 
+        # If we are deleting a new and empty library, skip asking for confirmation to delete
+        if self._is_new_library(self.active_library) and len(self.active_library.regulation_groups) == 0:
+            self._delete_library(self.active_library)
+            return
+
         response = QMessageBox.question(
             None,
             "Kaavamääräysryhmäkirjaston poisto",
@@ -190,13 +245,19 @@ class ManageLibrariesForm(QDialog, FormClass):  # type: ignore
             QMessageBox.Yes | QMessageBox.No,
         )
         if response == QMessageBox.Yes:
-            if id(self.active_library) in [id(library) for library in self.custom_regulation_group_libraries]:
-                self.deleted_libraries.append(self.active_library)
+            self._delete_library(self.active_library)
 
-            self.regulation_group_libarary_selection.removeItem(self.regulation_group_libarary_selection.currentIndex())
+    def _delete_library(self, library: RegulationGroupLibrary):
+        if id(library) in [id(library) for library in self.custom_regulation_group_libraries]:
+            self.deleted_libraries.append(library)
 
-            if self.regulation_group_libarary_selection.count() == 0:
-                self._handle_no_libraries_present()
+        self.regulation_group_libarary_selection.removeItem(self.regulation_group_libarary_selection.currentIndex())
+
+        if self.regulation_group_libarary_selection.count() == 0:
+            self._handle_no_libraries_present()
+
+    def _is_new_library(self, library: RegulationGroupLibrary) -> bool:
+        return id(library) in [id(_library) for _library in self.new_libraries]
 
     # TEMPLATES
     def _get_current_libraries(self) -> list[RegulationGroupLibrary]:

@@ -121,14 +121,16 @@ class RegulationGroupLibrary:
     version: int | None = None
     description: str | None = None
     library_type: LibraryType = LibraryType.CUSTOM
+    status: bool = True
     regulation_groups: list[RegulationGroup] = field(default_factory=list, compare=False)
 
     @classmethod
     def from_template_dict(
         cls, data: dict, library_type: LibraryType, file_path: str | None = None
     ) -> RegulationGroupLibrary:
+        """Returns whether initialization from data was succesfull and the created RegulationGroupLibrary."""
         if data == {}:
-            return RegulationGroupLibrary(library_type=library_type, file_path=file_path)
+            return RegulationGroupLibrary(library_type=library_type, file_path=file_path, status=False)
         try:
             return RegulationGroupLibrary(
                 name=data.get("name", ""),
@@ -136,6 +138,7 @@ class RegulationGroupLibrary:
                 version=data.get("version"),
                 description=data.get("description"),
                 library_type=library_type,
+                status=True,
                 regulation_groups=[
                     RegulationGroup.from_template_dict(group_data) for group_data in data["plan_regulation_groups"]
                 ]

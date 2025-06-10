@@ -110,6 +110,72 @@
         </layout>
        </item>
        <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_3">
+         <item>
+          <widget class="QLabel" name="file_path_label">
+           <property name="text">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; color:#ff0000;&quot;&gt;*&lt;/span&gt; Tallennuspolku:&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QgsFileWidget" name="file_path">
+           <property name="toolTip">
+            <string>Kirjaston tallennuspolku</string>
+           </property>
+           <property name="dialogTitle">
+            <string>Kirjaston tiedostopolku</string>
+           </property>
+           <property name="filter">
+            <string>YAML files (*.yaml)</string>
+           </property>
+           <property name="storageMode">
+            <enum>QgsFileWidget::SaveFile</enum>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="reload_library_file_btn">
+           <property name="maximumSize">
+            <size>
+             <width>30</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="toolTip">
+            <string>Lataa kirjasto uudelleen annetusta polusta.</string>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QLabel" name="broken_path_warning_label">
+         <property name="text">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; color:#ff0000;&quot;&gt;Kirjastoa ei löytynyt asetetusta tallennuspolusta!&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Minimum</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>7</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
         <widget class="QgsCollapsibleGroupBox" name="library_details_groupbox">
          <property name="enabled">
           <bool>false</bool>
@@ -138,14 +204,14 @@
             </property>
            </widget>
           </item>
-          <item row="2" column="0">
+          <item row="1" column="0">
            <widget class="QLabel" name="label_3">
             <property name="text">
              <string>Kuvaus:</string>
             </property>
            </widget>
           </item>
-          <item row="2" column="1">
+          <item row="1" column="1">
            <widget class="QTextEdit" name="description">
             <property name="maximumSize">
              <size>
@@ -158,47 +224,8 @@
             </property>
            </widget>
           </item>
-          <item row="1" column="0">
-           <widget class="QLabel" name="label_2">
-            <property name="text">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; color:#ff0000;&quot;&gt;*&lt;/span&gt; Tallennuspolku:&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="1">
-           <widget class="QgsFileWidget" name="file_path">
-            <property name="toolTip">
-             <string>Kirjaston tallennuspolku</string>
-            </property>
-            <property name="dialogTitle">
-             <string>Kirjaston tiedostopolku</string>
-            </property>
-            <property name="filter">
-             <string>YAML files (*.yaml)</string>
-            </property>
-            <property name="storageMode">
-             <enum>QgsFileWidget::SaveFile</enum>
-            </property>
-           </widget>
-          </item>
          </layout>
         </widget>
-       </item>
-       <item>
-        <spacer name="verticalSpacer">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeType">
-          <enum>QSizePolicy::Minimum</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>7</height>
-          </size>
-         </property>
-        </spacer>
        </item>
        <item>
         <widget class="QGroupBox" name="regulation_group_templates_groupbox">
