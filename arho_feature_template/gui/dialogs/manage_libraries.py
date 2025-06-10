@@ -219,6 +219,17 @@ class ManageLibrariesForm(QDialog, FormClass):  # type: ignore
     def _on_import_regulation_group_library_clicked(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Tuo kaavamääräysryhmäkirjasto", "", "YAML files (*.yaml)")
         if file_path:
+            # Ask user for confirmation if about to import a library with an existing/duplicate filepath
+            if file_path in [library.file_path for library in self._get_current_libraries()]:
+                response = QMessageBox.question(
+                    None,
+                    "Kaavamääräysryhmäkirjaston tuominen",
+                    "Valitulle tiedostopolulle on jo määritetty kirjasto. Haluatko silti tuoda kirjaston?",
+                    QMessageBox.Yes | QMessageBox.No,
+                )
+                if response == QMessageBox.No:
+                    return
+
             # Attempt import
             library = RegulationGroupLibrary.from_template_dict(
                 data=TemplateManager.read_template_file(file_path),
@@ -355,6 +366,22 @@ class ManageLibrariesForm(QDialog, FormClass):  # type: ignore
 
             self._update_active_library_templates_from_view()
 
+    def _check_form(self) -> bool:
+        file_paths = set()
+        for library in self._get_current_libraries():
+            # Check for duplicate filepaths
+            if library.file_path in file_paths:
+                QMessageBox.critical(
+                    self,
+                    "Virhe",
+                    f"Useammalle kaavamääräysryhmäkirjastolle on määritelty sama tallennuspolku ({library.file_path}).",
+                )
+                return False
+            file_paths.add(library.file_path)
+
+        return True
+
     def _on_ok_clicked(self):
-        self.custom_regulation_group_libraries = self._get_current_libraries()
-        self.accept()
+        if self._check_form():
+            self.custom_regulation_group_libraries = self._get_current_libraries()
+            self.accept()
