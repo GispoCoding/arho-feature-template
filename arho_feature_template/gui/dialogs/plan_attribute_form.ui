@@ -61,8 +61,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>778</width>
-            <height>555</height>
+            <width>776</width>
+            <height>562</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -186,7 +186,7 @@
               <string>Muut tunnukset</string>
              </property>
              <property name="collapsed">
-              <bool>false</bool>
+              <bool>true</bool>
              </property>
              <layout class="QFormLayout" name="formLayout_2">
               <item row="0" column="0">
@@ -245,6 +245,22 @@
             </widget>
            </item>
            <item>
+            <widget class="QgsCollapsibleGroupBox" name="mGroupBox_dates">
+             <property name="enabled">
+              <bool>true</bool>
+             </property>
+             <property name="title">
+              <string>Vaadittavat päivämäärät</string>
+             </property>
+             <property name="flat">
+              <bool>true</bool>
+             </property>
+             <property name="collapsed">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
             <spacer name="verticalSpacer_3">
              <property name="orientation">
               <enum>Qt::Vertical</enum>
@@ -278,8 +294,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>193</width>
-            <height>49</height>
+            <width>776</width>
+            <height>562</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="regulations_layout">
@@ -333,8 +349,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>119</width>
-            <height>49</height>
+            <width>776</width>
+            <height>562</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="documents_layout">

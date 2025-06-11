@@ -72,6 +72,33 @@ class PlanThemeLayer(AbstractCodeLayer):
     name = "Kaavoitusteemat"
 
 
+class PlanDecisionNameLayer(AbstractCodeLayer):
+    name = "Kaava-asian päätöksen nimi"
+
+    @classmethod
+    def get_plan_decision_name(cls, code: str) -> str | None:
+        attribute_value = cls.get_attribute_value_by_another_attribute_value("name", "value", code)
+        return cast(str, attribute_value.get(LANGUAGE)) if attribute_value else None
+
+
+class ProcessingEventTypeLayer(AbstractCodeLayer):
+    name = "Käsittelytapahtuman tyyppi"
+
+    @classmethod
+    def get_processing_event_type_name(cls, code: str) -> str | None:
+        attribute_value = cls.get_attribute_value_by_another_attribute_value("name", "value", code)
+        return cast(str, attribute_value.get(LANGUAGE)) if attribute_value else None
+
+
+class InteractionEventTypeLayer(AbstractCodeLayer):
+    name = "Vuorovaikutustapahtuman tyyppi"
+
+    @classmethod
+    def get_interaction_event_type_name(cls, code: str) -> str | None:
+        attribute_value = cls.get_attribute_value_by_another_attribute_value("name", "value", code)
+        return cast(str, attribute_value.get(LANGUAGE)) if attribute_value else None
+
+
 class AdditionalInformationTypeLayer(AbstractCodeLayer):
     name = "Lisätiedonlaji"
 

@@ -5,7 +5,18 @@ from typing import TYPE_CHECKING, cast
 
 from qgis.core import QgsApplication
 from qgis.PyQt import uic
-from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox, QLabel, QLineEdit, QPushButton, QTextEdit
+from qgis.PyQt.QtCore import QDate
+from qgis.PyQt.QtWidgets import (
+    QDateEdit,
+    QDialog,
+    QDialogButtonBox,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QTextEdit,
+    QVBoxLayout,
+)
 
 from arho_feature_template.core.models import Document, Plan, RegulationGroup, RegulationGroupLibrary
 from arho_feature_template.gui.components.general_regulation_group_widget import GeneralRegulationGroupWidget
@@ -14,14 +25,17 @@ from arho_feature_template.gui.components.general_regulation_group_widget import
 from arho_feature_template.gui.components.plan_document_widget import DocumentWidget
 from arho_feature_template.gui.components.value_input_widgets import LegalEffectWidget
 from arho_feature_template.project.layers.code_layers import (
+    InteractionEventTypeLayer,
     LifeCycleStatusLayer,
     OrganisationLayer,
+    PlanDecisionNameLayer,
     PlanTypeLayer,
+    ProcessingEventTypeLayer,
 )
 from arho_feature_template.utils.misc_utils import disconnect_signal
 
 if TYPE_CHECKING:
-    from qgis.PyQt.QtWidgets import QFormLayout, QLineEdit, QTextEdit, QVBoxLayout
+    from qgis.PyQt.QtWidgets import QFormLayout, QLineEdit, QTextEdit
 
     from arho_feature_template.gui.components.code_combobox import CodeComboBox, HierarchicalCodeComboBox
 
@@ -56,6 +70,35 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
 
         self.setupUi(self)
 
+        # Mapping required dates by lifecycle_status
+        # "codes.lifecycle_status.value": ["codes.name_of_plan_case_decision.value"]
+        self.DECISIONS_BY_STATUS = {
+            "Vireilletullut": ["01", "02", "03"],
+            "Valmistelu": ["04", "05", "06"],
+            "Kaavaehdoitus": ["08"],
+            "Muutettu kaavaehdoitus": ["07", "09"],
+            "Hyväksytty kaava": ["11A"],
+            "Valituksen alainen": ["12", "13", "15"],
+        }
+
+        # "codes.lifecycle_status.value": ["codes.type_of_processing_event.value"]
+        self.PROCESSING_EVENTS_BY_STATUS = {
+            "Vireilletullut": ["04"],
+            "Valmistelu": ["05", "06"],
+            "Kaavaehdoitus": ["07", "08"],
+            "Muutettu kaavaehdoitus": ["08", "09"],
+            "Hyväksytty kaava": ["11"],
+            "Voimassa ennen kaavan lainvoimaisuutta": ["13"],
+            "Voimassa": ["16"],
+        }
+
+        # "codes.lifecycle_status.value": ["codes.type_of_interaction_event.value"]
+        self.INTERACTION_EVENTS_BY_STATUS = {
+            "Valmistelu": ["01"],
+            "Kaavaehdoitus": ["01"],
+            "Muutettu kaavaehdoitus": ["01", "02"],
+        }
+
         self.general_data_layout: QFormLayout
 
         self.plan = plan
@@ -86,6 +129,7 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
         self.plan_type_combo_box.currentIndexChanged.connect(self._check_required_fields)
         self.plan_type_combo_box.currentIndexChanged.connect(self._update_legal_effect_widgets_visibility)
         self.lifecycle_status_combo_box.currentIndexChanged.connect(self._check_required_fields)
+        self.lifecycle_status_combo_box.currentIndexChanged.connect(self._on_lifecycle_status_changed)
 
         self.scroll_area_spacer = None
         self.regulation_group_widgets: list[GeneralRegulationGroupWidget] = []
@@ -98,6 +142,17 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
 
         for regulation_group in plan.general_regulations:
             self.add_plan_regulation_group(regulation_group)
+
+        # Dates
+        self.required_dates_group_box = self.mGroupBox_dates  # alias for convenience
+        self.required_dates_group_box.hide()  # Fully hidden on init
+
+        # Just in case: clear it if it somehow has leftover content
+        if self.required_dates_group_box.layout() is None:
+            layout = QVBoxLayout()
+            self.required_dates_group_box.setLayout(layout)
+        else:
+            self._clear_required_dates()
 
         # Documents
         self.document_widgets: list[DocumentWidget] = []
@@ -124,6 +179,14 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
 
     def _check_required_fields(self) -> None:
         ok_button = self.button_box.button(QDialogButtonBox.Ok)
+        self.date_fields_valid = True
+        layout = self.required_dates_group_box.layout()
+        if layout:
+            for i in range(layout.count()):
+                widget = layout.itemAt(i).widget()
+                if isinstance(widget, QDateEdit) and (not widget.date().isValid() or widget.date() == QDate()):
+                    self.date_fields_valid = False
+                    break
         if (
             self.name_line_edit.text() != ""
             and self.plan_type_combo_box.value() is not None
@@ -220,6 +283,65 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
     #             self.regulation_groups_selection_widget.add_item_to_tree(
     #                 group_definition.name, group_definition, category_item
     #             )
+
+    def _on_lifecycle_status_changed(self):
+        code_name = self.lifecycle_status_combo_box.currentText()
+        QMessageBox.information(self, "Debug", f"code_name is: {code_name}")
+
+        requires_dates = (
+            code_name in self.DECISIONS_BY_STATUS
+            or code_name in self.PROCESSING_EVENTS_BY_STATUS
+            or code_name in self.INTERACTION_EVENTS_BY_STATUS
+        )
+
+        if requires_dates:
+            self._populate_required_dates(code_name)
+            self.required_dates_group_box.show()
+        else:
+            self._clear_required_dates()
+            self.required_dates_group_box.hide()
+
+    def _populate_required_dates(self, code_name):
+        self._clear_required_dates()
+        layout = self.required_dates_group_box.layout()
+
+        if code_name in self.DECISIONS_BY_STATUS:
+            for code in self.DECISIONS_BY_STATUS[code_name]:
+                desc = PlanDecisionNameLayer.get_plan_decision_name(code)
+                label = QLabel(f"Päätöspäivä - {desc or  code}")
+                date = QDateEdit()
+                date.setCalendarPopup(True)
+                date.setDate(QDate())
+                layout.addWidget(label)
+                layout.addWidget(date)
+
+        if code_name in self.PROCESSING_EVENTS_BY_STATUS:
+            for code in self.PROCESSING_EVENTS_BY_STATUS[code_name]:
+                desc = ProcessingEventTypeLayer.get_processing_event_type_name(code)
+                label = QLabel(f"Käsittelypäivä - {desc or code}")
+                date = QDateEdit()
+                date.setCalendarPopup(True)
+                date.setDate(QDate())
+                layout.addWidget(label)
+                layout.addWidget(date)
+
+        if code_name in self.INTERACTION_EVENTS_BY_STATUS:
+            for code in self.INTERACTION_EVENTS_BY_STATUS[code_name]:
+                desc = InteractionEventTypeLayer.get_interaction_event_type_name(code)
+                label = QLabel(f"Vuorovaikutuspäivä - {desc or code}")
+                date = QDateEdit()
+                date.setCalendarPopup(True)
+                date.setDate(QDate())
+                layout.addWidget(label)
+                layout.addWidget(date)
+
+    def _clear_required_dates(self):
+        layout = self.required_dates_group_box.layout()
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
 
     def add_new_document(self):
         self.add_document(Document())
