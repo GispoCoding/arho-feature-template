@@ -1,5 +1,6 @@
 name: Asemakaavan kaavakohteet (Katja)
 version: 1.0
+library_type: plan_feature
 feature_templates:
 
   - name: Korttelialue tai korttelialueen osa
