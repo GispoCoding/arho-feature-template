@@ -166,6 +166,7 @@ class ManageLibrariesForm(QDialog, FormClass):  # type: ignore
 
         self.library_details_groupbox.setEnabled(False)
         self.regulation_group_templates_groupbox.setEnabled(False)
+        self.broken_path_warning_label.hide()
 
     def _change_active_library(self, library: RegulationGroupLibrary):
         self.active_library = library
@@ -261,9 +262,6 @@ class ManageLibrariesForm(QDialog, FormClass):  # type: ignore
             self.deleted_libraries.append(library)
 
         self.regulation_group_libarary_selection.removeItem(self.regulation_group_libarary_selection.currentIndex())
-
-        if self.regulation_group_libarary_selection.count() == 0:
-            self._handle_no_libraries_present()
 
     def _is_new_library(self, library: RegulationGroupLibrary) -> bool:
         return id(library) in [id(_library) for _library in self.new_libraries]

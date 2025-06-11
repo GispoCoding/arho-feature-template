@@ -84,7 +84,10 @@ class PlanFeatureForm(QDialog, FormClass):  # type: ignore
 
         self.existing_group_short_names = active_plan_regulation_groups_library.get_short_names()
         self.active_plan_regulation_groups_library = active_plan_regulation_groups_library
-        self.regulation_group_libraries = [*regulation_group_libraries, active_plan_regulation_groups_library]
+        self.regulation_group_libraries = [
+            *(library for library in regulation_group_libraries if library.status),
+            active_plan_regulation_groups_library,
+        ]
         self.plan_regulation_group_libraries_combobox.addItems(
             library.name for library in self.regulation_group_libraries
         )

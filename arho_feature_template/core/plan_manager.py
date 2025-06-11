@@ -214,16 +214,18 @@ class PlanManager(QObject):
         self._open_regulation_group_form(regulation_group)
 
     def manage_libraries(self):
-        custom_libraries = [
+        # Open Manager libraries form with all custom libraries
+        manage_libraries_form = ManageLibrariesForm(
             library
             for library in self.regulation_group_libraries
             if library.library_type == RegulationGroupLibrary.LibraryType.CUSTOM
-        ]
-        manage_libraries_form = ManageLibrariesForm(custom_libraries)
+        )
         if manage_libraries_form.exec_():
             deleted_libraries = manage_libraries_form.deleted_libraries
             for library in deleted_libraries:
                 TemplateManager.delete_template_file(library.file_path)
+
+            # Rewrite all new and remaining library config files and reinitialize libraries
             updated_libraries = manage_libraries_form.custom_regulation_group_libraries
             for library in updated_libraries:
                 TemplateManager.write_regulation_group_template_file(
