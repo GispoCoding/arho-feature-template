@@ -180,7 +180,7 @@ class PlanManager(QObject):
         # ]
         self.regulation_group_libraries.extend(
             RegulationGroupLibrary.from_template_dict(
-                data=TemplateManager.read_template_file(file_path),
+                data=TemplateManager.read_regulation_group_template_file(file_path),
                 library_type=RegulationGroupLibrary.LibraryType.CUSTOM,
                 file_path=str(file_path),
             )
@@ -191,7 +191,7 @@ class PlanManager(QObject):
         """Make sure regulation group libraries are updated before initializing plan feature libraries."""
         self.feature_template_libraries = [
             FeatureTemplateLibrary.from_template_dict(
-                data=TemplateManager.read_template_file(file_path),
+                data=TemplateManager.read_plan_feature_template_file(file_path),
                 regulation_group_libraries=self.regulation_group_libraries,
             )
             for file_path in feature_template_library_config_files()
@@ -226,7 +226,7 @@ class PlanManager(QObject):
                 TemplateManager.delete_template_file(library.file_path)
             updated_libraries = manage_libraries_form.custom_regulation_group_libraries
             for library in updated_libraries:
-                TemplateManager.write_template_file(
+                TemplateManager.write_regulation_group_template_file(
                     library.into_template_dict(), Path(library.file_path), overwrite=True
                 )
             set_user_regulation_group_library_config_files(library.file_path for library in updated_libraries)

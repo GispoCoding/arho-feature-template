@@ -42,8 +42,7 @@ class TemplateManager:
             yaml.safe_dump(cleaned_data, yaml_file, sort_keys=False, allow_unicode=True, default_flow_style=False)
 
     @classmethod
-    def _read_from_yaml_file(cls, file_path: Path) -> dict:
-        fail_msg = f"Kaavamääräyskirjastoa ei löytynyt määritellystä tiedostopolusta: {file_path}"
+    def _read_from_yaml_file(cls, file_path: Path, fail_msg: str) -> dict:
         if file_path.exists():
             try:
                 with file_path.open(encoding="utf-8") as f:
@@ -57,18 +56,39 @@ class TemplateManager:
             return {}
 
     @classmethod
-    def read_template_file(cls, file_path: Path | str) -> dict:
-        return cls._read_from_yaml_file(file_path if type(file_path) is Path else Path(file_path))
+    def read_regulation_group_template_file(cls, file_path: Path | str) -> dict:
+        data = cls._read_from_yaml_file(
+            file_path=file_path if type(file_path) is Path else Path(file_path),
+            fail_msg=f"Kaavamääräyskirjastoa ei löytynyt määritellystä tiedostopolusta: {file_path}",
+        )
+        library_type = data.get("library_type")
+        if not library_type or library_type != "regulation_group":
+            return {}
+        return data
 
     @classmethod
-    def write_template_file(
+    def read_plan_feature_template_file(cls, file_path: Path | str) -> dict:
+        data = cls._read_from_yaml_file(
+            file_path=file_path if type(file_path) is Path else Path(file_path),
+            fail_msg=f"Kaavakohdekirjastoa ei löytynyt määritellystä tiedostopolusta: {file_path}",
+        )
+        library_type = data.get("library_type")
+        if not library_type or library_type != "plan_feature":
+            return {}
+        return data
+
+    @classmethod
+    def write_regulation_group_template_file(
         cls,
         regulation_group_config_data: dict,
         file_path: Path | str,
         overwrite: bool = True,  # noqa: FBT001, FBT002
     ):
+        regulation_group_config_data["library_type"] = "regulation_group"
         cls._write_to_yaml_file(
-            regulation_group_config_data, file_path if type(file_path) is Path else Path(file_path), overwrite
+            config_data=regulation_group_config_data,
+            file_path=file_path if type(file_path) is Path else Path(file_path),
+            overwrite=overwrite,
         )
 
     @classmethod

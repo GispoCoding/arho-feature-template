@@ -58,10 +58,10 @@ class TemplateSyntaxError(Exception):
 class FeatureTemplateLibrary:
     """Describes the configuration of a feature template library"""
 
-    name: str
-    version: str | None
-    description: str | None
-    feature_templates: list[PlanFeature]
+    name: str = ""
+    version: str | None = None
+    description: str | None = None
+    feature_templates: list[PlanFeature] = field(default_factory=list, compare=False)
 
     @classmethod
     def find_matching_group_config(cls, group_name: str, regulation_group_libraries: list[RegulationGroupLibrary]):
@@ -78,7 +78,7 @@ class FeatureTemplateLibrary:
         get_underground_id = UndergroundTypeLayer.get_attribute_value_by_another_attribute_value
         try:
             return FeatureTemplateLibrary(
-                name=data["name"],
+                name=data.get("name", ""),
                 version=data.get("version"),
                 description=data.get("description"),
                 feature_templates=[
@@ -101,7 +101,9 @@ class FeatureTemplateLibrary:
                         id_=None,
                     )
                     for feature_data in data["feature_templates"]
-                ],
+                ]
+                if data.get("feature_templates")
+                else [],
             )
         except KeyError as e:
             raise TemplateSyntaxError(str(cls), str(e)) from e

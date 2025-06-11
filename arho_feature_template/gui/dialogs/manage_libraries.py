@@ -130,20 +130,13 @@ class ManageLibrariesForm(QDialog, FormClass):  # type: ignore
             return
 
         self.active_library.name = new_name
-        i = self.regulation_group_libarary_selection.currentIndex()
-        if new_name == "":
-            pass
-            # self.regulation_group_libarary_selection.setItemText(i, "Nimetön kirjasto")
-            # self.regulation_group_libarary_selection.setItemData(i, self.italic_font, Qt.FontRole)
-        else:
-            self.regulation_group_libarary_selection.setItemText(i, new_name)
-            # self.regulation_group_libarary_selection.setItemData(i, self.basic_font, Qt.FontRole)
+        self.regulation_group_libarary_selection.setCurrentText(new_name)
         self._check_required_fields()
 
     def _on_reload_library_file_clicked(self):
         file_path = self.file_path.filePath()
         loaded_library = RegulationGroupLibrary.from_template_dict(
-            data=TemplateManager.read_template_file(file_path),
+            data=TemplateManager.read_regulation_group_template_file(file_path),
             library_type=RegulationGroupLibrary.LibraryType.CUSTOM,
             file_path=str(file_path),
         )
@@ -232,13 +225,18 @@ class ManageLibrariesForm(QDialog, FormClass):  # type: ignore
 
             # Attempt import
             library = RegulationGroupLibrary.from_template_dict(
-                data=TemplateManager.read_template_file(file_path),
+                data=TemplateManager.read_regulation_group_template_file(file_path),
                 library_type=RegulationGroupLibrary.LibraryType.CUSTOM,
                 file_path=str(file_path),
             )
-            self._add_library(library)
-            # TODO: Success msg?
-            # TODO: Invalid YAML?
+            if library.status:
+                self._add_library(library)
+            else:
+                QMessageBox.critical(
+                    self,
+                    "Virhe",
+                    "Valitun tiedoston lukeminen kaavamääräysryhmäkirjastoksi epäonnistui.",
+                )
 
     def _on_delete_regulation_group_library_clicked(self):
         if not self.active_library:

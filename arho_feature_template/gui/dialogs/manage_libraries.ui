@@ -29,7 +29,7 @@
          <item>
           <widget class="QLabel" name="label_4">
            <property name="text">
-            <string>Kirjasto</string>
+            <string>Kirjasto:</string>
            </property>
           </widget>
          </item>
@@ -42,7 +42,7 @@
             </sizepolicy>
            </property>
            <property name="toolTip">
-            <string>Valitse aktiivinen kirjasto</string>
+            <string>Valitse kirjasto</string>
            </property>
           </widget>
          </item>
@@ -143,7 +143,7 @@
             </size>
            </property>
            <property name="toolTip">
-            <string>Lataa kirjasto uudelleen annetusta polusta.</string>
+            <string>Lataa kirjasto uudelleen annetusta polusta</string>
            </property>
            <property name="text">
             <string/>
@@ -269,7 +269,7 @@
                </size>
               </property>
               <property name="toolTip">
-               <string>Muokkaa kaavamääräysryhmäpohjaa</string>
+               <string>Muokkaa valittua kaavamääräysryhmäpohjaa</string>
               </property>
               <property name="text">
                <string/>
