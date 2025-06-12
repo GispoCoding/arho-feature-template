@@ -4,12 +4,15 @@ from importlib import resources
 from typing import TYPE_CHECKING, cast
 
 from qgis.core import QgsApplication
+from qgis.gui import QgsDateTimeEdit
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import QDate
+from qgis.PyQt.QtCore import QDateTime
 from qgis.PyQt.QtWidgets import (
     QDateEdit,
     QDialog,
     QDialogButtonBox,
+    QFormLayout,
+    QGroupBox,
     QLabel,
     QLineEdit,
     QMessageBox,
@@ -18,7 +21,7 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
 )
 
-from arho_feature_template.core.models import Document, Plan, RegulationGroup, RegulationGroupLibrary
+from arho_feature_template.core.models import Document, EventDate, Plan, RegulationGroup, RegulationGroupLibrary
 from arho_feature_template.gui.components.general_regulation_group_widget import GeneralRegulationGroupWidget
 
 # from arho_feature_template.gui.components.plan_regulation_group_widget import RegulationGroupWidget
@@ -35,7 +38,7 @@ from arho_feature_template.project.layers.code_layers import (
 from arho_feature_template.utils.misc_utils import disconnect_signal
 
 if TYPE_CHECKING:
-    from qgis.PyQt.QtWidgets import QFormLayout, QLineEdit, QTextEdit
+    from qgis.PyQt.QtWidgets import QLineEdit, QTextEdit  # QFormLayout, QLineEdit, QTextEdit
 
     from arho_feature_template.gui.components.code_combobox import CodeComboBox, HierarchicalCodeComboBox
 
@@ -144,6 +147,13 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
             self.add_plan_regulation_group(regulation_group)
 
         # Dates
+        self.decision_date_edits: dict[str, QDateEdit] = {}
+        self.processing_event_date_edits: dict[str, QDateEdit] = {}
+        self.interaction_event_date_edits: dict[str, QDateEdit] = {}
+
+        self.decision_dates_group = None
+        self.processing_dates_group = None
+        self.interaction_dates_group = None
         self.required_dates_group_box = self.mGroupBox_dates  # alias for convenience
         self.required_dates_group_box.hide()  # Fully hidden on init
 
@@ -177,6 +187,18 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
         self._check_required_fields()
         self._update_legal_effect_widgets_visibility()
 
+        # Initialize date fields for existing plan lifecycle
+        code_name = self.lifecycle_status_combo_box.currentText()
+        requires_dates = (
+            code_name in self.DECISIONS_BY_STATUS
+            or code_name in self.PROCESSING_EVENTS_BY_STATUS
+            or code_name in self.INTERACTION_EVENTS_BY_STATUS
+        )
+
+        if requires_dates:
+            self._populate_required_dates(code_name)
+            self.required_dates_group_box.show()
+
     def _check_required_fields(self) -> None:
         ok_button = self.button_box.button(QDialogButtonBox.Ok)
         self.date_fields_valid = True
@@ -184,7 +206,7 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
         if layout:
             for i in range(layout.count()):
                 widget = layout.itemAt(i).widget()
-                if isinstance(widget, QDateEdit) and (not widget.date().isValid() or widget.date() == QDate()):
+                if isinstance(widget, QgsDateTimeEdit) and not widget.dateTime().isValid():
                     self.date_fields_valid = False
                     break
         if (
@@ -193,6 +215,7 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
             and self.organisation_combo_box.value() is not None
             and self.lifecycle_status_combo_box.value() is not None
             and all(document_widget.is_ok() for document_widget in self.document_widgets)
+            and self.date_fields_valid
         ):
             ok_button.setEnabled(True)
         else:
@@ -301,39 +324,58 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
             self._clear_required_dates()
             self.required_dates_group_box.hide()
 
+    def _create_groupbox(self, title: str) -> QGroupBox:
+        groupbox = QGroupBox(title)
+        layout = QFormLayout()
+        groupbox.setLayout(layout)
+        return groupbox
+
     def _populate_required_dates(self, code_name):
         self._clear_required_dates()
-        layout = self.required_dates_group_box.layout()
+        parent_layout = self.required_dates_group_box.layout()
+
+        def create_date_edit():
+            date_edit = QgsDateTimeEdit()
+            date_edit.setDisplayFormat("yyyy-MM-dd")
+            date_edit.setCalendarPopup(True)
+            date_edit.setSpecialValueText("")
+            date_edit.setDateTime(QDateTime.currentDateTime())
+            date_edit.dateTimeChanged.connect(self._check_required_fields)
+
+            return date_edit
 
         if code_name in self.DECISIONS_BY_STATUS:
+            self.decision_dates_group = self._create_groupbox("Päätöspäivät")
+            form_layout = self.decision_dates_group.layout()
             for code in self.DECISIONS_BY_STATUS[code_name]:
                 desc = PlanDecisionNameLayer.get_plan_decision_name(code)
-                label = QLabel(f"Päätöspäivä - {desc or  code}")
-                date = QDateEdit()
-                date.setCalendarPopup(True)
-                date.setDate(QDate())
-                layout.addWidget(label)
-                layout.addWidget(date)
+                label = f"{desc or code}"
+                date_edit = create_date_edit()
+                form_layout.addRow(QLabel(label), date_edit)
+                self.decision_date_edits[code] = date_edit
+            parent_layout.addWidget(self.decision_dates_group)
 
         if code_name in self.PROCESSING_EVENTS_BY_STATUS:
+            self.processing_dates_group = self._create_groupbox("Käsittelypäivät")
+            form_layout = self.processing_dates_group.layout()
             for code in self.PROCESSING_EVENTS_BY_STATUS[code_name]:
                 desc = ProcessingEventTypeLayer.get_processing_event_type_name(code)
-                label = QLabel(f"Käsittelypäivä - {desc or code}")
-                date = QDateEdit()
-                date.setCalendarPopup(True)
-                date.setDate(QDate())
-                layout.addWidget(label)
-                layout.addWidget(date)
+                label = f"{desc or code}"
+                date_edit = create_date_edit()
+                form_layout.addRow(QLabel(label), date_edit)
+                self.processing_event_date_edits[code] = date_edit
+            parent_layout.addWidget(self.processing_dates_group)
 
         if code_name in self.INTERACTION_EVENTS_BY_STATUS:
+            self.interaction_dates_group = self._create_groupbox("Vuorovaikutuspäivät")
+            form_layout = self.interaction_dates_group.layout()
             for code in self.INTERACTION_EVENTS_BY_STATUS[code_name]:
                 desc = InteractionEventTypeLayer.get_interaction_event_type_name(code)
-                label = QLabel(f"Vuorovaikutuspäivä - {desc or code}")
-                date = QDateEdit()
-                date.setCalendarPopup(True)
-                date.setDate(QDate())
-                layout.addWidget(label)
-                layout.addWidget(date)
+                label = f"{desc or code}"
+                date_edit = create_date_edit()
+                form_layout.addRow(QLabel(label), date_edit)
+                self.interaction_event_date_edits[code] = date_edit
+            parent_layout.addWidget(self.interaction_dates_group)
 
     def _clear_required_dates(self):
         layout = self.required_dates_group_box.layout()
@@ -342,6 +384,10 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
             widget = item.widget()
             if widget:
                 widget.deleteLater()
+
+        self.decision_date_edits.clear()
+        self.processing_event_date_edits.clear()
+        self.interaction_event_date_edits.clear()
 
     def add_new_document(self):
         self.add_document(Document())
@@ -369,6 +415,50 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
             legal_effect_ids = [legal_effect_widget[1].get_value() for legal_effect_widget in self.legal_effect_widgets]
         else:
             legal_effect_ids = []
+        # event_dates
+        event_dates: list[EventDate] = []
+
+        # Decision Dates
+        for code, widget in self.decision_date_edits.items():
+            dt = widget.dateTime()
+            if dt.isValid():
+                event_dates.append(
+                    EventDate(
+                        starting_at=dt.date(),
+                        decision_id=PlanDecisionNameLayer.get_id(code),
+                        lifecycle_date_id="fd872203-3282-4dc4-8700-32d085574ee8",  # THis is the problem
+                        processing_event_id=None,
+                        interaction_event_id=None,
+                    )
+                )
+
+        # Processing Event Dates
+        for code, widget in self.processing_event_date_edits.items():
+            dt = widget.dateTime()
+            if dt.isValid():
+                event_dates.append(
+                    EventDate(
+                        starting_at=dt.date(),
+                        processing_event_id=ProcessingEventTypeLayer.get_id(code),
+                        lifecycle_date_id="fd872203-3282-4dc4-8700-32d085574ee8",  # THis is the problem
+                        decision_id=None,
+                        interaction_event_id=None,
+                    )
+                )
+
+        # Interaction Event Dates
+        for code, widget in self.interaction_event_date_edits.items():
+            dt = widget.dateTime()
+            if dt.isValid():
+                event_dates.append(
+                    EventDate(
+                        starting_at=dt.date(),
+                        interaction_event_id=InteractionEventTypeLayer.get_id(code),
+                        lifecycle_date_id="fd872203-3282-4dc4-8700-32d085574ee8",  # THis is the problem
+                        decision_id=None,
+                        processing_event_id=None,
+                    )
+                )
 
         model = Plan(
             id_=self.plan.id_,
@@ -385,6 +475,7 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
             legal_effect_ids=[value for value in legal_effect_ids if value is not None],
             documents=[document_widget.into_model() for document_widget in self.document_widgets],
             modified=self.plan.modified,
+            event_date=event_dates,
             geom=self.plan.geom,
         )
         if not model.modified and model != self.plan:

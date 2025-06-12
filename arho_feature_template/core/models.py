@@ -596,6 +596,7 @@ class Plan(PlanBaseModel):
     legal_effect_ids: list[str] = field(default_factory=list)
     geom: QgsGeometry | None = None
     modified: bool = field(compare=False, default=True)
+    event_date: list[EventDate] = field(default_factory=list, compare=False)
     id_: str | None = None
 
 
@@ -618,3 +619,15 @@ class Document(PlanBaseModel):
     plan_id: str | None = None
     modified: bool = field(compare=False, default=True)
     id_: str | None = None
+
+
+@dataclass
+class EventDate:
+    lifecycle_date_id: str
+    decision_id: str | None = None
+    processing_event_id: str | None = None
+    interaction_event_id: str | None = None
+    starting_at: datetime | None = None
+    ending_at: datetime | None = None
+    id_: str | None = None
+    modified: bool = field(compare=False, default=True)
