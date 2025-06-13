@@ -69,6 +69,14 @@ categories:
             additional_information:
               - type: paakayttotarkoitus
 
+      - name: Kaupallisten palvelujen alue, jolle saa sijoittaa vähittäiskaupan myymäläkeskittymän
+        geometry: [Alue, Piste]
+        short_name: KMK
+        plan_regulations:
+          - regulation_code: vahittaiskaupanMyymalakeskittyma
+            additional_information:
+              - type: paakayttotarkoitus
+
       - name: Teollisuus- ja varastoalue
         geometry: [Alue, Piste]
         short_name: T
