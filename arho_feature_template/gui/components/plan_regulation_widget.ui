@@ -26,10 +26,10 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <item>
-      <widget class="QLabel" name="label_2">
+      <widget class="QLabel" name="regulation_name">
        <property name="font">
         <font>
-         <pointsize>11</pointsize>
+         <pointsize>12</pointsize>
          <weight>75</weight>
          <bold>true</bold>
         </font>
@@ -51,6 +51,19 @@
         </size>
        </property>
       </spacer>
+     </item>
+     <item>
+      <widget class="QToolButton" name="expand_hide_btn">
+       <property name="text">
+        <string>Laajenna</string>
+       </property>
+       <property name="autoRaise">
+        <bool>false</bool>
+       </property>
+       <property name="arrowType">
+        <enum>Qt::UpArrow</enum>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QPushButton" name="add_attribute_or_information_btn">
@@ -87,35 +100,7 @@
     </layout>
    </item>
    <item>
-    <layout class="QFormLayout" name="form_layout">
-     <item row="0" column="0">
-      <widget class="QLabel" name="label_4">
-       <property name="text">
-        <string>Laji:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="1">
-      <layout class="QHBoxLayout" name="horizontalLayout">
-       <item>
-        <widget class="QLineEdit" name="plan_regulation_name"/>
-       </item>
-       <item>
-        <widget class="QToolButton" name="expand_hide_btn">
-         <property name="text">
-          <string>Laajenna</string>
-         </property>
-         <property name="autoRaise">
-          <bool>false</bool>
-         </property>
-         <property name="arrowType">
-          <enum>Qt::UpArrow</enum>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
-    </layout>
+    <layout class="QFormLayout" name="form_layout"/>
    </item>
    <item>
     <widget class="QFrame" name="additional_information_frame">

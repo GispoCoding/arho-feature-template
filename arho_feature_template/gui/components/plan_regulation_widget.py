@@ -10,7 +10,6 @@ from qgis.PyQt.QtWidgets import (
     QFormLayout,
     QFrame,
     QLabel,
-    QLineEdit,
     QMenu,
     QPushButton,
     QToolButton,
@@ -48,7 +47,7 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
         self.setupUi(self)
 
         # TYPES
-        self.plan_regulation_name: QLineEdit
+        self.regulation_name: QLabel
         self.form_layout: QFormLayout
         self.add_attribute_or_information_btn: QPushButton
         self.del_btn: QPushButton
@@ -78,8 +77,8 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
 
         self.expanded = True
         self.additional_information_frame.hide()
-        self.plan_regulation_name.setText(self.config.name)
-        self.plan_regulation_name.setReadOnly(True)
+
+        self.regulation_name.setText(self.config.name)
         self.del_btn.setIcon(QgsApplication.getThemeIcon("mActionDeleteSelected.svg"))
         self.del_btn.clicked.connect(lambda: self.delete_signal.emit(self))
         self.expand_hide_btn.clicked.connect(self._on_expand_hide_btn_clicked)
