@@ -53,17 +53,7 @@
       </spacer>
      </item>
      <item>
-      <widget class="QPushButton" name="add_additional_information_btn">
-       <property name="toolTip">
-        <string>Lisätieto</string>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="add_field_btn">
+      <widget class="QPushButton" name="add_attribute_or_information_btn">
        <property name="toolTip">
         <string>Muu tieto</string>
        </property>

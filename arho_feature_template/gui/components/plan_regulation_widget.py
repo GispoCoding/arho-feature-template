@@ -41,21 +41,20 @@ FormClass, _ = uic.loadUiType(ui_path)
 class RegulationWidget(QWidget, FormClass):  # type: ignore
     """A widget representation of a plan regulation."""
 
-    # TYPES
-    plan_regulation_name: QLineEdit
-    form_layout: QFormLayout
-    add_additional_information_btn: QPushButton
-    add_field_btn: QPushButton
-    del_btn: QPushButton
-    expand_hide_btn: QToolButton
-    additional_information_frame: QFrame
-    additional_information_layout: QVBoxLayout
-
     delete_signal = pyqtSignal(QWidget)
 
     def __init__(self, regulation: Regulation, parent=None):
         super().__init__(parent)
         self.setupUi(self)
+
+        # TYPES
+        self.plan_regulation_name: QLineEdit
+        self.form_layout: QFormLayout
+        self.add_attribute_or_information_btn: QPushButton
+        self.del_btn: QPushButton
+        self.expand_hide_btn: QToolButton
+        self.additional_information_frame: QFrame
+        self.additional_information_layout: QVBoxLayout
 
         # INIT
         self.config = regulation.config
@@ -74,8 +73,6 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
         self.additional_information_widgets: list[AdditionalInformationWidget] = []
 
         # TODO: Implement regulation numbers / ordering and files (?)
-        # self.regulation_number_widget: RegulationNumberWidget | None = None
-        # self.file_widgets: list[InputFileWidget] = []
         self.subject_identifier_widgets: list[SubjectIdentifierWidget] = []
         self.theme_widgets: list[ThemeWidget] = []
 
@@ -86,8 +83,7 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
         self.del_btn.setIcon(QgsApplication.getThemeIcon("mActionDeleteSelected.svg"))
         self.del_btn.clicked.connect(lambda: self.delete_signal.emit(self))
         self.expand_hide_btn.clicked.connect(self._on_expand_hide_btn_clicked)
-        self._init_additional_information_btn()
-        self._init_other_information_btn()
+        self._init_additional_attributes_and_information_btn()
         self._init_widgets()
 
     def _init_widgets(self):
@@ -112,7 +108,7 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
         for info in self.regulation.additional_information:
             self._add_additional_info(info)
 
-    def _init_additional_information_btn(self) -> None:
+    def _create_additional_information_menu(self) -> QMenu:
         informations_dict: dict[str, QMenu] = {}
 
         def _add_action(parent_id: str, info_type: str, display_name: str):
@@ -127,8 +123,8 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
         for top_level_code in ai_config_library.top_level_codes:
             top_level_config = ai_config_library.get_config_by_code(top_level_code)
 
-            menu = QMenu(top_level_config.name, self)
-            informations_dict[top_level_code] = menu
+            sub_menu = QMenu(top_level_config.name, self)
+            informations_dict[top_level_code] = sub_menu
 
             for child_code in top_level_config.children:
                 config = ai_config_library.get_config_by_code(child_code)
@@ -136,22 +132,20 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
                     continue
                 _add_action(top_level_code, config.additional_information_type, config.name)
 
-        # Create main menu for btn and add submenus
-        additional_information_type_menu = QMenu(self)
-        for menu in informations_dict.values():
-            additional_information_type_menu.addMenu(menu)
-        self.add_additional_information_btn.setMenu(additional_information_type_menu)
-        self.add_additional_information_btn.setIcon(QgsApplication.getThemeIcon("mActionPropertiesWidget.svg"))
+        menu = QMenu(self)
+        for sub_menu in informations_dict.values():
+            menu.addMenu(sub_menu)
 
-    def _init_other_information_btn(self):
-        add_field_menu = QMenu(self)
-        # add_field_menu.addAction("Määräysnumero").triggered.connect(self._add_regulation_number)
-        # add_field_menu.addAction("Liiteasiakirja").triggered.connect(self._add_file)
-        add_field_menu.addAction("Aihetunniste").triggered.connect(self._add_subject_identifier)
-        add_field_menu.addAction("Kaavoitusteema").triggered.connect(self._add_theme)
+        return menu
 
-        self.add_field_btn.setMenu(add_field_menu)
-        self.add_field_btn.setIcon(QgsApplication.getThemeIcon("mActionAdd.svg"))
+    def _init_additional_attributes_and_information_btn(self):
+        attributes_and_information_menu = QMenu(self)
+        attributes_and_information_menu.addAction("Aihetunniste").triggered.connect(self._add_subject_identifier)
+        attributes_and_information_menu.addAction("Kaavoitusteema").triggered.connect(self._add_theme)
+        attributes_and_information_menu.addAction("Lisätieto").setMenu(self._create_additional_information_menu())
+
+        self.add_attribute_or_information_btn.setMenu(attributes_and_information_menu)
+        self.add_attribute_or_information_btn.setIcon(QgsApplication.getThemeIcon("mActionAdd.svg"))
 
     def _on_expand_hide_btn_clicked(self):
         if self.expanded:
