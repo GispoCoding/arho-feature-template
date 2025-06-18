@@ -72,9 +72,10 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
         self.subject_identifier_widgets: list[SubjectIdentifierWidget] = []
         self.theme_widgets: list[ThemeWidget] = []
 
-        self.expanded = True
-
+        self.expand_hide_btn.hide()
         self.regulation_details_container.hide()
+        self.expanded = False
+
         self.regulation_name.setText(self.config.name)
         self.del_btn.setIcon(QgsApplication.getThemeIcon("mActionDeleteSelected.svg"))
         self.del_btn.clicked.connect(lambda: self.delete_signal.emit(self))
@@ -155,6 +156,7 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
 
     def _add_widget(self, label: QLabel, widget: QWidget):
         self.regulation_details_container.show()
+        self.expand_hide_btn.show()
         self.form_layout.addRow(label, widget)
         self.widgets.append((label, widget))
         if not self.expanded:
@@ -173,6 +175,7 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
                 self.widgets.remove((label, widget))
                 if len(self.widgets) == 0:
                     self.regulation_details_container.hide()
+                    self.expand_hide_btn.hide()
                 return True
         return False
 
