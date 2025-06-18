@@ -8,12 +8,10 @@ from qgis.PyQt import uic
 from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtWidgets import (
     QFormLayout,
-    QFrame,
     QLabel,
     QMenu,
     QPushButton,
     QToolButton,
-    QVBoxLayout,
     QWidget,
 )
 
@@ -52,8 +50,6 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
         self.add_attribute_or_information_btn: QPushButton
         self.del_btn: QPushButton
         self.expand_hide_btn: QToolButton
-        self.additional_information_frame: QFrame
-        self.additional_information_layout: QVBoxLayout
 
         # INIT
         self.config = regulation.config
@@ -76,7 +72,6 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
         self.theme_widgets: list[ThemeWidget] = []
 
         self.expanded = True
-        self.additional_information_frame.hide()
 
         self.regulation_name.setText(self.config.name)
         self.del_btn.setIcon(QgsApplication.getThemeIcon("mActionDeleteSelected.svg"))
@@ -153,7 +148,6 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
                 label.hide()
                 # self.form_layout.removeWidget(value_widget)
                 value_widget.hide()
-            self.additional_information_frame.hide()
             self.expand_hide_btn.setArrowType(Qt.ArrowType.DownArrow)
             self.expanded = False
         else:
@@ -161,7 +155,6 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
                 # self.form_layout.addRow(label, value_widget)
                 label.show()
                 value_widget.show()
-            self.additional_information_frame.show()
             self.expand_hide_btn.setArrowType(Qt.ArrowType.UpArrow)
             self.expanded = True
 
@@ -178,24 +171,18 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
                     self.subject_identifier_widgets.remove(widget)
                 elif isinstance(widget, ThemeWidget):
                     self.theme_widgets.remove(widget)
+                elif isinstance(widget, AdditionalInformationWidget):
+                    self.additional_information_widgets.remove(widget)
                 self.form_layout.removeRow(widget_to_delete)
                 self.widgets.remove((label, widget))
                 return True
         return False
 
     def _add_additional_info(self, additional_information: AdditionalInformation):
-        widget = AdditionalInformationWidget(additional_information, self)
-        widget.delete_signal.connect(self._delete_additional_info)
-
-        self.additional_information_frame.show()
-
-        self.additional_information_widgets.append(widget)
-        self.additional_information_layout.addWidget(widget)
-
-    def _delete_additional_info(self, info_widget: AdditionalInformationWidget):
-        self.additional_information_layout.removeWidget(info_widget)
-        self.additional_information_widgets.remove(info_widget)
-        info_widget.deleteLater()
+        ai_widget = AdditionalInformationWidget(additional_information, self)
+        ai_widget.delete_signal.connect(self._delete_widget)
+        self.additional_information_widgets.append(ai_widget)
+        self._add_widget(QLabel("Lisätieto:"), ai_widget)
 
     def _add_subject_identifier(self, subject: str | None = None):
         # self.topic_tag_widget = SinglelineTextInputWidget(None, True)
