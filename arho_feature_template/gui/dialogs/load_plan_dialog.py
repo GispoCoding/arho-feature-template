@@ -78,6 +78,7 @@ class LoadPlanDialog(QDialog, LoadPlanDialogBase):  # type: ignore
         self.plan_table_view: QTableView
         self.plan_table_view.setSelectionMode(QTableView.SingleSelection)
         self.plan_table_view.setSelectionBehavior(QTableView.SelectRows)
+        self.plan_table_view.setSortingEnabled(True)
 
         self.model = QStandardItemModel()
         self.model.setColumnCount(4)
