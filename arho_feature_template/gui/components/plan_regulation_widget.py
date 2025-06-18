@@ -46,6 +46,7 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
 
         # TYPES
         self.regulation_name: QLabel
+        self.regulation_details_container: QWidget
         self.form_layout: QFormLayout
         self.add_attribute_or_information_btn: QPushButton
         self.del_btn: QPushButton
@@ -73,6 +74,7 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
 
         self.expanded = True
 
+        self.regulation_details_container.hide()
         self.regulation_name.setText(self.config.name)
         self.del_btn.setIcon(QgsApplication.getThemeIcon("mActionDeleteSelected.svg"))
         self.del_btn.clicked.connect(lambda: self.delete_signal.emit(self))
@@ -143,22 +145,16 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
 
     def _on_expand_hide_btn_clicked(self):
         if self.expanded:
-            for label, value_widget in self.widgets:
-                # self.form_layout.removeWidget(label)
-                label.hide()
-                # self.form_layout.removeWidget(value_widget)
-                value_widget.hide()
+            self.regulation_details_container.hide()
             self.expand_hide_btn.setArrowType(Qt.ArrowType.DownArrow)
             self.expanded = False
         else:
-            for label, value_widget in self.widgets:
-                # self.form_layout.addRow(label, value_widget)
-                label.show()
-                value_widget.show()
+            self.regulation_details_container.show()
             self.expand_hide_btn.setArrowType(Qt.ArrowType.UpArrow)
             self.expanded = True
 
     def _add_widget(self, label: QLabel, widget: QWidget):
+        self.regulation_details_container.show()
         self.form_layout.addRow(label, widget)
         self.widgets.append((label, widget))
         if not self.expanded:
@@ -175,6 +171,8 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
                     self.additional_information_widgets.remove(widget)
                 self.form_layout.removeRow(widget_to_delete)
                 self.widgets.remove((label, widget))
+                if len(self.widgets) == 0:
+                    self.regulation_details_container.hide()
                 return True
         return False
 
