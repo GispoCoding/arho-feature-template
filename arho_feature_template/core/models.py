@@ -10,9 +10,20 @@ from typing import TYPE_CHECKING
 import yaml
 
 from arho_feature_template.exceptions import ConfigSyntaxError
-from arho_feature_template.project.layers.code_layers import AdditionalInformationTypeLayer, UndergroundTypeLayer
+from arho_feature_template.project.layers.code_layers import (
+    AdditionalInformationTypeLayer,
+    PlanThemeLayer,
+    UndergroundTypeLayer,
+    VerbalRegulationType,
+)
 from arho_feature_template.qgis_plugin_tools.tools.resources import resources_path
-from arho_feature_template.utils.misc_utils import deserialize_localized_text, get_layer_by_name, iface, null_to_none
+from arho_feature_template.utils.misc_utils import (
+    LANGUAGE,
+    deserialize_localized_text,
+    get_layer_by_name,
+    iface,
+    null_to_none,
+)
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -404,6 +415,14 @@ class AdditionalInformationConfigLibrary:
         return cls.get_instance()._id_to_configs[id_]  # noqa: SLF001
 
 
+class PlanBaseModel:
+    def __post_init__(self):
+        # Set all found NULLs to None
+        for _field in fields(self):
+            value = getattr(self, _field.name)
+            setattr(self, _field.name, null_to_none(value))
+
+
 @dataclass
 class AttributeValue(PlanBaseModel):
     value_data_type: AttributeValueDataType | None = None
@@ -423,6 +442,35 @@ class AttributeValue(PlanBaseModel):
 
     height_reference_point: str | None = None
 
+    def describe(self) -> str:
+        if self.is_empty():
+            return ""
+
+        if self.numeric_value is not None:
+            return f"{self.numeric_value} {self.unit or ''}".strip()
+
+        if self.numeric_range_min is not None or self.numeric_range_max is not None:
+            min_ = self.numeric_range_min or ""
+            max_ = self.numeric_range_max or ""
+            return f"{min_}–{max_} {self.unit or ''}".strip()
+
+        if self.text_value:
+            return self.text_value
+
+        if self.code_value:
+            return self.code_value
+
+        return ""
+
+    def is_empty(self) -> bool:
+        return not any([
+            self.numeric_value,
+            self.numeric_range_min,
+            self.numeric_range_max,
+            self.text_value,
+            self.code_value,
+        ])
+
 
 @dataclass
 class AdditionalInformation(PlanBaseModel):
@@ -433,6 +481,12 @@ class AdditionalInformation(PlanBaseModel):
     type_additional_information_id: str | None = None
     value: AttributeValue | None = None
     modified: bool = field(compare=False, default=True)
+
+    def __str__(self):
+        str_to_return = self.config.name
+        if self.value is not None and self.value.describe() != "":
+            str_to_return += ": " + self.value.describe() + "\n"
+        return str_to_return
 
 
 @dataclass
@@ -449,6 +503,34 @@ class Regulation(PlanBaseModel):
     modified: bool = field(compare=False, default=True)
     id_: str | None = None
 
+    def describe(self) -> str:
+        str_to_return = f"Laji: {self.config.name}" + "\n"
+
+        if self.value is not None and self.value.describe() != "":
+            str_to_return += f"Arvo: {self.value.describe()}" + "\n"
+
+        if len(self.verbal_regulation_type_ids) > 0:
+            str_to_return += "Sanallisen määräyksen lajit: " + ", ".join(
+                VerbalRegulationType.get_attribute_value_by_another_attribute_value("name", "id", verbal_reg_type_id)[LANGUAGE]
+                for verbal_reg_type_id
+                in self.verbal_regulation_type_ids
+            ) + "\n"
+
+        if self.theme_ids and len(self.theme_ids) > 0:
+            str_to_return += "Kaavoitusteemat: " + ", ".join(
+                PlanThemeLayer.get_attribute_value_by_another_attribute_value("name", "id", theme_id)[LANGUAGE]
+                for theme_id
+                in self.theme_ids
+            ) + "\n"
+
+        if self.subject_identifiers and len(self.subject_identifiers) > 0:
+            str_to_return += "Aihetunnisteet: " + ", ".join(self.subject_identifiers).strip() + "\n"
+
+        if len(self.additional_information) > 0:
+            str_to_return += "Lisätiedot:\n" + "\n".join(f"    {ai!s}" for ai in self.additional_information)
+
+        return str_to_return.rstrip()
+
 
 @dataclass
 class Proposition(PlanBaseModel):
@@ -458,6 +540,11 @@ class Proposition(PlanBaseModel):
     regulation_group_id: str | None = None
     modified: bool = field(compare=False, default=True)
     id_: str | None = None
+
+    def describe(self) -> str:
+        str_to_return = f"Sisältö: {self.value}" + "\n"
+
+        return str_to_return.rstrip()
 
 
 @dataclass
