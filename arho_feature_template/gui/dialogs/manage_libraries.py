@@ -313,13 +313,9 @@ class ManageLibrariesForm(QDialog, FormClass):  # type: ignore
 
         form = PlanRegulationGroupForm(RegulationGroup(), None)
         form.setWindowTitle("Luo kaavamääräysryhmäpohja")
+        # TODO: Let user select a category for their regulation group template?
         if form.exec_():
-            new_regulation_group_template = form.model
-            # Use intended feature type as category for now
-            # NOTE: This should probably be changed and user let to choose their own category names
-            new_regulation_group_template.category = form.type_of_regulation_group.currentText()
             self._add_regulation_group_to_list(form.model)
-
             self._update_active_library_templates_from_view()
 
     def _on_edit_regulation_group_template_clicked(self):
