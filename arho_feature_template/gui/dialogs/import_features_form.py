@@ -25,7 +25,12 @@ from arho_feature_template.project.layers.plan_layers import (
     plan_feature_layers,
     plan_layers,
 )
-from arho_feature_template.utils.misc_utils import iface, use_wait_cursor
+from arho_feature_template.utils.misc_utils import (
+    check_plan_feature_inside_plan,
+    get_active_plan_id,
+    iface,
+    use_wait_cursor,
+)
 
 if TYPE_CHECKING:
     from qgis.gui import QgsCheckableComboBox, QgsFieldComboBox, QgsMapLayerComboBox
@@ -231,6 +236,12 @@ class ImportFeaturesForm(QDialog, FormClass):  # type: ignore
         if not layer.isEditable():
             layer.startEditing()
         layer.beginEditCommand(edit_text)
+
+        plan_id = get_active_plan_id()
+        plan_layer = PlanLayer.get_from_project()
+
+        if not check_plan_feature_inside_plan(feature, plan_layer, plan_id):
+            return False
 
         if id_ is None:
             layer.addFeature(feature)
