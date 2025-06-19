@@ -34,9 +34,9 @@ def initialize_numeric_input_widget(
     if positive:
         widget.setMinimum(0)
     else:
-        widget.setMinimum(-99999)
+        widget.setMinimum(-99999999999)
 
-    widget.setMaximum(99999)
+    widget.setMaximum(99999999999)
 
     if default_value:
         widget.setValue(default_value)
