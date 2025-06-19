@@ -8,13 +8,10 @@ from qgis.PyQt import uic
 from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtWidgets import (
     QFormLayout,
-    QFrame,
     QLabel,
-    QLineEdit,
     QMenu,
     QPushButton,
     QToolButton,
-    QVBoxLayout,
     QWidget,
 )
 
@@ -41,21 +38,19 @@ FormClass, _ = uic.loadUiType(ui_path)
 class RegulationWidget(QWidget, FormClass):  # type: ignore
     """A widget representation of a plan regulation."""
 
-    # TYPES
-    plan_regulation_name: QLineEdit
-    form_layout: QFormLayout
-    add_additional_information_btn: QPushButton
-    add_field_btn: QPushButton
-    del_btn: QPushButton
-    expand_hide_btn: QToolButton
-    additional_information_frame: QFrame
-    additional_information_layout: QVBoxLayout
-
     delete_signal = pyqtSignal(QWidget)
 
     def __init__(self, regulation: Regulation, parent=None):
         super().__init__(parent)
         self.setupUi(self)
+
+        # TYPES
+        self.regulation_name: QLabel
+        self.regulation_details_container: QWidget
+        self.form_layout: QFormLayout
+        self.add_attribute_or_information_btn: QPushButton
+        self.del_btn: QPushButton
+        self.expand_hide_btn: QToolButton
 
         # INIT
         self.config = regulation.config
@@ -74,20 +69,18 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
         self.additional_information_widgets: list[AdditionalInformationWidget] = []
 
         # TODO: Implement regulation numbers / ordering and files (?)
-        # self.regulation_number_widget: RegulationNumberWidget | None = None
-        # self.file_widgets: list[InputFileWidget] = []
         self.subject_identifier_widgets: list[SubjectIdentifierWidget] = []
         self.theme_widgets: list[ThemeWidget] = []
 
-        self.expanded = True
-        self.additional_information_frame.hide()
-        self.plan_regulation_name.setText(self.config.name)
-        self.plan_regulation_name.setReadOnly(True)
+        self.expand_hide_btn.hide()
+        self.regulation_details_container.hide()
+        self.expanded = False
+
+        self.regulation_name.setText(self.config.name)
         self.del_btn.setIcon(QgsApplication.getThemeIcon("mActionDeleteSelected.svg"))
         self.del_btn.clicked.connect(lambda: self.delete_signal.emit(self))
         self.expand_hide_btn.clicked.connect(self._on_expand_hide_btn_clicked)
-        self._init_additional_information_btn()
-        self._init_other_information_btn()
+        self._init_additional_attributes_and_information_btn()
         self._init_widgets()
 
     def _init_widgets(self):
@@ -112,7 +105,7 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
         for info in self.regulation.additional_information:
             self._add_additional_info(info)
 
-    def _init_additional_information_btn(self) -> None:
+    def _create_additional_information_menu(self) -> QMenu:
         informations_dict: dict[str, QMenu] = {}
 
         def _add_action(parent_id: str, info_type: str, display_name: str):
@@ -127,8 +120,8 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
         for top_level_code in ai_config_library.top_level_codes:
             top_level_config = ai_config_library.get_config_by_code(top_level_code)
 
-            menu = QMenu(top_level_config.name, self)
-            informations_dict[top_level_code] = menu
+            sub_menu = QMenu(top_level_config.name, self)
+            informations_dict[top_level_code] = sub_menu
 
             for child_code in top_level_config.children:
                 config = ai_config_library.get_config_by_code(child_code)
@@ -136,43 +129,34 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
                     continue
                 _add_action(top_level_code, config.additional_information_type, config.name)
 
-        # Create main menu for btn and add submenus
-        additional_information_type_menu = QMenu(self)
-        for menu in informations_dict.values():
-            additional_information_type_menu.addMenu(menu)
-        self.add_additional_information_btn.setMenu(additional_information_type_menu)
-        self.add_additional_information_btn.setIcon(QgsApplication.getThemeIcon("mActionPropertiesWidget.svg"))
+        menu = QMenu(self)
+        for sub_menu in informations_dict.values():
+            menu.addMenu(sub_menu)
 
-    def _init_other_information_btn(self):
-        add_field_menu = QMenu(self)
-        # add_field_menu.addAction("Määräysnumero").triggered.connect(self._add_regulation_number)
-        # add_field_menu.addAction("Liiteasiakirja").triggered.connect(self._add_file)
-        add_field_menu.addAction("Aihetunniste").triggered.connect(self._add_subject_identifier)
-        add_field_menu.addAction("Kaavoitusteema").triggered.connect(self._add_theme)
+        return menu
 
-        self.add_field_btn.setMenu(add_field_menu)
-        self.add_field_btn.setIcon(QgsApplication.getThemeIcon("mActionAdd.svg"))
+    def _init_additional_attributes_and_information_btn(self):
+        attributes_and_information_menu = QMenu(self)
+        attributes_and_information_menu.addAction("Aihetunniste").triggered.connect(self._add_subject_identifier)
+        attributes_and_information_menu.addAction("Kaavoitusteema").triggered.connect(self._add_theme)
+        attributes_and_information_menu.addAction("Lisätieto").setMenu(self._create_additional_information_menu())
+
+        self.add_attribute_or_information_btn.setMenu(attributes_and_information_menu)
+        self.add_attribute_or_information_btn.setIcon(QgsApplication.getThemeIcon("mActionAdd.svg"))
 
     def _on_expand_hide_btn_clicked(self):
         if self.expanded:
-            for label, value_widget in self.widgets:
-                # self.form_layout.removeWidget(label)
-                label.hide()
-                # self.form_layout.removeWidget(value_widget)
-                value_widget.hide()
-            self.additional_information_frame.hide()
+            self.regulation_details_container.hide()
             self.expand_hide_btn.setArrowType(Qt.ArrowType.DownArrow)
             self.expanded = False
         else:
-            for label, value_widget in self.widgets:
-                # self.form_layout.addRow(label, value_widget)
-                label.show()
-                value_widget.show()
-            self.additional_information_frame.show()
+            self.regulation_details_container.show()
             self.expand_hide_btn.setArrowType(Qt.ArrowType.UpArrow)
             self.expanded = True
 
     def _add_widget(self, label: QLabel, widget: QWidget):
+        self.regulation_details_container.show()
+        self.expand_hide_btn.show()
         self.form_layout.addRow(label, widget)
         self.widgets.append((label, widget))
         if not self.expanded:
@@ -185,24 +169,21 @@ class RegulationWidget(QWidget, FormClass):  # type: ignore
                     self.subject_identifier_widgets.remove(widget)
                 elif isinstance(widget, ThemeWidget):
                     self.theme_widgets.remove(widget)
+                elif isinstance(widget, AdditionalInformationWidget):
+                    self.additional_information_widgets.remove(widget)
                 self.form_layout.removeRow(widget_to_delete)
                 self.widgets.remove((label, widget))
+                if len(self.widgets) == 0:
+                    self.regulation_details_container.hide()
+                    self.expand_hide_btn.hide()
                 return True
         return False
 
     def _add_additional_info(self, additional_information: AdditionalInformation):
-        widget = AdditionalInformationWidget(additional_information, self)
-        widget.delete_signal.connect(self._delete_additional_info)
-
-        self.additional_information_frame.show()
-
-        self.additional_information_widgets.append(widget)
-        self.additional_information_layout.addWidget(widget)
-
-    def _delete_additional_info(self, info_widget: AdditionalInformationWidget):
-        self.additional_information_layout.removeWidget(info_widget)
-        self.additional_information_widgets.remove(info_widget)
-        info_widget.deleteLater()
+        ai_widget = AdditionalInformationWidget(additional_information, self)
+        ai_widget.delete_signal.connect(self._delete_widget)
+        self.additional_information_widgets.append(ai_widget)
+        self._add_widget(QLabel("Lisätieto:"), ai_widget)
 
     def _add_subject_identifier(self, subject: str | None = None):
         # self.topic_tag_widget = SinglelineTextInputWidget(None, True)

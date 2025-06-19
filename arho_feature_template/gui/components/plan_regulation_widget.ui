@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>487</width>
-    <height>195</height>
+    <height>80</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -24,12 +24,12 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_2">
+    <layout class="QHBoxLayout" name="title_layout">
      <item>
-      <widget class="QLabel" name="label_2">
+      <widget class="QLabel" name="regulation_name">
        <property name="font">
         <font>
-         <pointsize>11</pointsize>
+         <pointsize>12</pointsize>
          <weight>75</weight>
          <bold>true</bold>
         </font>
@@ -53,17 +53,20 @@
       </spacer>
      </item>
      <item>
-      <widget class="QPushButton" name="add_additional_information_btn">
-       <property name="toolTip">
-        <string>Lisätieto</string>
-       </property>
+      <widget class="QToolButton" name="expand_hide_btn">
        <property name="text">
-        <string/>
+        <string>Laajenna</string>
+       </property>
+       <property name="autoRaise">
+        <bool>false</bool>
+       </property>
+       <property name="arrowType">
+        <enum>Qt::UpArrow</enum>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="add_field_btn">
+      <widget class="QPushButton" name="add_attribute_or_information_btn">
        <property name="toolTip">
         <string>Muu tieto</string>
        </property>
@@ -97,48 +100,8 @@
     </layout>
    </item>
    <item>
-    <layout class="QFormLayout" name="form_layout">
-     <item row="0" column="0">
-      <widget class="QLabel" name="label_4">
-       <property name="text">
-        <string>Laji:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="1">
-      <layout class="QHBoxLayout" name="horizontalLayout">
-       <item>
-        <widget class="QLineEdit" name="plan_regulation_name"/>
-       </item>
-       <item>
-        <widget class="QToolButton" name="expand_hide_btn">
-         <property name="text">
-          <string>Laajenna</string>
-         </property>
-         <property name="autoRaise">
-          <bool>false</bool>
-         </property>
-         <property name="arrowType">
-          <enum>Qt::UpArrow</enum>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
-    </layout>
-   </item>
-   <item>
-    <widget class="QFrame" name="additional_information_frame">
-     <property name="frameShape">
-      <enum>QFrame::NoFrame</enum>
-     </property>
-     <property name="frameShadow">
-      <enum>QFrame::Raised</enum>
-     </property>
-     <layout class="QVBoxLayout" name="frame_layout">
-      <property name="spacing">
-       <number>6</number>
-      </property>
+    <widget class="QWidget" name="regulation_details_container" native="true">
+     <layout class="QHBoxLayout" name="horizontalLayout">
       <property name="leftMargin">
        <number>0</number>
       </property>
@@ -152,28 +115,23 @@
        <number>0</number>
       </property>
       <item>
-       <widget class="QLabel" name="additional_information_label">
-        <property name="font">
-         <font>
-          <pointsize>9</pointsize>
-          <weight>75</weight>
-          <bold>true</bold>
-         </font>
+       <spacer name="spacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
         </property>
-        <property name="text">
-         <string>Lisätiedot:</string>
+        <property name="sizeType">
+         <enum>QSizePolicy::Fixed</enum>
         </property>
-       </widget>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>15</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
       </item>
       <item>
-       <layout class="QVBoxLayout" name="additional_information_layout">
-        <property name="spacing">
-         <number>6</number>
-        </property>
-        <property name="leftMargin">
-         <number>9</number>
-        </property>
-       </layout>
+       <layout class="QFormLayout" name="form_layout"/>
       </item>
      </layout>
     </widget>
