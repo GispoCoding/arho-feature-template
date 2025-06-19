@@ -2,7 +2,7 @@
 name=ARHO feature template
 description=Create new features from configurable templates
 about=
-version=0.1.0
+version=0.17.0
 qgisMinimumVersion=3.16
 author=
 email=
