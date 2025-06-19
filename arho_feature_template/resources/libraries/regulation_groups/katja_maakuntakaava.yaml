@@ -1,5 +1,6 @@
 name: Maakuntakaavan kaavamääräysryhmät (Katja)
 version: 1
+library_type: regulation_group
 categories:
   - category_code: aluevaraukset
     name: Aluevaraukset

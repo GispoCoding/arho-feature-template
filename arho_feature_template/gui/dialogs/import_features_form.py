@@ -100,12 +100,9 @@ class ImportFeaturesForm(QDialog, FormClass):  # type: ignore
         # Regulation groups initialization
         # Only regulation group already in DB are shown and they are not categorized right now
         # NOTE: This means groups that are "Aluevaraus" groups can be given to "Osa-alue" for example
-        i = 0
-        for category in active_plan_regulation_groups_library.regulation_group_categories:
-            for group in category.regulation_groups:
-                self.regulation_groups_selection.addItem(str(group))
-                self.regulation_groups_selection.setItemData(i, group.id_)
-                i += 1
+        for i, group in enumerate(active_plan_regulation_groups_library.regulation_groups):
+            self.regulation_groups_selection.addItem(str(group))
+            self.regulation_groups_selection.setItemData(i, group.id_)
 
         self._on_layer_selections_changed(self.source_layer_selection.currentLayer())
 

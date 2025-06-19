@@ -50,7 +50,9 @@ class PlanRegulationGroupForm(QDialog, FormClass):  # type: ignore
     """Form to create a new plan regulation group."""
 
     def __init__(
-        self, regulation_group: RegulationGroup, active_plan_regulation_groups_library: RegulationGroupLibrary
+        self,
+        regulation_group: RegulationGroup,
+        active_plan_regulation_groups_library: RegulationGroupLibrary | None,
     ):
         super().__init__()
         self.setupUi(self)
@@ -90,8 +92,11 @@ class PlanRegulationGroupForm(QDialog, FormClass):  # type: ignore
         self.regulation_group = regulation_group
         self.regulation_widgets: list[RegulationWidget] = []
         self.proposition_widgets: list[PropositionWidget] = []
-        self.save_as_config = False
-        self.existing_group_short_names = active_plan_regulation_groups_library.get_short_names()
+
+        if active_plan_regulation_groups_library:
+            self.existing_group_short_names = active_plan_regulation_groups_library.get_short_names()
+        else:
+            self.existing_group_short_names = set()
 
         # Initialize regulation library
         self.regulations_selection_widget = TreeWithSearchWidget()
