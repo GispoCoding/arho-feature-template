@@ -603,8 +603,8 @@ class RegulationGroup(PlanBaseModel):
             short_name=data.get("short_name"),
             color_code=data.get("color_code"),
             group_number=data.get("group_number"),
-            regulations=[Regulation.from_template_dict(reg_data) for reg_data in data["plan_regulations"]],
-            propositions=[Proposition(**prop_data) for prop_data in data["plan_propositions"]],
+            regulations=[Regulation.from_template_dict(reg_data) for reg_data in data.get("plan_regulations", [])],
+            propositions=[Proposition(**prop_data) for prop_data in data.get("plan_propositions", [])],
             category=data.get("category", "Ryhmättömät"),
             id_=None,
         )
