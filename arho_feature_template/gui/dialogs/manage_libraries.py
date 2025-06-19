@@ -130,7 +130,6 @@ class ManageLibrariesForm(QDialog, FormClass):  # type: ignore
             return
 
         self.active_library.name = new_name
-        self.regulation_group_libarary_selection.setCurrentText(new_name)
         self._check_required_fields()
 
     def _on_reload_library_file_clicked(self):
@@ -206,9 +205,10 @@ class ManageLibrariesForm(QDialog, FormClass):  # type: ignore
         self.regulation_group_libarary_selection.setCurrentIndex(self.regulation_group_libarary_selection.count() - 1)
 
     def _on_new_regulation_group_library_clicked(self):
-        library = RegulationGroupLibrary()
+        library = RegulationGroupLibrary(f"Uusi kirjasto {len(self.new_libraries) + 1}")
         self.new_libraries.append(library)
         self._add_library(library)
+        self.name.clear()  # Keep the name field empty to make sure user types something themselves
 
     def _on_import_regulation_group_library_clicked(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Tuo kaavamääräysryhmäkirjasto", "", "YAML files (*.yaml)")
@@ -364,6 +364,7 @@ class ManageLibrariesForm(QDialog, FormClass):  # type: ignore
 
     def _check_form(self) -> bool:
         file_paths = set()
+        names = set()
         for library in self._get_current_libraries():
             # Check for duplicate filepaths
             if library.file_path in file_paths:
@@ -373,7 +374,16 @@ class ManageLibrariesForm(QDialog, FormClass):  # type: ignore
                     f"Useammalle kaavamääräysryhmäkirjastolle on määritelty sama tallennuspolku ({library.file_path}).",
                 )
                 return False
+            # Check for duplicate names
+            if library.name in names:
+                QMessageBox.critical(
+                    self,
+                    "Virhe",
+                    f"Useammalle kaavamääräysryhmäkirjastolle on määritelty sama nimi ({library.name}).",
+                )
+                return False
             file_paths.add(library.file_path)
+            names.add(library.name)
 
         return True
 
