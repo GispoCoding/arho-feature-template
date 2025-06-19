@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from importlib import resources
 from typing import TYPE_CHECKING
 
@@ -68,9 +69,11 @@ class ManageLibrariesForm(QDialog, FormClass):  # type: ignore
         # VARS
         self.active_library: RegulationGroupLibrary | None = None
         self.new_libraries: list[RegulationGroupLibrary] = []
-        self.deleted_libraries: list[RegulationGroupLibrary] = []
+        self.deleted_libraries_filepaths: list[str] = []
 
-        self.custom_regulation_group_libraries = custom_regulation_group_libraries
+        # Make a deep copy of the given library list so that modifications will only be saved when user
+        # succesfully clicks Ok in this form
+        self.custom_regulation_group_libraries = copy.deepcopy(custom_regulation_group_libraries)
 
         # SIGNALS
         self.regulation_group_libarary_selection.currentIndexChanged.connect(self._on_regulation_group_library_changed)
@@ -258,8 +261,8 @@ class ManageLibrariesForm(QDialog, FormClass):  # type: ignore
             self._delete_library(self.active_library)
 
     def _delete_library(self, library: RegulationGroupLibrary):
-        if id(library) in [id(library) for library in self.custom_regulation_group_libraries]:
-            self.deleted_libraries.append(library)
+        if library.file_path is not None and id(library) in [id(lib) for lib in self.custom_regulation_group_libraries]:
+            self.deleted_libraries_filepaths.append(library.file_path)
 
         self.regulation_group_libarary_selection.removeItem(self.regulation_group_libarary_selection.currentIndex())
 

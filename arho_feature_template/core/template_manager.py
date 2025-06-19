@@ -9,6 +9,8 @@ from arho_feature_template.utils.misc_utils import iface
 
 
 class TemplateManager:
+    # NOTE: Consider refactoring this class into utils
+
     @classmethod
     def _clean_data(cls, data: dict | list | str | float):
         """Recursively removes keys with None, empty string, or empty-list values from a dict or list."""
