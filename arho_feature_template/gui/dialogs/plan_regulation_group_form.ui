@@ -17,7 +17,7 @@
    <item>
     <widget class="QTabWidget" name="tabs">
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="regulation_group_info_tab">
       <attribute name="title">
@@ -195,8 +195,8 @@ p, li { white-space: pre-wrap; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>898</width>
-            <height>577</height>
+            <width>120</width>
+            <height>49</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="propositions_layout">
