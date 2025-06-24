@@ -35,7 +35,11 @@ from arho_feature_template.gui.dialogs.serialize_plan_matter import SerializePla
 from arho_feature_template.gui.docks.new_feature_dock import NewFeatureDock
 from arho_feature_template.gui.docks.regulation_groups_dock import RegulationGroupsDock
 from arho_feature_template.gui.tools.inspect_plan_features_tool import InspectPlanFeatures
-from arho_feature_template.project.layers.code_layers import PlanRegulationGroupTypeLayer, code_layers
+from arho_feature_template.project.layers.code_layers import (
+    PlanRegulationGroupTypeLayer,
+    PlanRegulationTypeLayer,
+    code_layers,
+)
 from arho_feature_template.project.layers.plan_layers import (
     FEATURE_LAYER_NAME_TO_CLASS_MAP,
     AdditionalInformationLayer,
@@ -148,6 +152,7 @@ class PlanManager(QObject):
         # # don't seem to work as indicators whether a project is open?
         # if not QgsProject.instance() or not QgsProject().fileInfo():
         #     return
+        self.cache_code_layers()
         self.initialize_libraries()
 
     def check_required_layers(self):
@@ -159,6 +164,17 @@ class PlanManager(QObject):
             # iface.messageBar().pushWarning("", f"Project is missing required layers: {', '.join(missing_layers)}")
             return False
         return True
+
+    def cache_code_layers(self):
+        # Cannot cache code layers if layers are not present
+        if not self.check_required_layers():
+            return
+
+        @use_wait_cursor
+        def _cache_code_layers():
+            PlanRegulationTypeLayer.build_cache()
+
+        _cache_code_layers()
 
     def initialize_libraries(self):
         self._initialize_regulation_group_libraries()

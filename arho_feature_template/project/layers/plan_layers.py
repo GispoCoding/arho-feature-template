@@ -19,11 +19,10 @@ from arho_feature_template.core.models import (
     Proposition,
     Regulation,
     RegulationGroup,
-    RegulationLibrary,
 )
 from arho_feature_template.exceptions import FeatureNotFoundError, LayerEditableError, LayerNotFoundError
 from arho_feature_template.project.layers import AbstractLayer
-from arho_feature_template.project.layers.code_layers import PlanRegulationTypeLayer, PlanTypeLayer
+from arho_feature_template.project.layers.code_layers import PlanTypeLayer
 from arho_feature_template.utils.misc_utils import (
     deserialize_localized_text,
     get_active_plan_id,
@@ -395,7 +394,7 @@ class PlanRegulationLayer(AbstractPlanLayer):
         feature = cls.initialize_feature_from_model(model)
 
         feature["plan_regulation_group_id"] = model.regulation_group_id
-        feature["type_of_plan_regulation_id"] = model.config.id
+        feature["type_of_plan_regulation_id"] = model.regulation_type_id
         feature["subject_identifiers"] = model.subject_identifiers
 
         update_feature_from_attribute_value_model(model.value, feature)
@@ -404,17 +403,8 @@ class PlanRegulationLayer(AbstractPlanLayer):
 
     @classmethod
     def model_from_feature(cls, feature: QgsFeature) -> Regulation:
-        regulation_code = PlanRegulationTypeLayer.get_regulation_type_by_id(feature["type_of_plan_regulation_id"])
-        if not regulation_code:
-            msg = f"Regulation not found for regulation ID {feature['type_of_plan_regulation_id']}"
-            raise ValueError(msg)
-        config = RegulationLibrary.get_regulation_by_code(regulation_code)
-        if not config:
-            msg = f"Regulation config not found for {regulation_code}"
-            raise ValueError(msg)
-
         return Regulation(
-            config=config,
+            regulation_type_id=feature["type_of_plan_regulation_id"],
             value=attribute_value_model_from_feature(feature),
             additional_information=[
                 AdditionalInformationLayer.model_from_feature(ai_feat)

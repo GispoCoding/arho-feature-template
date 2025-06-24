@@ -31,11 +31,6 @@ class ConfigSyntaxError(Exception):
         super().__init__(f"Invalid config syntax: {message}")
 
 
-class UninitializedError(Exception):
-    def __init__(self):
-        super().__init__("RegulationLibrary is not initialized. Call 'initialize' first")
-
-
 class FeatureNotFoundError(Exception):
     def __init__(self, id_: str, layer_name: str):
         super().__init__(f"Feature with ID '{id_}' not found for layer {layer_name}")
