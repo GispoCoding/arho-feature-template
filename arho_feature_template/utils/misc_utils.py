@@ -5,7 +5,7 @@ from contextlib import suppress
 from functools import wraps
 from typing import TYPE_CHECKING, Any, cast
 
-from qgis.core import QgsExpressionContextUtils, QgsProject, QgsVectorLayer
+from qgis.core import QgsExpressionContextUtils, QgsFeature, QgsFeatureRequest, QgsProject, QgsVectorLayer
 from qgis.PyQt.QtCore import NULL, QSettings, Qt, pyqtBoundSignal
 from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.utils import OverrideCursor, iface
@@ -144,3 +144,20 @@ def null_to_none(value) -> Any:
     if value == NULL or value is None:
         return None
     return value
+
+
+def check_plan_feature_inside_plan(
+    feature: QgsFeature, plan_layer: QgsVectorLayer, plan_id: str, tolerance: float = 0.001
+) -> bool:
+    """Checks if plan feature is inside plan within a tolerance."""
+    request = QgsFeatureRequest()
+    request.setFilterExpression(f"\"id\" = '{plan_id}'")
+    plan = next(plan_layer.getFeatures(request), None)
+    if not plan:
+        return False
+
+    plan_geom = plan.geometry()
+    feature_geom = feature.geometry()
+    buffered_plan_boundary_geom = plan_geom.buffer(tolerance, -1)
+
+    return buffered_plan_boundary_geom.contains(feature_geom)
