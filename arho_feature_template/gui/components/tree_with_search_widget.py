@@ -31,14 +31,14 @@ class TreeWithSearchWidget(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
 
     def add_item_to_tree(
-        self, text: str | None, model: Any | None = None, parent: QTreeWidgetItem | None = None
+        self, text: str | None, data: Any | None = None, parent: QTreeWidgetItem | None = None
     ) -> QTreeWidgetItem:
         item = QTreeWidgetItem(parent)
         if text:
             item.setText(0, text)
             item.setToolTip(0, text)  # Set text as tooltip in case the tree width is not enough to show item text
-        if model:
-            item.setData(0, Qt.UserRole, model)
+        if data:
+            item.setData(0, Qt.UserRole, data)
         if not parent:
             self.tree.addTopLevelItem(item)
 

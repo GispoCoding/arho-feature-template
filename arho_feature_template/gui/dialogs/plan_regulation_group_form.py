@@ -27,12 +27,11 @@ from arho_feature_template.core.models import (
     RegulationConfig,
     RegulationGroup,
     RegulationGroupLibrary,
-    RegulationLibrary,
 )
 from arho_feature_template.gui.components.plan_proposition_widget import PropositionWidget
 from arho_feature_template.gui.components.plan_regulation_widget import RegulationWidget
 from arho_feature_template.gui.components.tree_with_search_widget import TreeWithSearchWidget
-from arho_feature_template.project.layers.code_layers import PlanRegulationGroupTypeLayer
+from arho_feature_template.project.layers.code_layers import PlanRegulationGroupTypeLayer, PlanRegulationTypeLayer
 from arho_feature_template.project.layers.plan_layers import RegulationGroupAssociationLayer
 from arho_feature_template.qgis_plugin_tools.tools.resources import resources_path
 
@@ -103,8 +102,8 @@ class PlanRegulationGroupForm(QDialog, FormClass):  # type: ignore
         self.libraries_widget.layout().insertWidget(1, self.regulations_selection_widget)
         self.regulations_selection_widget.tree.itemDoubleClicked.connect(self.add_selected_regulation)
         self.regulations_selection_widget.tree.itemClicked.connect(self.update_selected_regulation)
-        for config in RegulationLibrary.get_regulations():
-            self._initalize_regulation_from_config(config)
+
+        self.initialize_regulation_library()
 
         self.type_of_regulation_group.populate_from_code_layer(PlanRegulationGroupTypeLayer)
         self.type_of_regulation_group.remove_item_by_text("NULL")
@@ -155,12 +154,22 @@ class PlanRegulationGroupForm(QDialog, FormClass):  # type: ignore
             self.regulation_group_info_tab.layout().insertLayout(1, layout)
             self.setWindowTitle("Muokkaa kaavamääräysryhmää")
 
-    def _initalize_regulation_from_config(self, config: RegulationConfig, parent: QTreeWidgetItem | None = None):
-        item = self.regulations_selection_widget.add_item_to_tree(config.name, config, parent)
+    def initialize_regulation_library(self):
+        """Initializes the tree menu for regulations."""
+        # Map ID to widget to be able to assign parent widgets
+        regulation_type_widgets: dict[str, QWidget] = {}
 
-        # Initialize plan regulations recursively
-        for child_config in config.child_regulations:
-            self._initalize_regulation_from_config(child_config, item)
+        # Construct tree widget one level at a time by traversing sorted dict
+        # NOTE: Assumes PlanRegulationTypeLayer cache exists
+        # NOTE: This could be encapsulated as it's own widget, i.e. 'RegulationTreeWidget', which this
+        # form will create at start
+        for id_, attributes in sorted(
+            PlanRegulationTypeLayer.get_cached_attributes(), key=lambda item: item[1]["level"]
+        ):
+            tree_widget_item = self.regulations_selection_widget.add_item_to_tree(
+                attributes["name"], (id_, attributes), regulation_type_widgets.get(attributes["parent_id"])
+            )
+            regulation_type_widgets[id_] = tree_widget_item
 
     def _check_letter_code(self) -> bool:
         letter_code = self.letter_code.text()
@@ -184,11 +193,12 @@ class PlanRegulationGroupForm(QDialog, FormClass):  # type: ignore
         self.regulation_info.setText(config.description)
 
     def add_selected_regulation(self, item: QTreeWidgetItem, column: int):
-        config: RegulationConfig = item.data(column, Qt.UserRole)  # Retrieve the associated config
-        if config.category_only:
+        regulation_type_id, regulation_type_attributes = item.data(
+            column, Qt.UserRole
+        )  # Retrieve the associated config
+        if regulation_type_attributes["category_only"]:
             return
-        regulation = Regulation(config=config)
-        self.add_regulation(regulation)
+        self.add_regulation(Regulation(regulation_type_id))
 
     def add_regulation(self, regulation: Regulation):
         widget = RegulationWidget(regulation, parent=self.regulations_scroll_area_contents)

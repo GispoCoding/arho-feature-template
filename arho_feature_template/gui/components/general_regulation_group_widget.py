@@ -8,10 +8,10 @@ from qgis.PyQt import uic
 from qgis.PyQt.QtCore import pyqtSignal
 from qgis.PyQt.QtWidgets import QMenu, QWidget
 
-from arho_feature_template.core.models import Proposition, Regulation, RegulationGroup, RegulationLibrary
+from arho_feature_template.core.models import Proposition, Regulation, RegulationGroup
 from arho_feature_template.gui.components.plan_proposition_widget import PropositionWidget
 from arho_feature_template.gui.components.plan_regulation_widget import RegulationWidget
-from arho_feature_template.project.layers.code_layers import PlanRegulationGroupTypeLayer
+from arho_feature_template.project.layers.code_layers import PlanRegulationGroupTypeLayer, PlanRegulationTypeLayer
 
 if TYPE_CHECKING:
     from qgis.PyQt.QtWidgets import QFormLayout, QFrame, QLineEdit, QPushButton
@@ -45,7 +45,7 @@ class GeneralRegulationGroupWidget(QWidget, FormClass):  # type: ignore
         regulation_group.type_code_id = PlanRegulationGroupTypeLayer.get_id_by_feature_layer_name(layer_name)
         self.from_model(regulation_group)
 
-        self.verbal_regulation_config = RegulationLibrary.get_regulation_by_code("sanallinenMaarays")
+        self.verbal_regulation_type_id = PlanRegulationTypeLayer.get_id_by_type("sanallinenMaarays")
 
         # self.edit_btn.setIcon(QIcon(resources_path("icons", "settings.svg")))
         # self.edit_btn.clicked.connect(lambda: self.open_as_form_signal.emit(self))
@@ -74,7 +74,7 @@ class GeneralRegulationGroupWidget(QWidget, FormClass):  # type: ignore
             self.add_proposition_widget(proposition)
 
     def add_new_regulation(self):
-        regulation = Regulation(self.verbal_regulation_config)
+        regulation = Regulation(regulation_type_id=self.verbal_regulation_type_id)
         self.add_regulation_widget(regulation)
 
     def add_regulation_widget(self, regulation: Regulation) -> RegulationWidget:
