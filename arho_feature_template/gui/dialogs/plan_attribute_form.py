@@ -252,6 +252,7 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
             id_=self.plan.id_,
             name=self.name_line_edit.text(),
             description=self.description_text_edit.toPlainText() or None,
+            scale=self.scale_spin_box.value() or None,
             plan_type_id=self.plan_type_combo_box.value(),
             organisation_id=self.organisation_combo_box.value(),
             permanent_plan_identifier=self.permanent_identifier_line_edit.text() or None,

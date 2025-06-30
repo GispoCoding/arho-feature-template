@@ -673,6 +673,7 @@ class PlanFeature(PlanBaseModel):
 class Plan(PlanBaseModel):
     name: str | None = None
     description: str | None = None
+    scale: int | None = None
     plan_type_id: str | None = None
     lifecycle_status_id: str | None = None
     lifecycles: list[LifeCycle] = field(default_factory=list, compare=False)

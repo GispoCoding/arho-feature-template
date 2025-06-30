@@ -88,6 +88,7 @@ class PlanLayer(AbstractPlanLayer):
         feature.setGeometry(model.geom)
         feature["name"] = serialize_localized_text(model.name)
         feature["description"] = serialize_localized_text(model.description)
+        feature["scale"] = model.scale
         feature["permanent_plan_identifier"] = model.permanent_plan_identifier
         feature["record_number"] = model.record_number
         feature["producers_plan_identifier"] = model.producers_plan_identifier
@@ -108,6 +109,7 @@ class PlanLayer(AbstractPlanLayer):
             geom=feature.geometry(),
             name=deserialize_localized_text(feature["name"]),
             description=deserialize_localized_text(feature["description"]),
+            scale=feature["scale"],
             permanent_plan_identifier=feature["permanent_plan_identifier"],
             record_number=feature["record_number"],
             producers_plan_identifier=feature["producers_plan_identifier"],
