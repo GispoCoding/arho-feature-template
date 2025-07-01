@@ -12,6 +12,8 @@ from arho_feature_template.core.models import AdditionalInformation
 from arho_feature_template.gui.components.value_input_widgets import (
     ValueWidgetManager,
 )
+from arho_feature_template.project.layers.code_layers import AdditionalInformationTypeLayer
+from arho_feature_template.utils.misc_utils import deserialize_localized_text
 
 if TYPE_CHECKING:
     from qgis.PyQt.QtWidgets import QPushButton
@@ -41,13 +43,18 @@ class AdditionalInformationWidget(QWidget, FormClass):  # type: ignore
 
     def from_model(self, additional_information: AdditionalInformation):
         self.additional_information = additional_information
-        self.config = self.additional_information.config
-        self.additional_info.setText(additional_information.config.name)
+        text = AdditionalInformationTypeLayer.get_name_by_id(additional_information.additional_information_type_id)
+        if isinstance(text, dict):
+            text = deserialize_localized_text(text)
+        self.additional_info.setText(text)
 
         self.value_widget_manager: ValueWidgetManager | None = None
 
-        if self.config and self.config.default_value:
-            self.value_widget_manager = ValueWidgetManager(self.additional_information.value, self.config.default_value)
+        default_value = AdditionalInformationTypeLayer.get_default_value_by_id(
+            additional_information.additional_information_type_id
+        )
+        if default_value:
+            self.value_widget_manager = ValueWidgetManager(self.additional_information.value, default_value)
             widget = (
                 self.value_widget_manager.value_widget
                 if self.value_widget_manager.value_widget is not None
@@ -57,10 +64,9 @@ class AdditionalInformationWidget(QWidget, FormClass):  # type: ignore
 
     def into_model(self) -> AdditionalInformation:
         model = AdditionalInformation(
-            config=self.config,
+            additional_information_type_id=self.additional_information.additional_information_type_id,
             id_=self.additional_information.id_,
             plan_regulation_id=self.additional_information.plan_regulation_id,
-            type_additional_information_id=self.additional_information.type_additional_information_id,
             modified=self.additional_information.modified,
             value=self.value_widget_manager.into_model() if self.value_widget_manager else None,
         )

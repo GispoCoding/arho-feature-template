@@ -26,6 +26,7 @@ from arho_feature_template.gui.components.plan_regulation_group_widget import Re
 from arho_feature_template.gui.components.tree_with_search_widget import TreeWithSearchWidget
 from arho_feature_template.gui.dialogs.plan_regulation_group_form import PlanRegulationGroupForm
 from arho_feature_template.project.layers.code_layers import (
+    AdditionalInformationTypeLayer,
     PlanRegulationGroupTypeLayer,
     PlanType,
     PlanTypeLayer,
@@ -202,7 +203,10 @@ class PlanFeatureForm(QDialog, FormClass):  # type: ignore
             for regulation_group_widget in self.regulation_group_widgets
             for regulation_widget in regulation_group_widget.regulation_widgets
             for additional_information_widget in regulation_widget.additional_information_widgets
-            if additional_information_widget.config.additional_information_type == "paakayttotarkoitus"
+            if AdditionalInformationTypeLayer.get_type_by_id(
+                additional_information_widget.additional_information.additional_information_type_id
+            )
+            == "paakayttotarkoitus"
         }
 
         if len(principal_intended_use_groups) > 1:

@@ -6,6 +6,8 @@ from qgis.gui import QgsFilterLineEdit
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import QSizePolicy, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
 
+from arho_feature_template.utils.misc_utils import deserialize_localized_text
+
 
 class TreeWithSearchWidget(QWidget):
     """A widget combining a QTreeWidget and QgsFilterLineEdit."""
@@ -31,14 +33,16 @@ class TreeWithSearchWidget(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
 
     def add_item_to_tree(
-        self, text: str | None, model: Any | None = None, parent: QTreeWidgetItem | None = None
+        self, text: str | None, data: Any | None = None, parent: QTreeWidgetItem | None = None
     ) -> QTreeWidgetItem:
         item = QTreeWidgetItem(parent)
         if text:
+            if isinstance(text, dict):
+                text = deserialize_localized_text(text)
             item.setText(0, text)
             item.setToolTip(0, text)  # Set text as tooltip in case the tree width is not enough to show item text
-        if model:
-            item.setData(0, Qt.UserRole, model)
+        if data:
+            item.setData(0, Qt.UserRole, data)
         if not parent:
             self.tree.addTopLevelItem(item)
 

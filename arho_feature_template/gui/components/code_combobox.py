@@ -6,8 +6,7 @@ from typing import TYPE_CHECKING
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import QComboBox, QTreeWidget, QTreeWidgetItem
 
-from arho_feature_template.exceptions import LayerNotFoundError
-from arho_feature_template.utils.misc_utils import LANGUAGE
+from arho_feature_template.utils.misc_utils import deserialize_localized_text
 
 if TYPE_CHECKING:
     from arho_feature_template.project.layers.code_layers import (
@@ -27,15 +26,11 @@ class CodeComboBox(QComboBox):
         self.setCurrentIndex(0)
 
     def populate_from_code_layer(self, layer_type: type[AbstractCodeLayer]) -> None:
-        try:
-            layer = layer_type.get_from_project()
-        except LayerNotFoundError:
-            logger.warning("Layer % not found.", layer_type.name)
-            return
-
-        for i, feature in enumerate(layer.getFeatures(), start=1):
-            self.addItem(feature["name"][LANGUAGE])
-            self.setItemData(i, feature["id"])
+        for id_, attributes in layer_type.get_cached_attributes().items():
+            text = attributes.get("name")
+            if isinstance(text, dict):
+                text = deserialize_localized_text(text)
+            self.addItem(text, id_)
 
     def value(self) -> str:
         return self.currentData()
@@ -75,34 +70,34 @@ class HierarchicalCodeComboBox(QComboBox):
         self.tree_widget.setCurrentIndex(self.null_index)
 
     def populate_from_code_layer(self, layer_type: type[AbstractCodeLayer]) -> None:
-        try:
-            layer = layer_type.get_from_project()
-        except LayerNotFoundError:
-            logger.warning("Layer % not found.", layer_type.name)
-            return
-
-        codes = {feature["id"]: feature for feature in layer.getFeatures()}
         items: dict[str, QTreeWidgetItem] = {}
-        for code_feature in sorted(codes.values(), key=lambda feature: feature["level"]):
+
+        for id_, attributes in sorted(layer_type.get_cached_attributes().items(), key=lambda item: item[1]["level"]):
             item = QTreeWidgetItem()
-            items[code_feature["id"]] = item
+            items[id_] = item
 
-            item.setText(0, code_feature["name"][LANGUAGE])
-            item.setToolTip(
-                0,
-                code_feature["description"][LANGUAGE]
-                if code_feature["description"]
-                else code_feature["name"][LANGUAGE],
-            )
-            item.setData(0, Qt.UserRole, code_feature["id"])
+            # Text
+            name = attributes.get("name")
+            if isinstance(name, dict):
+                name = deserialize_localized_text(name)
+            item.setText(0, name)
 
-            if code_feature["value"] in layer_type.category_only_codes:
+            # Tooltip
+            description = attributes.get("description")
+            if isinstance(description, dict):
+                description = deserialize_localized_text(description)
+            item.setToolTip(0, description if description else name)
+
+            # Data
+            item.setData(0, Qt.UserRole, id_)
+
+            if attributes["value"] in layer_type.category_only_codes:
                 item.setFlags(item.flags() & ~Qt.ItemIsSelectable)
 
-            if code_feature["level"] == 1:
+            if attributes["level"] == 1:
                 self.tree_widget.addTopLevelItem(item)
             else:
-                parent = items[code_feature["parent_id"]]
+                parent = items[attributes["parent_id"]]
                 parent.addChild(item)
 
         self.tree_widget.expandAll()

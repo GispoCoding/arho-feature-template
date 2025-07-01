@@ -2,33 +2,25 @@ from __future__ import annotations
 
 import enum
 import logging
-import os
 from dataclasses import dataclass, field, fields
-from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
-import yaml
-
-from arho_feature_template.exceptions import ConfigSyntaxError
 from arho_feature_template.project.layers.code_layers import (
     AdditionalInformationTypeLayer,
+    PlanRegulationTypeLayer,
     UndergroundTypeLayer,
     VerbalRegulationType,
 )
-from arho_feature_template.qgis_plugin_tools.tools.resources import resources_path
-from arho_feature_template.utils.misc_utils import deserialize_localized_text, get_layer_by_name, null_to_none
+from arho_feature_template.utils.misc_utils import null_to_none
 
 if TYPE_CHECKING:
     from datetime import datetime
 
-    from qgis.core import QgsFeature, QgsGeometry
+    from qgis.core import QgsGeometry
     from qgis.PyQt.QtCore import QDate
 
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_PLAN_REGULATIONS_CONFIG_PATH = Path(os.path.join(resources_path(), "libraries", "kaavamaaraykset.yaml"))
-ADDITIONAL_INFORMATION_CONFIG_PATH = Path(os.path.join(resources_path(), "libraries", "additional_information.yaml"))
 
 
 class AttributeValueDataType(str, enum.Enum):
@@ -164,257 +156,12 @@ class RegulationGroupLibrary:
         return {group.letter_code for group in self.regulation_groups if group.letter_code}
 
 
-@dataclass
-class RegulationLibrary:
-    """Describes the set of plan regulations."""
-
-    version: str
-    regulations: list[RegulationConfig]
-    regulations_dict: dict[str, RegulationConfig]
-
-    _instance: RegulationLibrary | None = None
-
-    @classmethod
-    def get_instance(cls) -> RegulationLibrary:
-        """Get the singleton instance, if initialized."""
-        if cls._instance is None:
-            return cls.initialize()
-        return cls._instance
-
-    @classmethod
-    def get_regulations(cls) -> list[RegulationConfig]:
-        """Get the list of top-level regulation configs, if instance is initialized."""
-        return cls.get_instance().regulations
-
-    @classmethod
-    def get_regulations_dict(cls) -> dict[str, RegulationConfig]:
-        """Get all regulations in a dictionary where keys are regulations codes and values RegulationConfigs."""
-        return cls.get_instance().regulations_dict
-
-    @classmethod
-    def get_regulation_by_code(cls, regulation_code: str) -> RegulationConfig:
-        """
-        Get a regulation by it's regulation code (if exists).
-
-        Raises a KeyError if code does not exist.
-        """
-        return cls.get_instance().regulations_dict[regulation_code]
-
-    @classmethod
-    def initialize(
-        cls,
-        config_path: Path = DEFAULT_PLAN_REGULATIONS_CONFIG_PATH,
-        type_of_plan_regulations_layer_name="Kaavamääräyslaji",
-    ) -> RegulationLibrary:
-        # Initialize RegulationLibrary and RegulationConfigs from QGIS layer and config file
-
-        # 1. Read config file into a dict
-        with config_path.open(encoding="utf-8") as f:
-            config_data = yaml.safe_load(f)
-
-        # 2. Read code layer
-        layer = get_layer_by_name(type_of_plan_regulations_layer_name)
-        if layer is None:
-            msg = f"Could not find layer {type_of_plan_regulations_layer_name}!"
-            raise KeyError(msg)
-
-        # 3. Initialize regulation configs from layer. Storing them by their ID is handy for adding childs later
-        id_to_regulation_map: dict[str, RegulationConfig] = {
-            feature["id"]: RegulationConfig.from_feature(feature) for feature in layer.getFeatures()
-        }
-
-        # 4. Add information from config file (value, unit, category only) and link child regulations
-        try:
-            regulation_data: dict = {data["regulation_code"]: data for data in config_data["plan_regulations"]}
-            top_level_regulations: list[RegulationConfig] = []
-            for regulation_config in id_to_regulation_map.values():
-                # Add possible information from config data file
-                data = regulation_data.get(regulation_config.regulation_code)
-                if data:
-                    regulation_config.category_only = data.get("category_only", False)
-                    regulation_config.default_value = AttributeValue(
-                        value_data_type=(AttributeValueDataType(data["value_type"]) if "value_type" in data else None),
-                        unit=data["unit"] if "unit" in data else None,
-                    )
-
-                # Top-level, add to list
-                if not regulation_config.parent_id:
-                    top_level_regulations.append(regulation_config)
-                else:
-                    # Add as child of another regulation
-                    id_to_regulation_map[regulation_config.parent_id].child_regulations.append(regulation_config)
-        except KeyError as e:
-            raise ConfigSyntaxError(str(e)) from e
-
-        # 5. Create dictionary, useful when creating PlanRegulationDefinitions at least
-        regulations_dict: dict[str, RegulationConfig] = {}
-        for reg in top_level_regulations:
-            reg.add_to_dictionary(regulations_dict)
-
-        # 5. Create instance
-        cls._instance = cls(
-            version=config_data["version"], regulations=top_level_regulations, regulations_dict=regulations_dict
-        )
-        logger.info("RegulationLibrary initialized successfully.")
-        return cls._instance
-
-
 class PlanBaseModel:
     def __post_init__(self):
         # Set all found NULLs to None
         for _field in fields(self):
             value = getattr(self, _field.name)
             setattr(self, _field.name, null_to_none(value))
-
-
-@dataclass
-class RegulationConfig(PlanBaseModel):
-    """
-    Describes plan regulation type.
-
-    Initialized from DB/QGIS layer and extended with data from a config file.
-    """
-
-    id: str
-    regulation_code: str
-    name: str | None
-    description: str | None
-    status: str
-    level: int
-    parent_id: str | None
-    child_regulations: list[RegulationConfig] = field(default_factory=list, compare=False)
-
-    # Data from config file
-    category_only: bool = False
-    default_value: AttributeValue | None = None
-
-    # NOTE: Perhaps this ("model_from_feature") should be method of PlanTypeLayer class?
-    @classmethod
-    def from_feature(cls, feature: QgsFeature) -> RegulationConfig:
-        """
-        Initialize PlanRegulationConfig from QgsFeature.
-
-        Child regulations, value type ,category only and unit need to be set separately.
-        """
-        return cls(
-            id=feature["id"],
-            regulation_code=feature["value"],
-            name=deserialize_localized_text(feature["name"]),
-            description=deserialize_localized_text(feature["description"]),
-            status=feature["status"],
-            level=feature["level"],
-            parent_id=feature["parent_id"],
-        )
-
-    def add_to_dictionary(self, dictionary: dict[str, RegulationConfig]):
-        """Add child regulations to dictionary too."""
-        dictionary[self.regulation_code] = self
-        for regulation in self.child_regulations:
-            regulation.add_to_dictionary(dictionary)
-
-
-@dataclass
-class AdditionalInformationConfig(PlanBaseModel):
-    # From layer
-    id: str
-    additional_information_type: str
-    name: str | None
-    description: str | None
-    status: str
-    level: int
-    parent_id: str | None
-
-    children: list[str] = field(default_factory=list, compare=False)
-
-    # From config file
-    default_value: AttributeValue | None = None
-
-
-@dataclass
-class AdditionalInformationConfigLibrary:
-    version: str
-    configs: dict[str, AdditionalInformationConfig] = field(default_factory=dict)
-    top_level_codes: list[str] = field(default_factory=list)
-
-    _id_to_configs: dict[str, AdditionalInformationConfig] = field(default_factory=dict)
-    _instance: AdditionalInformationConfigLibrary | None = None
-
-    @classmethod
-    def get_instance(cls) -> AdditionalInformationConfigLibrary:
-        """Get the singleton instance, if initialized."""
-        if cls._instance is None:
-            cls._instance = cls.initialize(ADDITIONAL_INFORMATION_CONFIG_PATH)
-        return cls._instance
-
-    @classmethod
-    def initialize(cls, config_fp: Path = ADDITIONAL_INFORMATION_CONFIG_PATH) -> AdditionalInformationConfigLibrary:
-        with config_fp.open(encoding="utf-8") as f:
-            data = yaml.safe_load(f)
-            if data.get("version") != 1:
-                msg = "Version must be 1"
-                raise ConfigSyntaxError(msg)
-            config_file_configs = {
-                ai_config_data["code"]: ai_config_data for ai_config_data in data["additional_information"]
-            }
-
-        code_to_configs: dict[str, AdditionalInformationConfig] = {}
-        id_to_cofigs: dict[str, AdditionalInformationConfig] = {}
-        for feature in AdditionalInformationTypeLayer.get_features():
-            ai_code = feature["value"]
-            congig_file_config = config_file_configs.get(ai_code)
-
-            default_value = (
-                AttributeValue(
-                    value_data_type=AttributeValueDataType(congig_file_config["data_type"]),
-                    unit=congig_file_config.get("unit"),
-                )
-                if congig_file_config is not None
-                else None
-            )
-
-            ai_config = AdditionalInformationConfig(
-                id=feature["id"],
-                additional_information_type=ai_code,
-                name=deserialize_localized_text(feature["name"]),
-                description=deserialize_localized_text(feature["description"]),
-                status=feature["status"],
-                level=feature["level"],
-                parent_id=feature["parent_id"],
-                default_value=default_value,
-            )
-            code_to_configs[ai_code] = ai_config
-            id_to_cofigs[feature["id"]] = ai_config
-
-        top_level_codes = []
-        for ai_config in code_to_configs.values():
-            if ai_config.parent_id:
-                id_to_cofigs[ai_config.parent_id].children.append(ai_config.additional_information_type)
-            else:
-                top_level_codes.append(ai_config.additional_information_type)
-
-        return cls(
-            version=data["version"],
-            configs=code_to_configs,
-            top_level_codes=top_level_codes,
-            _id_to_configs=id_to_cofigs,
-        )
-
-    @classmethod
-    def get_config_by_code(cls, code: str) -> AdditionalInformationConfig:
-        """Get a regulation by it's regulation code.
-
-        Raises a KeyError if code not exists.
-        """
-        return cls.get_instance().configs[code]
-
-    @classmethod
-    def get_config_by_id(cls, id_: str) -> AdditionalInformationConfig:
-        """Get a regulation by it's regulation code.
-
-        Raises a KeyError if code not exists.
-        """
-
-        return cls.get_instance()._id_to_configs[id_]  # noqa: SLF001
 
 
 @dataclass
@@ -477,34 +224,29 @@ class AttributeValue(PlanBaseModel):
 
 @dataclass
 class AdditionalInformation(PlanBaseModel):
-    config: AdditionalInformationConfig  # includes code and unit among other needed data for saving feature
-
-    id_: str | None = None
-    plan_regulation_id: str | None = None
-    type_additional_information_id: str | None = None
+    additional_information_type_id: str
     value: AttributeValue | None = None
+    plan_regulation_id: str | None = None
     modified: bool = field(compare=False, default=True)
+    id_: str | None = None
 
     @staticmethod
     def from_template_dict(data: dict) -> AdditionalInformation:
-        ai_config = AdditionalInformationConfigLibrary.get_config_by_code(data["type"])
-        default_value = ai_config.default_value if ai_config.default_value else None
-
         return AdditionalInformation(
-            config=ai_config,
-            value=AttributeValue.from_template_dict(data, default_value=default_value),
+            additional_information_type_id=cast(str, AdditionalInformationTypeLayer.get_id_by_type(data["type"])),
+            value=AttributeValue.from_template_dict(data),  # TODO: check default value is OK
         )
 
     def into_template_dict(self) -> dict:
         return {
-            "type": self.config.additional_information_type,
+            "type": AdditionalInformationTypeLayer.get_type_by_id(self.additional_information_type_id),
             **(self.value.into_template_dict() if self.value else {}),
         }
 
 
 @dataclass
 class Regulation(PlanBaseModel):
-    config: RegulationConfig  # includes regulation_code and unit among other needed data for saving feature
+    regulation_type_id: str
     value: AttributeValue | None = None
     additional_information: list[AdditionalInformation] = field(default_factory=list)
     regulation_number: int | None = None
@@ -518,11 +260,14 @@ class Regulation(PlanBaseModel):
 
     @classmethod
     def from_template_dict(cls, data: dict) -> Regulation:
+        regulation_type_id = PlanRegulationTypeLayer.get_id_by_type(data["regulation_code"])
+        if regulation_type_id is None:
+            msg = f"Invalid regulation code in config: {data['regulation_code']}"
+            raise TemplateSyntaxError(str(cls), msg)
+
         try:
-            reg_code = data["regulation_code"]
-            config = RegulationLibrary.get_regulation_by_code(reg_code)
             return Regulation(
-                config=config,
+                regulation_type_id=regulation_type_id,
                 value=AttributeValue.from_template_dict(data),
                 additional_information=[
                     AdditionalInformation.from_template_dict(info) for info in data.get("additional_information", [])
@@ -549,7 +294,7 @@ class Regulation(PlanBaseModel):
 
     def into_template_dict(self) -> dict:
         return {
-            "regulation_code": self.config.regulation_code,
+            "regulation_code": PlanRegulationTypeLayer.get_type_by_id(self.regulation_type_id),
             **(self.value.into_template_dict() if self.value else {}),
             "additional_information": [info.into_template_dict() for info in self.additional_information],
             "regulation_number": self.regulation_number,
