@@ -134,7 +134,7 @@
            </font>
           </property>
           <property name="text">
-           <string>Kaavamääräyksen otsikko:</string>
+           <string>Otsikko:</string>
           </property>
          </widget>
         </item>

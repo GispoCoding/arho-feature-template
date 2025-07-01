@@ -29,7 +29,7 @@
          <item row="0" column="0">
           <widget class="QLabel" name="heading_label">
            <property name="text">
-            <string>Kaavamääräyksen otsikko:</string>
+            <string>Otsikko:</string>
            </property>
           </widget>
          </item>
@@ -156,8 +156,8 @@ p, li { white-space: pre-wrap; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>618</width>
-            <height>594</height>
+            <width>98</width>
+            <height>28</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="regulations_layout">
@@ -195,8 +195,8 @@ p, li { white-space: pre-wrap; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>898</width>
-            <height>594</height>
+            <width>120</width>
+            <height>49</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="propositions_layout">
