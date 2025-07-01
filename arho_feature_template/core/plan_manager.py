@@ -5,7 +5,12 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Generator, Iterable, cast
 
-from qgis.core import QgsExpressionContextUtils, QgsProject, QgsVectorLayer, QgsWkbTypes
+from qgis.core import (
+    QgsExpressionContextUtils,
+    QgsProject,
+    QgsVectorLayer,
+    QgsWkbTypes,
+)
 from qgis.gui import QgsMapToolDigitizeFeature
 from qgis.PyQt.QtCore import QObject, pyqtSignal
 from qgis.PyQt.QtWidgets import QDialog
@@ -60,6 +65,7 @@ from arho_feature_template.resources.libraries.regulation_groups import (
 from arho_feature_template.utils.db_utils import get_existing_database_connection_names
 from arho_feature_template.utils.misc_utils import (
     check_layer_changes,
+    check_plan_feature_inside_plan,
     disconnect_signal,
     get_active_plan_id,
     handle_unsaved_changes,
@@ -435,6 +441,14 @@ class PlanManager(QObject):
             title = self.new_feature_dock.active_feature_type
 
         plan_feature.geom = feature.geometry()
+        plan_id = get_active_plan_id()
+        plan_layer = PlanLayer.get_from_project()
+
+        if not check_plan_feature_inside_plan(feature, plan_layer, plan_id):
+            msg = "Kaavakohde ei saa ylittää kaavan ulkorajaa"
+            iface.messageBar().pushWarning("", msg)
+            return
+
         attribute_form = PlanFeatureForm(
             plan_feature, title, self.regulation_group_libraries, self.active_plan_regulation_group_library
         )
