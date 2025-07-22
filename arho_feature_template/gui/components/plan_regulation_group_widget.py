@@ -5,23 +5,27 @@ from typing import TYPE_CHECKING
 
 from qgis.core import QgsApplication
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import pyqtSignal
-from qgis.PyQt.QtGui import QIcon, QPixmap
-from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QWidget
+from qgis.PyQt.QtCore import Qt, QTimer, pyqtSignal
+from qgis.PyQt.QtGui import QIcon, QMouseEvent, QPixmap
+from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPushButton, QSizePolicy, QToolButton, QWidget
 
-from arho_feature_template.core.models import PlanFeature, Proposition, Regulation, RegulationGroup
 from arho_feature_template.exceptions import LayerNameNotFoundError
-from arho_feature_template.gui.components.plan_proposition_widget import PropositionWidget
-from arho_feature_template.gui.components.plan_regulation_widget import RegulationWidget
 from arho_feature_template.project.layers.code_layers import PlanRegulationGroupTypeLayer
 from arho_feature_template.project.layers.plan_layers import RegulationGroupAssociationLayer
 from arho_feature_template.qgis_plugin_tools.tools.resources import resources_path
 
 if TYPE_CHECKING:
-    from qgis.PyQt.QtWidgets import QFormLayout, QFrame, QLineEdit, QPushButton
+    from qgis.PyQt.QtWidgets import QFrame
+
+    from arho_feature_template.core.models import PlanFeature, Proposition, Regulation, RegulationGroup
+    from arho_feature_template.gui.components.plan_proposition_widget import PropositionWidget
+    from arho_feature_template.gui.components.plan_regulation_widget import RegulationWidget
 
 ui_path = resources.files(__package__) / "plan_regulation_group_widget.ui"
 FormClass, _ = uic.loadUiType(ui_path)
+
+
+USE_BUTTONS = True
 
 
 class RegulationGroupWidget(QWidget, FormClass):  # type: ignore
@@ -36,11 +40,10 @@ class RegulationGroupWidget(QWidget, FormClass):  # type: ignore
 
         # TYPES
         self.frame: QFrame
-        self.heading: QLineEdit
-        self.letter_code: QLineEdit
+        self.name_label: QLabel
         self.edit_btn: QPushButton
         self.del_btn: QPushButton
-        self.regulation_group_details_layout: QFormLayout
+        self.expand_hide_btn: QToolButton
 
         # INIT
         self.frame.setObjectName("frame")  # Set unique name to avoid style cascading
@@ -48,6 +51,12 @@ class RegulationGroupWidget(QWidget, FormClass):  # type: ignore
         self.proposition_widgets: list[PropositionWidget] = []
         self.link_label_icon: QLabel | None = None
         self.link_label_text: QLabel | None = None
+        self.widgets: list[QWidget] = []
+        self.expanded: bool = True
+
+        self.click_timer = QTimer()
+        self.click_timer.setSingleShot(True)
+        self.click_timer.timeout.connect(self._handle_single_click)
 
         self.plan_feature = plan_feature
         if not plan_feature.layer_name:
@@ -58,26 +67,31 @@ class RegulationGroupWidget(QWidget, FormClass):  # type: ignore
         self.from_model(regulation_group)
         self.regulation_group.type_code_id = PlanRegulationGroupTypeLayer.get_id_by_feature_layer_name(self.layer_name)
 
-        self.edit_btn.setIcon(QIcon(resources_path("icons", "settings.svg")))
+        # self.edit_btn.setIcon(QIcon(resources_path("icons", "settings.svg")))
+        self.edit_btn.setIcon(QIcon(resources_path("icons", "open_icon.png")))
         self.edit_btn.clicked.connect(lambda: self.open_as_form_signal.emit(self))
         self.del_btn.setIcon(QgsApplication.getThemeIcon("mActionDeleteSelected.svg"))
         self.del_btn.clicked.connect(lambda: self.delete_signal.emit(self))
+        self.expand_hide_btn.clicked.connect(self._on_expand_hide_btn_clicked)
+
+        self._on_expand_hide_btn_clicked()
 
     def from_model(self, regulation_group: RegulationGroup):
         self.regulation_group = regulation_group
 
-        self.heading.setText(regulation_group.heading if regulation_group.heading else "")
-        self.letter_code.setText(regulation_group.letter_code if regulation_group.letter_code else "")
+        # self.heading.setText(regulation_group.heading if regulation_group.heading else "")
+        # self.letter_code.setText(regulation_group.letter_code if regulation_group.letter_code else "")
+        self.name_label.setText(str(regulation_group))
 
-        # Remove existing child widgets if reinitializing
-        for widget in self.regulation_widgets:
-            self.delete_regulation_widget(widget)
-        for widget in self.proposition_widgets:
-            self.delete_proposition_widget(widget)
+        # Clear contents if reinitializing
+        for widget in self.widgets:
+            widget.deleteLater()
+        self.widgets.clear()
+
         for regulation in regulation_group.regulations:
-            self.add_regulation_widget(regulation)
+            self.add_regulation(regulation)
         for proposition in regulation_group.propositions:
-            self.add_proposition_widget(proposition)
+            self.add_proposition(proposition)
 
         # Remove existing indicators if reinitializing
         self.unset_existing_regulation_group_style()
@@ -97,29 +111,107 @@ class RegulationGroupWidget(QWidget, FormClass):  # type: ignore
                 # Set indicators that regulation group exists in the plan already and is assigned for other features
                 self.set_existing_regulation_group_style(other_linked_features_count)
 
-    def add_regulation_widget(self, regulation: Regulation) -> RegulationWidget:
-        widget = RegulationWidget(regulation=regulation, parent=self.frame)
-        widget.delete_signal.connect(self.delete_regulation_widget)
-        self.frame.layout().addWidget(widget)
-        self.regulation_widgets.append(widget)
-        return widget
+    def mousePressEvent(self, event: QMouseEvent):  # noqa: N802
+        if self._clicked_on_child(event):
+            event.ignore()
+            return
 
-    def delete_regulation_widget(self, regulation_widget: RegulationWidget):
-        self.frame.layout().removeWidget(regulation_widget)
-        self.regulation_widgets.remove(regulation_widget)
-        regulation_widget.deleteLater()
+        # Start timer to detect single click
+        self._double_clicked = False
+        self.click_timer.start(QgsApplication.instance().doubleClickInterval())
+        event.accept()
 
-    def add_proposition_widget(self, proposition: Proposition) -> PropositionWidget:
-        widget = PropositionWidget(proposition=proposition, parent=self.frame)
-        widget.delete_signal.connect(self.delete_proposition_widget)
-        self.frame.layout().addWidget(widget)
-        self.proposition_widgets.append(widget)
-        return widget
+    def mouseDoubleClickEvent(self, event: QMouseEvent):  # noqa: N802
+        if self._clicked_on_child(event):
+            event.ignore()
+            return
 
-    def delete_proposition_widget(self, proposition_widget: RegulationWidget):
-        self.frame.layout().removeWidget(proposition_widget)
-        self.proposition_widgets.remove(proposition_widget)
-        proposition_widget.deleteLater()
+        # Cancel single click timer
+        self._double_clicked = True
+        self.click_timer.stop()
+        self._handle_double_click()
+        event.accept()
+
+    def _clicked_on_child(self, event: QMouseEvent):
+        widget = self.childAt(event.pos())
+        return widget is not None and widget not in [self.frame, self.name_label]
+
+    def _handle_single_click(self):
+        if not self._double_clicked:
+            self._on_expand_hide_btn_clicked()
+
+    def _handle_double_click(self):
+        self.open_as_form_signal.emit(self)
+
+    def _on_expand_hide_btn_clicked(self):
+        if self.expanded:
+            self.hide_children()
+        else:
+            self.expand_children()
+
+    def expand_children(self):
+        for widget in self.widgets:
+            widget.show()
+        self.expand_hide_btn.setArrowType(Qt.ArrowType.UpArrow)
+        self.expanded = True
+
+    def hide_children(self):
+        for widget in self.widgets:
+            widget.hide()
+        self.expand_hide_btn.setArrowType(Qt.ArrowType.DownArrow)
+        self.expanded = False
+
+    def add_regulation(self, regulation: Regulation):
+        if USE_BUTTONS:
+            widg = QPushButton(text=f"- Kaavaamääräys: {regulation.name()}", parent=self.frame)
+            widg.setStyleSheet("""
+                QPushButton {
+                    background: transparent;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 3px 5px;
+                    text-align: left;
+                    color: black;
+                }
+                QPushButton:hover {
+                    border: 1px solid #5c5c5c;
+                    background-color: rgba(0, 0, 0, 3%);
+                }
+                QPushButton:pressed {
+                    background-color: rgba(0, 0, 0, 10%);
+                }
+            """)
+        else:
+            widg = QLabel(text=f"- Kaavaamääräys: {regulation.name()}", parent=self.frame)
+        widg.setToolTip(regulation.describe())
+        self.frame.layout().addWidget(widg)
+        self.widgets.append(widg)
+
+    def add_proposition(self, proposition: Proposition):
+        if USE_BUTTONS:
+            widg = QPushButton(text="- Kaavaasuositus", parent=self.frame)
+            widg.setStyleSheet("""
+                QPushButton {
+                    background: transparent;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 3px 5px;
+                    text-align: left;
+                    color: black;
+                }
+                QPushButton:hover {
+                    border: 1px solid #5c5c5c;
+                    background-color: rgba(0, 0, 0, 3%);
+                }
+                QPushButton:pressed {
+                    background-color: rgba(0, 0, 0, 10%);
+                }
+            """)
+        else:
+            widg = QLabel(text="- Kaavaasuositus", parent=self.frame)
+        widg.setToolTip(proposition.describe())
+        self.frame.layout().addWidget(widg)
+        self.widgets.append(widg)
 
     def set_existing_regulation_group_style(self, other_linked_features_count: int):
         tooltip = (
@@ -160,17 +252,5 @@ class RegulationGroupWidget(QWidget, FormClass):  # type: ignore
         self.setStyleSheet("")
 
     def into_model(self) -> RegulationGroup:
-        model = RegulationGroup(
-            type_code_id=self.regulation_group.type_code_id,
-            heading=self.heading.text(),
-            letter_code=self.letter_code.text(),
-            color_code=self.regulation_group.color_code,
-            regulations=[widget.into_model() for widget in self.regulation_widgets],
-            propositions=[widget.into_model() for widget in self.proposition_widgets],
-            modified=self.regulation_group.modified,
-            id_=self.regulation_group.id_,
-        )
-        if not model.modified and model != self.regulation_group:
-            model.modified = True
-
-        return model
+        # Regulation group cannot be modified in the widget so we return what was given
+        return self.regulation_group

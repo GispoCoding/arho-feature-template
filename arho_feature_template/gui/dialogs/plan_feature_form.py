@@ -3,6 +3,7 @@ from __future__ import annotations
 from importlib import resources
 from typing import TYPE_CHECKING
 
+from qgis.core import QgsApplication
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import (
@@ -12,6 +13,7 @@ from qgis.PyQt.QtWidgets import (
     QGroupBox,
     QLineEdit,
     QMessageBox,
+    QPushButton,
     QScrollArea,
     QSizePolicy,
     QSpacerItem,
@@ -59,6 +61,9 @@ class PlanFeatureForm(QDialog, FormClass):  # type: ignore
         self.setupUi(self)
 
         # TYPES
+        self.expand_all_btn: QPushButton
+        self.hide_all_btn: QPushButton
+
         self.feature_name: QLineEdit
         self.feature_description: QTextEdit
         self.feature_type_of_underground: CodeComboBox
@@ -120,7 +125,20 @@ class PlanFeatureForm(QDialog, FormClass):  # type: ignore
         for regulation_group in plan_feature.regulation_groups:
             self.add_plan_regulation_group(regulation_group)
 
+        self.expand_all_btn.setIcon(QgsApplication.getThemeIcon("mActionArrowDown.svg"))
+        self.hide_all_btn.setIcon(QgsApplication.getThemeIcon("mActionArrowUp.svg"))
+
+        self.expand_all_btn.clicked.connect(self._on_expand_all_clicked)
+        self.hide_all_btn.clicked.connect(self._on_hide_all_clicked)
         self.button_box.accepted.connect(self._on_ok_clicked)
+
+    def _on_expand_all_clicked(self):
+        for reg_group_widget in self.regulation_group_widgets:
+            reg_group_widget.expand_children()
+
+    def _on_hide_all_clicked(self):
+        for reg_group_widget in self.regulation_group_widgets:
+            reg_group_widget.hide_children()
 
     def select_library_by_active_plan_type(self):
         feature = PlanLayer.get_feature_by_id(get_active_plan_id(), no_geometries=False)

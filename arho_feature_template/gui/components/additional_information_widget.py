@@ -13,7 +13,6 @@ from arho_feature_template.gui.components.value_input_widgets import (
     ValueWidgetManager,
 )
 from arho_feature_template.project.layers.code_layers import AdditionalInformationTypeLayer
-from arho_feature_template.utils.misc_utils import deserialize_localized_text
 
 if TYPE_CHECKING:
     from qgis.PyQt.QtWidgets import QPushButton
@@ -43,10 +42,7 @@ class AdditionalInformationWidget(QWidget, FormClass):  # type: ignore
 
     def from_model(self, additional_information: AdditionalInformation):
         self.additional_information = additional_information
-        text = AdditionalInformationTypeLayer.get_name_by_id(additional_information.additional_information_type_id)
-        if isinstance(text, dict):
-            text = deserialize_localized_text(text)
-        self.additional_info.setText(text)
+        self.additional_info.setText(additional_information.name())
 
         self.value_widget_manager: ValueWidgetManager | None = None
 

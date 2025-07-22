@@ -11,6 +11,7 @@ from qgis.core import QgsFeature, QgsVectorLayerUtils
 from arho_feature_template.core.models import (
     AdditionalInformation,
     AttributeValue,
+    AttributeValueDataType,
     Document,
     LifeCycle,
     Plan,
@@ -343,7 +344,7 @@ class RegulationGroupAssociationLayer(AbstractPlanLayer):
 
 def attribute_value_model_from_feature(feature: QgsFeature) -> AttributeValue:
     return AttributeValue(
-        value_data_type=feature["value_data_type"],
+        value_data_type=AttributeValueDataType(feature["value_data_type"]) if feature["value_data_type"] else None,
         numeric_value=feature["numeric_value"],
         numeric_range_min=feature["numeric_range_min"],
         numeric_range_max=feature["numeric_range_max"],

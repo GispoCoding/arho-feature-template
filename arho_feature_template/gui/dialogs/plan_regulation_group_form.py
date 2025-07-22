@@ -16,6 +16,7 @@ from qgis.PyQt.QtWidgets import (
     QScrollArea,
     QSizePolicy,
     QSplitter,
+    QTabWidget,
     QTextBrowser,
     QTreeWidgetItem,
     QVBoxLayout,
@@ -57,6 +58,8 @@ class PlanRegulationGroupForm(QDialog, FormClass):  # type: ignore
         self.setupUi(self)
 
         # TYPES
+        self.tabs: QTabWidget
+
         self.heading: QLineEdit
         self.letter_code: QLineEdit
         self.group_number: QgsSpinBox
@@ -153,6 +156,9 @@ class PlanRegulationGroupForm(QDialog, FormClass):  # type: ignore
 
             self.regulation_group_info_tab.layout().insertLayout(1, layout)
             self.setWindowTitle("Muokkaa kaavamääräysryhmää")
+
+            # Ensure we open the form with first tab visible
+            self.tabs.setCurrentIndex(0)
 
     def initialize_regulation_library(self):
         """Initializes the tree menu for regulations."""

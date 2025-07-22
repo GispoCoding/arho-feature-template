@@ -8,10 +8,11 @@ from typing import TYPE_CHECKING, cast
 from arho_feature_template.project.layers.code_layers import (
     AdditionalInformationTypeLayer,
     PlanRegulationTypeLayer,
+    PlanThemeLayer,
     UndergroundTypeLayer,
     VerbalRegulationType,
 )
-from arho_feature_template.utils.misc_utils import null_to_none
+from arho_feature_template.utils.misc_utils import deserialize_localized_text, null_to_none
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -221,6 +222,37 @@ class AttributeValue(PlanBaseModel):
             "height_reference_point": self.height_reference_point,
         }
 
+    def describe(self) -> str:
+        if self.is_empty():
+            return ""
+
+        if self.numeric_value is not None:
+            return f"{self.numeric_value} {self.unit or ''}".strip()
+
+        if self.numeric_range_min is not None or self.numeric_range_max is not None:
+            min_ = self.numeric_range_min or ""
+            max_ = self.numeric_range_max or ""
+            return f"{min_}-{max_} {self.unit or ''}".strip()
+
+        if self.text_value:
+            return self.text_value
+
+        if self.code_value:
+            return self.code_value
+
+        return ""
+
+    def is_empty(self) -> bool:
+        return not any(
+            [
+                self.numeric_value,
+                self.numeric_range_min,
+                self.numeric_range_max,
+                self.text_value,
+                self.code_value,
+            ]
+        )
+
 
 @dataclass
 class AdditionalInformation(PlanBaseModel):
@@ -242,6 +274,17 @@ class AdditionalInformation(PlanBaseModel):
             "type": AdditionalInformationTypeLayer.get_type_by_id(self.additional_information_type_id),
             **(self.value.into_template_dict() if self.value else {}),
         }
+
+    def name(self) -> str | None:
+        return deserialize_localized_text(
+            AdditionalInformationTypeLayer.get_name_by_id(self.additional_information_type_id)
+        )
+
+    def __str__(self):
+        str_to_return = self.name()
+        if self.value is not None and self.value.describe() != "":
+            str_to_return += ": " + self.value.describe() + "\n"
+        return str_to_return
 
 
 @dataclass
@@ -307,6 +350,47 @@ class Regulation(PlanBaseModel):
             ],
         }
 
+    def name(self) -> str | None:
+        return deserialize_localized_text(PlanRegulationTypeLayer.get_name_by_id(self.regulation_type_id))
+
+    def describe(self) -> str:
+        str_to_return = f"Laji: {self.name()}" + "\n"
+
+        if self.value is not None and self.value.describe() != "":
+            str_to_return += f"Arvo: {self.value.describe()}" + "\n"
+
+        if len(self.verbal_regulation_type_ids) > 0:
+            verbal_reg_types = [
+                deserialize_localized_text(
+                    VerbalRegulationType.get_attribute_value_by_another_attribute_value(
+                        "name", "id", verbal_reg_type_id
+                    )
+                    for verbal_reg_type_id in self.verbal_regulation_type_ids
+                )
+            ]
+            str_to_return += (
+                "Sanallisen määräyksen lajit: "
+                + ", ".join(verbal_reg_type for verbal_reg_type in verbal_reg_types if verbal_reg_type)
+                + "\n"
+            )
+
+        if len(self.theme_ids) > 0:
+            themes = [
+                deserialize_localized_text(
+                    PlanThemeLayer.get_attribute_value_by_another_attribute_value("name", "id", theme_id)
+                )
+                for theme_id in self.theme_ids
+            ]
+            str_to_return += "Kaavoitusteemat: " + ", ".join(theme for theme in themes if theme) + "\n"
+
+        if self.subject_identifiers and len(self.subject_identifiers) > 0:
+            str_to_return += "Aihetunnisteet: " + ", ".join(self.subject_identifiers).strip() + "\n"
+
+        if len(self.additional_information) > 0:
+            str_to_return += "Lisätiedot:\n" + "\n".join(f"    {ai!s}" for ai in self.additional_information)
+
+        return str_to_return.rstrip()
+
 
 @dataclass
 class Proposition(PlanBaseModel):
@@ -323,6 +407,11 @@ class Proposition(PlanBaseModel):
             # "theme_id": self.theme_id,  # Themes will be changed in a to-be-merged PR
             "proposition_number": self.proposition_number,
         }
+
+    def describe(self) -> str:
+        str_to_return = f"Sisältö: {self.value}" + "\n"
+
+        return str_to_return.rstrip()
 
 
 @dataclass
