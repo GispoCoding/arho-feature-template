@@ -1219,3 +1219,9 @@ categories:
           - regulation_code: ulkoiluTaiVirkistysReitti
             additional_information:
               - type: yhteystarve
+
+      - name: Joki tai muu avouoma
+        geometry: Viiva
+        short_name: W
+        plan_regulations:
+          - regulation_code: vesialue

@@ -58,6 +58,7 @@
       <rule label="Luonnon &#xa;monimuotoisuuden kannalta erityisen tärkeä alue" key="{2f802cb9-1fcf-41ca-a746-185b562f22d5}" filter="map_exist(&#xd;&#xa;  &quot;type_regulations&quot;,&#xd;&#xa;  'luonnonMonimuotoisuudenKannaltaErityisenTarkeaAlue'&#xd;&#xa;)&#xd;&#xa;AND map_exist(&#xd;&#xa;  &quot;type_regulations&quot;['luonnonMonimuotoisuudenKannaltaErityisenTarkeaAlue'],&#xd;&#xa;  'osaAlue'&#xd;&#xa;)" symbol="53"/>
       <rule label="Yhdyskuntarakenteen laajenemissuunta" key="{1c73678f-9182-4917-91ac-d3be82a21409}" filter="map_akeys(&quot;type_regulations&quot;) = array('yhdyskuntarakenteenLaajenemissuunta')" symbol="54"/>
       <rule label="Liikenteen yhteystarve" key="{46e91e2d-23d2-4412-b4a2-f7fbaeab1f4a}" filter="map_akeys(&quot;type_regulations&quot;) = array('kehittamisvyohyke')&#xa;AND&#xa;map_akeys(map_get(&quot;type_regulations&quot;, 'kehittamisvyohyke')) = array('yhteystarve')" symbol="55"/>
+      <rule label="Joki tai muu avouoma" key="{4f8ad91e-b296-4cfe-a919-249ce0983787}" filter="map_akeys(&quot;type_regulations&quot;) = array('vesialue')" symbol="56"/>
     </rules>
     <symbols>
       <symbol clip_to_extent="1" type="line" is_animated="0" name="0" alpha="1" force_rhr="0" frame_rate="10">
@@ -5585,6 +5586,53 @@
           </symbol>
         </layer>
       </symbol>
+      <symbol clip_to_extent="1" type="line" is_animated="0" name="56" alpha="1" force_rhr="0" frame_rate="10">
+        <data_defined_properties>
+          <Option type="Map">
+            <Option value="" type="QString" name="name"/>
+            <Option name="properties"/>
+            <Option value="collection" type="QString" name="type"/>
+          </Option>
+        </data_defined_properties>
+        <layer enabled="1" pass="0" class="SimpleLine" id="{e5ff37ef-d0d9-44c3-94e7-a4765b94a4bd}" locked="0">
+          <Option type="Map">
+            <Option value="0" type="QString" name="align_dash_pattern"/>
+            <Option value="square" type="QString" name="capstyle"/>
+            <Option value="5;2" type="QString" name="customdash"/>
+            <Option value="3x:0,0,0,0,0,0" type="QString" name="customdash_map_unit_scale"/>
+            <Option value="Point" type="QString" name="customdash_unit"/>
+            <Option value="0" type="QString" name="dash_pattern_offset"/>
+            <Option value="3x:0,0,0,0,0,0" type="QString" name="dash_pattern_offset_map_unit_scale"/>
+            <Option value="Point" type="QString" name="dash_pattern_offset_unit"/>
+            <Option value="0" type="QString" name="draw_inside_polygon"/>
+            <Option value="bevel" type="QString" name="joinstyle"/>
+            <Option value="193,221,245,255,rgb:0.75686274509803919,0.8666666666666667,0.96078431372549022,1" type="QString" name="line_color"/>
+            <Option value="solid" type="QString" name="line_style"/>
+            <Option value="3" type="QString" name="line_width"/>
+            <Option value="Point" type="QString" name="line_width_unit"/>
+            <Option value="0" type="QString" name="offset"/>
+            <Option value="3x:0,0,0,0,0,0" type="QString" name="offset_map_unit_scale"/>
+            <Option value="Point" type="QString" name="offset_unit"/>
+            <Option value="0" type="QString" name="ring_filter"/>
+            <Option value="0" type="QString" name="trim_distance_end"/>
+            <Option value="3x:0,0,0,0,0,0" type="QString" name="trim_distance_end_map_unit_scale"/>
+            <Option value="Point" type="QString" name="trim_distance_end_unit"/>
+            <Option value="0" type="QString" name="trim_distance_start"/>
+            <Option value="3x:0,0,0,0,0,0" type="QString" name="trim_distance_start_map_unit_scale"/>
+            <Option value="Point" type="QString" name="trim_distance_start_unit"/>
+            <Option value="0" type="QString" name="tweak_dash_pattern_on_corners"/>
+            <Option value="0" type="QString" name="use_custom_dash"/>
+            <Option value="3x:0,0,0,0,0,0" type="QString" name="width_map_unit_scale"/>
+          </Option>
+          <data_defined_properties>
+            <Option type="Map">
+              <Option value="" type="QString" name="name"/>
+              <Option name="properties"/>
+              <Option value="collection" type="QString" name="type"/>
+            </Option>
+          </data_defined_properties>
+        </layer>
+      </symbol>
       <symbol clip_to_extent="1" type="line" is_animated="0" name="6" alpha="1" force_rhr="0" frame_rate="10">
         <data_defined_properties>
           <Option type="Map">
@@ -5966,7 +6014,7 @@
             <families/>
             <text-buffer bufferBlendMode="0" bufferColor="250,250,250,255,rgb:0.98039215686274506,0.98039215686274506,0.98039215686274506,1" bufferDraw="0" bufferOpacity="1" bufferSizeMapUnitScale="3x:0,0,0,0,0,0" bufferSize="1" bufferNoFill="1" bufferJoinStyle="128" bufferSizeUnits="MM"/>
             <text-mask maskType="0" maskSizeMapUnitScale="3x:0,0,0,0,0,0" maskSizeUnits="MM" maskJoinStyle="128" maskEnabled="0" maskSize="1.5" maskedSymbolLayers="" maskSize2="1.5" maskOpacity="1"/>
-            <background shapeBorderWidthUnit="Point" shapeDraw="1" shapeRotation="0" shapeSizeX="0" shapeOpacity="1" shapeSizeY="0" shapeRadiiY="0" shapeRadiiUnit="Point" shapeBlendMode="0" shapeRadiiX="0" shapeOffsetX="0" shapeSizeType="0" shapeOffsetMapUnitScale="3x:0,0,0,0,0,0" shapeSizeUnit="Point" shapeBorderColor="128,128,128,255,rgb:0.50196078431372548,0.50196078431372548,0.50196078431372548,1" shapeOffsetY="0" shapeSizeMapUnitScale="3x:0,0,0,0,0,0" shapeBorderWidthMapUnitScale="3x:0,0,0,0,0,0" shapeFillColor="255,255,255,255,rgb:1,1,1,1" shapeSVGFile="" shapeOffsetUnit="Point" shapeBorderWidth="0" shapeType="3" shapeRotationType="0" shapeJoinStyle="64" shapeRadiiMapUnitScale="3x:0,0,0,0,0,0">
+            <background shapeBorderWidthUnit="Point" shapeDraw="1" shapeRotation="0" shapeSizeX="0" shapeOpacity="1" shapeSizeY="0" shapeRadiiY="0" shapeRadiiUnit="Point" shapeBlendMode="0" shapeRadiiX="0" shapeOffsetX="0" shapeSizeType="0" shapeOffsetMapUnitScale="3x:0,0,0,0,0,0" shapeSizeUnit="Point" shapeBorderColor="0,0,0,255,rgb:0,0,0,1" shapeOffsetY="0" shapeSizeMapUnitScale="3x:0,0,0,0,0,0" shapeBorderWidthMapUnitScale="3x:0,0,0,0,0,0" shapeFillColor="255,255,255,255,rgb:1,1,1,1" shapeSVGFile="" shapeOffsetUnit="Point" shapeBorderWidth="0.75" shapeType="3" shapeRotationType="0" shapeJoinStyle="64" shapeRadiiMapUnitScale="3x:0,0,0,0,0,0">
               <symbol clip_to_extent="1" type="marker" is_animated="0" name="markerSymbol" alpha="1" force_rhr="0" frame_rate="10">
                 <data_defined_properties>
                   <Option type="Map">
