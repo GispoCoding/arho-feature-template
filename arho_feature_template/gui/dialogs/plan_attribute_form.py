@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, cast
 
 from qgis.core import QgsApplication
 from qgis.PyQt import uic
-from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox, QLabel, QLineEdit, QPushButton, QTextEdit
+from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox, QLabel, QLineEdit, QPushButton, QSpinBox, QTextEdit
 
 from arho_feature_template.core.models import Document, Plan, RegulationGroup, RegulationGroupLibrary
 from arho_feature_template.gui.components.general_regulation_group_widget import GeneralRegulationGroupWidget
@@ -32,8 +32,9 @@ FormClass, _ = uic.loadUiType(ui_path)
 class PlanAttributeForm(QDialog, FormClass):  # type: ignore
     permanent_identifier_line_edit: QLineEdit
     name_line_edit: QLineEdit
-    organisation_combo_box: CodeComboBox
     description_text_edit: QTextEdit
+    scale_spin_box: QSpinBox
+    organisation_combo_box: CodeComboBox
     plan_type_combo_box: HierarchicalCodeComboBox
     lifecycle_status_combo_box: CodeComboBox
     record_number_line_edit: QLineEdit
@@ -68,6 +69,7 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
         self.plan_type_combo_box.set_value(plan.plan_type_id)
         self.lifecycle_status_combo_box.set_value(plan.lifecycle_status_id)
         self.organisation_combo_box.set_value(plan.organisation_id)
+        self.scale_spin_box.setValue(plan.scale if plan.scale else 0)
         self.name_line_edit.setText(plan.name if plan.name else "")
         self.description_text_edit.setText(plan.description if plan.description else "")
         self.permanent_identifier_line_edit.setText(
@@ -252,6 +254,7 @@ class PlanAttributeForm(QDialog, FormClass):  # type: ignore
             id_=self.plan.id_,
             name=self.name_line_edit.text(),
             description=self.description_text_edit.toPlainText() or None,
+            scale=self.scale_spin_box.value() or None,
             plan_type_id=self.plan_type_combo_box.value(),
             organisation_id=self.organisation_combo_box.value(),
             permanent_plan_identifier=self.permanent_identifier_line_edit.text() or None,
