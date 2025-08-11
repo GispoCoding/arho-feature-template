@@ -427,6 +427,15 @@ categories:
               - type: osaAlue
               - type: maakunnallinen
 
+      - name: Paikallisesti arvokas maisema-alue
+        geometry: Alue
+        short_name: pma
+        plan_regulations:
+          - regulation_code: maisemallisestiArvokasAlue
+            additional_information:
+              - type: osaAlue
+              - type: paikallinen
+
       - name: Merkittävä rakennettu kulttuuriympäristö
         geometry: [Alue, Piste]
         short_name: ky
@@ -439,7 +448,7 @@ categories:
         geometry: [Alue, Piste]
         short_name: kvky
         plan_regulations:
-          - regulation_code: maisemallisestiArvokasAlue
+          - regulation_code: merkittavaRakennettuKulttuuriymparisto
             additional_information:
               - type: osaAlue
               - type: kansainvalinen
@@ -581,7 +590,7 @@ categories:
         geometry: Alue
         short_name: tärinä
         plan_regulations:
-          - regulation_code: melualue
+          - regulation_code: tarinaalue # Not capitalized Alue because the leading a is actually ä :D # melualue
             additional_information:
               - type: osaAlue
 
@@ -1098,7 +1107,7 @@ categories:
           - regulation_code: pyorailyalue
             additional_information:
               - type: yhteystarve
-      
+
       - name: Liikenteen yhteystarve
         geometry: Viiva
         short_name: # NOTE: Check symbol
