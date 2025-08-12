@@ -671,7 +671,7 @@ categories:
     name: Kehittämisperiaatteita koskevat kaavamääräysryhmät
     plan_regulation_groups:
       #p. 54
-      - name: Kaupunkikehittämisen kohdealue
+      - name: Kaupunkikehittämisvyöhyke
         geometry: Alue
         short_name: kk
         plan_regulations:
@@ -680,7 +680,7 @@ categories:
               - type: osaAlue
           - regulation_code: sanallinenMaarays
 
-      - name: Maaseudun kehittämisen kohdealue
+      - name: Maaseudun kehittämisvyöhyke
         geometry: Alue
         short_name: mk
         plan_regulations:
@@ -689,7 +689,7 @@ categories:
               - type: osaAlue
           - regulation_code: sanallinenMaarays
 
-      - name: Matkailun ja virkistyksen kehittämisen kohdealue
+      - name: Matkailun ja virkistyksen kehittämisvyöhyke
         geometry: Alue
         short_name: mv
         plan_regulations:
@@ -702,7 +702,7 @@ categories:
                 value: virkistysalue
           - regulation_code: sanallinenMaarays
 
-      - name: Matkailun kehittämisen kohdealue
+      - name: Matkailun kehittämisvyöhyke
         geometry: Alue
         short_name: rma
         plan_regulations:
@@ -713,7 +713,7 @@ categories:
                 value: matkailupalvelujenAlue
           - regulation_code: sanallinenMaarays
 
-      - name: Virkistyksen kehittämisen kohdealue
+      - name: Virkistyksen kehittämisvyöhyke
         geometry: Alue
         short_name: vka
         plan_regulations:
@@ -724,7 +724,7 @@ categories:
                 value: virkistysalue
           - regulation_code: sanallinenMaarays
 
-      - name: Vähittäiskaupan kehittämisen kohdealue
+      - name: Vähittäiskaupan kehittämisvyöhyke
         geometry: Alue
         short_name: kma
         plan_regulations:
@@ -745,7 +745,7 @@ categories:
               - type: osaAlue
           - regulation_code: sanallinenMaarays
 
-      - name: Kulttuuriympäristön kehittämisen kohdealue
+      - name: Kulttuuriympäristön kehittämisvyöhyke
         geometry: Alue
         short_name: ky
         plan_regulations:
