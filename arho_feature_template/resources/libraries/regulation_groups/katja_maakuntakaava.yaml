@@ -747,7 +747,7 @@ categories:
 
       - name: Kulttuuriympäristön kehittämisvyöhyke
         geometry: Alue
-        short_name: ky
+        short_name: kya
         plan_regulations:
           - regulation_code: kehittamisvyohyke
             additional_information:
