@@ -8,8 +8,8 @@ from qgis.PyQt.QtCore import QCoreApplication, Qt, QTranslator
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QMenu, QToolButton, QWidget
 
-from arho_feature_template.core.geotiff_creator import GeoTiffCreator
 from arho_feature_template.core.plan_manager import PlanManager
+from arho_feature_template.gui.dialogs.create_geotiff_form import CreateGeotiffForm
 from arho_feature_template.gui.dialogs.plugin_settings import PluginSettings
 from arho_feature_template.gui.dialogs.post_plan import PostPlanDialog
 from arho_feature_template.gui.docks.validation_dock import ValidationDock
@@ -416,8 +416,9 @@ class Plugin:
 
     def create_geotiff(self):
         """Create geotiff from currently active plan."""
-        geotiff_creator = GeoTiffCreator()
-        geotiff_creator.select_output_file()
+        dialog = CreateGeotiffForm()
+        dialog.exec_()
+        # geotiff_form.select_output_file()
 
     def post_plan_matter(self):
         """Exports plan matter to Ryhti."""
