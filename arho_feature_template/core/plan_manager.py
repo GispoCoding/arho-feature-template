@@ -24,6 +24,7 @@ from arho_feature_template.core.models import (
 from arho_feature_template.core.template_manager import TemplateManager
 from arho_feature_template.exceptions import UnsavedChangesError
 from arho_feature_template.gui.dialogs.import_features_form import ImportFeaturesForm
+from arho_feature_template.gui.dialogs.import_plan_form import ImportPlanForm
 from arho_feature_template.gui.dialogs.lifecycle_editor import LifecycleEditor
 from arho_feature_template.gui.dialogs.load_plan_dialog import LoadPlanDialog
 from arho_feature_template.gui.dialogs.manage_libraries import ManageLibrariesForm
@@ -214,6 +215,11 @@ class PlanManager(QObject):
             for file_path in feature_template_library_config_files()
         ]
         self.new_feature_dock.initialize_feature_template_libraries(self.feature_template_libraries)
+
+    def open_import_plan_dialog(self):
+        import_plan_form = ImportPlanForm()
+        if import_plan_form.exec_():
+            pass
 
     def open_import_features_dialog(self):
         import_features_form = ImportFeaturesForm(self.active_plan_regulation_group_library)

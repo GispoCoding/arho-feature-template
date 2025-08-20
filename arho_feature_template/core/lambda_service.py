@@ -28,6 +28,7 @@ class LambdaService(QObject):
     ACTION_GET_PLAN_MATTERS = "get_plan_matters"
     ACTION_POST_PLAN_MATTERS = "post_plan_matters"
     ACTION_GET_PERMANENT_IDENTIFIERS = "get_permanent_plan_identifiers"
+    ACTION_IMPORT_PLAN = "import_plan"
 
     def __init__(self):
         super().__init__()
@@ -52,7 +53,10 @@ class LambdaService(QObject):
     def get_permanent_identifier(self, plan_id: str):
         self._send_request(action=self.ACTION_GET_PERMANENT_IDENTIFIERS, plan_id=plan_id)
 
-    def _send_request(self, action: str, plan_id: str):
+    def import_plan(self, payload: dict):
+        self._send_request(action=self.ACTION_IMPORT_PLAN, payload=payload)
+
+    def _send_request(self, action: str, plan_id: str | None = None, payload: dict | None = None):
         """Sends a request to the lambda function."""
         proxy_host, proxy_port, self.lambda_url = get_settings()
 
@@ -67,7 +71,8 @@ class LambdaService(QObject):
         else:
             self.network_manager.setProxy(QNetworkProxy())
 
-        payload = {"action": action, "plan_uuid": plan_id}
+        if not payload:
+            payload = {"action": action, "plan_uuid": plan_id}
         payload_bytes = QByteArray(json.dumps(payload).encode("utf-8"))
         request = QNetworkRequest(QUrl(self.lambda_url))
         request.setAttribute(LambdaService.ActionAttribute, action)

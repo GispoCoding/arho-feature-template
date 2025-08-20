@@ -311,14 +311,34 @@ class Plugin:
             status_tip="Tallenna aktiivinen kaava geotiff muodossa",
         )
 
+        self.import_plan_action = self.add_action(
+            text="Tuo kaava",
+            icon=QgsApplication.getThemeIcon("mActionSharingImport.svg"),
+            triggered_callback=self.plan_manager.open_import_plan_dialog,
+            add_to_menu=False,
+            add_to_toolbar=False,
+            status_tip="Tuo kaavan JSON tietokantaan",
+        )
+
         self.import_features_action = self.add_action(
             text="Tuo kaavakohteita",
             icon=QgsApplication.getThemeIcon("mActionSharingImport.svg"),
             triggered_callback=self.plan_manager.open_import_features_dialog,
-            add_to_menu=True,
-            add_to_toolbar=True,
+            add_to_menu=False,
+            add_to_toolbar=False,
             status_tip="Tuo kaavakohteita tietokantaan toisilta vektoritasoilta",
         )
+
+        self.import_button = QToolButton()
+        self.import_button.setText("Tuo")
+        self.import_button.setIcon(QgsApplication.getThemeIcon("mActionSharingImport.svg"))
+        self.import_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.import_button.setPopupMode(QToolButton.InstantPopup)
+
+        import_menu = QMenu()
+        import_menu.addActions([self.import_plan_action, self.import_features_action])
+        self.import_button.setMenu(import_menu)
+        self.import_action = self.toolbar.addWidget(self.import_button)
 
         self.post_plan_matter_action = self.add_action(
             text="Vie kaava-asia",
