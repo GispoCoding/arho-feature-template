@@ -590,7 +590,7 @@ categories:
         geometry: Alue
         short_name: tärinä
         plan_regulations:
-          - regulation_code: tarinaalue # Not capitalized Alue because the leading a is actually ä :D # melualue
+          - regulation_code: tarinaAlue
             additional_information:
               - type: osaAlue
 
