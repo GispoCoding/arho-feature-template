@@ -10,6 +10,7 @@ from qgis.gui import QgsMapToolDigitizeFeature
 from qgis.PyQt.QtCore import QObject, pyqtSignal
 from qgis.PyQt.QtWidgets import QDialog
 
+from arho_feature_template import SUPPORTED_PROJECT_VERSION
 from arho_feature_template.core.lambda_service import LambdaService
 from arho_feature_template.core.models import (
     AdditionalInformation,
@@ -155,7 +156,24 @@ class PlanManager(QObject):
         self.cache_code_layers()
         self.initialize_libraries()
 
-    def check_required_layers(self):
+    def check_compatible_project_version(self) -> bool:
+        project_version, ok = QgsProject.instance().readEntry("arho", "project_version")
+        if not ok:
+            msg = "Projektitiedostosta ei löytynyt ARHO versiomerkintää. Käytäthän varmasti yhteensopivaa projektiedostoa?"
+            iface.messageBar().pushCritical("", msg)
+            return False
+
+        if float(project_version) != SUPPORTED_PROJECT_VERSION:
+            msg = (
+                "Projektitiedosto ei ole yhteensopiva lisäosan version kanssa "
+                f"(havaittu versio {project_version}, vaadittu {SUPPORTED_PROJECT_VERSION})"
+            )
+            iface.messageBar().pushCritical("", msg)
+            return False
+
+        return True
+
+    def check_required_layers(self) -> bool:
         missing_layers = []
         for layer in code_layers + plan_layers:
             if not layer.exists():
@@ -666,7 +684,7 @@ class PlanManager(QObject):
     def on_project_loaded(self):
         self.initialize_from_project()
 
-        if self.check_required_layers():
+        if self.check_compatible_project_version() and self.check_required_layers():
             QgsProject.instance().cleared.connect(self.on_project_cleared)
             self.project_loaded.emit()
 

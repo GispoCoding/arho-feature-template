@@ -15,6 +15,10 @@ if debugger in {"debugpy", "ptvsd", "pydevd"}:
     locals()["setup_" + debugger]()
 
 
+PLUGIN_VERSION = 0.17
+SUPPORTED_PROJECT_VERSION = 0.1
+
+
 def classFactory(iface: "QgisInterface"):  # noqa N802
     from arho_feature_template.plugin import Plugin
 
