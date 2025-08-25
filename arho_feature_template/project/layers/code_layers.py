@@ -59,6 +59,11 @@ class PlanTypeLayer(AbstractCodeLayer):
 class LifeCycleStatusLayer(AbstractCodeLayer):
     name = "Elinkaaren tila"
 
+    @classmethod
+    def get_status_name(cls, identifier: str) -> str | None:
+        attribute_value = cls.get_attribute_value_by_another_attribute_value("name", "id", identifier)
+        return attribute_value.get(LANGUAGE) if attribute_value else None
+
 
 class OrganisationLayer(AbstractCodeLayer):
     name = "Toimija"
@@ -85,6 +90,13 @@ class PlanDecisionNameLayer(AbstractCodeLayer):
         attribute_value = cls.get_attribute_value_by_another_attribute_value("id", "value", code)
         return cast(str, attribute_value) if attribute_value else None
 
+    @classmethod
+    def get_code(cls, decision_id: str) -> str | None:
+        if not decision_id:
+            return None
+        attribute_value = cls.get_attribute_value_by_another_attribute_value("value", "id", decision_id)
+        return cast(str, attribute_value) if attribute_value else None
+
 
 class ProcessingEventTypeLayer(AbstractCodeLayer):
     name = "Käsittelytapahtuman tyyppi"
@@ -99,6 +111,13 @@ class ProcessingEventTypeLayer(AbstractCodeLayer):
         attribute_value = cls.get_attribute_value_by_another_attribute_value("id", "value", code)
         return cast(str, attribute_value) if attribute_value else None
 
+    @classmethod
+    def get_code(cls, processing_id: str) -> str | None:
+        if not processing_id:
+            return None
+        attribute_value = cls.get_attribute_value_by_another_attribute_value("value", "id", processing_id)
+        return cast(str, attribute_value) if attribute_value else None
+
 
 class InteractionEventTypeLayer(AbstractCodeLayer):
     name = "Vuorovaikutustapahtuman tyyppi"
@@ -111,6 +130,13 @@ class InteractionEventTypeLayer(AbstractCodeLayer):
     @classmethod
     def get_id(cls, code: str) -> str | None:
         attribute_value = cls.get_attribute_value_by_another_attribute_value("id", "value", code)
+        return cast(str, attribute_value) if attribute_value else None
+
+    @classmethod
+    def get_code(cls, interaction_id: str) -> str | None:
+        if not interaction_id:
+            return None
+        attribute_value = cls.get_attribute_value_by_another_attribute_value("value", "id", interaction_id)
         return cast(str, attribute_value) if attribute_value else None
 
 

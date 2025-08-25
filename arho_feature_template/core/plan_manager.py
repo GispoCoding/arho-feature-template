@@ -705,10 +705,6 @@ def save_plan(plan: Plan) -> str | None:
         lifecycle.plan_id = plan_id
         save_lifecycle(lifecycle)
 
-    # Save event dates
-    for event_date in plan.event_date:
-        save_event_date(event_date)
-
     return plan_id
 
 
@@ -1000,6 +996,7 @@ def save_lifecycle(lifecycle: LifeCycle) -> str | None:
         return lifecycle.id_
 
     feature = LifeCycleLayer.feature_from_model(lifecycle)
+
     if not _save_feature(
         feature=feature,
         layer=LifeCycleLayer.get_from_project(),
@@ -1009,7 +1006,14 @@ def save_lifecycle(lifecycle: LifeCycle) -> str | None:
         iface.messageBar().pushCritical("", "Elinkaaren tallentaminen epäonnistui.")
         return None
 
-    return feature["id"]
+    feat_id = cast(str, feature["id"])
+
+    # Save all event dates for this lifecycle
+    for event_date in lifecycle.event_dates:
+        event_date.lifecycle_date_id = feat_id
+        save_event_date(event_date)
+
+    return feat_id
 
 
 def save_event_date(event: EventDate) -> str | None:
@@ -1017,6 +1021,7 @@ def save_event_date(event: EventDate) -> str | None:
         return event.id_
 
     feature = EventDateLayer.feature_from_model(event)
+
     if not _save_feature(
         feature=feature,
         layer=EventDateLayer.get_from_project(),

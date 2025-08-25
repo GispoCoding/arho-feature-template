@@ -550,11 +550,12 @@ class LifeCycle(PlanBaseModel):
     starting_at: QDate | None = None
     ending_at: QDate | None = None
     # might not need the following
-    land_use_are_id: str | None = None
+    land_use_area_id: str | None = None
     other_area_id: str | None = None
     line_id: str | None = None
     land_use_point_id: str | None = None
     other_point_id: str | None = None
+    event_dates: list[EventDate] = field(default_factory=list, compare=False)
     modified: bool = field(compare=False, default=True)
 
 
@@ -596,7 +597,6 @@ class Plan(PlanBaseModel):
     legal_effect_ids: list[str] = field(default_factory=list)
     geom: QgsGeometry | None = None
     modified: bool = field(compare=False, default=True)
-    event_date: list[EventDate] = field(default_factory=list, compare=False)
     id_: str | None = None
 
 
@@ -627,7 +627,7 @@ class EventDate:
     decision_id: str | None = None
     processing_event_id: str | None = None
     interaction_event_id: str | None = None
-    starting_at: datetime | None = None
-    ending_at: datetime | None = None
+    starting_at: QDate | None = None
+    ending_at: QDate | None = None
     id_: str | None = None
     modified: bool = field(compare=False, default=True)
