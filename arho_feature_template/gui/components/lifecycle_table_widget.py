@@ -70,6 +70,10 @@ class LifecycleTableWidget(QTableWidget):
         if lifecycle.status_id:
             status.set_value(lifecycle.status_id)
 
+        # Lock status for rows with existing id_
+        if lifecycle.id_ is not None:
+            status.setEnabled(False)
+
         self.setCellWidget(row_position, 0, status)
 
         start_date_edit = QgsDateTimeEdit()
