@@ -86,6 +86,7 @@ class PlanLayer(AbstractPlanLayer):
         feature.setGeometry(model.geom)
         feature["name"] = serialize_localized_text(model.name)
         feature["description"] = serialize_localized_text(model.description)
+        feature["scale"] = model.scale
         feature["permanent_plan_identifier"] = model.permanent_plan_identifier
         feature["record_number"] = model.record_number
         feature["producers_plan_identifier"] = model.producers_plan_identifier
@@ -106,6 +107,7 @@ class PlanLayer(AbstractPlanLayer):
             geom=feature.geometry(),
             name=deserialize_localized_text(feature["name"]),
             description=deserialize_localized_text(feature["description"]),
+            scale=feature["scale"],
             permanent_plan_identifier=feature["permanent_plan_identifier"],
             record_number=feature["record_number"],
             producers_plan_identifier=feature["producers_plan_identifier"],
@@ -233,6 +235,7 @@ class RegulationGroupLayer(AbstractPlanLayer):
         feature["type_of_plan_regulation_group_id"] = model.type_code_id
         feature["plan_id"] = plan_id if plan_id else get_active_plan_id()
         feature["id"] = model.id_ if model.id_ else feature["id"]
+        feature["ordering"] = model.group_number if model.group_number else None
         return feature
 
     @classmethod
@@ -242,7 +245,7 @@ class RegulationGroupLayer(AbstractPlanLayer):
             heading=deserialize_localized_text(feature["name"]),
             letter_code=feature["short_name"],
             color_code=None,
-            group_number=None,
+            group_number=feature["ordering"],
             regulations=[
                 PlanRegulationLayer.model_from_feature(feat)
                 for feat in PlanRegulationLayer.regulations_with_group_id(feature["id"])

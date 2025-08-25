@@ -5,6 +5,8 @@ from typing import cast
 from qgis.PyQt.QtGui import QStandardItem, QStandardItemModel
 from qgis.PyQt.QtWidgets import QTreeView
 
+from arho_feature_template.utils.load_validation_errors import VALIDATION_ERRORS
+
 category_map = {
     "plan": "Kaava",
     "geographicalArea": "Kaavan ulkoraja",
@@ -64,6 +66,12 @@ class ValidationModel(QStandardItemModel):
 
         current_parent = self._parent_items[instance]
         message_item = ValidationItem(message)
+
+        processed_rule_id = error.replace("__", "/").replace("_", "-")
+        try:
+            description = VALIDATION_ERRORS[processed_rule_id]
+        except KeyError:
+            description = ""
         message_tooltip = dedent(
             f"""\
             <p>
@@ -73,6 +81,10 @@ class ValidationModel(QStandardItemModel):
             <p>
                 <span style='font-weight:bold'>Virheviesti:</span><br/>
                 {message}
+            </p>
+            <p>
+                <span style='font-weight:bold'>Kuvaus:</span><br/>
+                {description}
             </p>
             """
         )
