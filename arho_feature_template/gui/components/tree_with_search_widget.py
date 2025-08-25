@@ -61,10 +61,12 @@ class TreeWithSearchWidget(QWidget):
                 # If group matches, show it and all its children
                 self.show_all_children(group_item)
                 group_item.setHidden(False)
+                group_item.setExpanded(True)
             else:
                 # Otherwise, recursively filter its children
                 matches_child = self.filter_children(group_item, search_text)
                 group_item.setHidden(not matches_child)
+                group_item.setExpanded(matches_child)
 
     def filter_children(self, parent_item: QTreeWidgetItem, search_text: str) -> bool:
         """Recursively filter children and return True if any child matches."""
@@ -77,6 +79,7 @@ class TreeWithSearchWidget(QWidget):
             child = parent_item.child(i)
             sub_tree_matches = self.filter_children(child, search_text)
             child.setHidden(not sub_tree_matches)
+            child.setExpanded(sub_tree_matches)
 
             if sub_tree_matches:
                 descendant_matches = True
@@ -89,5 +92,6 @@ class TreeWithSearchWidget(QWidget):
         for i in range(parent_item.childCount()):
             child = parent_item.child(i)
             child.setHidden(False)
+            child.setExpanded(True)
             if child.childCount() > 0:
                 self.show_all_children(child)
